@@ -92,6 +92,11 @@ export const fixtures: BackendFixtures<typeof backend> = {
             args: [],
             response: [{ name: "example", logs: [] }],
         },
+        getMetrics: {
+            route: "Core_GetAllPluginMetrics",
+            args: [],
+            response: [{ name: "example", rss_bytes: 4096, heap_bytes: 2048, cpu_percent: 0.5 }],
+        },
     },
 
     themes: {

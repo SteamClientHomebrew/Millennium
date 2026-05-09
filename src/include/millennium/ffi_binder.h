@@ -38,8 +38,8 @@
 namespace ffi_constants
 {
 static const char* const binding_name = "__private_millennium_ffi_do_not_use__";
+static const char* const sdk_ready_binding_name = "__millennium_sdk_ready__";
 static const char* const frontend_binding_name = "MILLENNIUM_PRIVATE_INTERNAL_FOREIGN_FUNCTION_INTERFACE_DO_NOT_USE";
-static const char* const cdp_native_binding_name = "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL";
 static const char* const extension_binding_name = "__millennium_extension_route__";
 static const char* const extension_frontend_response_name = "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE";
 static const char* const cdp_proxy_binding_name = "__millennium_cdp_proxy__";
@@ -112,6 +112,7 @@ class ffi_binder
     void binding_call_hdlr(const json& params);
     void extension_route_hdlr(const json& params);
     void cdp_proxy_hdlr(const json& params);
+    void sdk_ready_hdlr(const json& params);
     void execution_ctx_created_hdlr(const json& params);
     void execution_ctx_destroyed_hdlr(const json& params);
 

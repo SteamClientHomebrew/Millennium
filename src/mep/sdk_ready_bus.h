@@ -30,59 +30,48 @@
 
 #pragma once
 
-#include "millennium/cdp_api.h"
-#include "millennium/plugin_manager.h"
-
 #include <atomic>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include <nlohmann/json.hpp>
-
 namespace mep
 {
 
-struct console_entry
+struct sdk_ready_event
 {
-    std::string plugin; /* attributed plugin name, or "millennium" for core */
-    nlohmann::json raw; /* full CDP Runtime.consoleAPICalled params */
+    std::string sdk_version;
+    std::string millennium_version;
+
+    int api_total = 0;
+    std::vector<std::string> api_missing;
 };
 
-class console_capture
+class sdk_ready_bus
 {
   public:
-    using listener_fn = std::function<void(const console_entry&)>;
-    static console_capture& instance();
+    using listener_fn = std::function<void(const sdk_ready_event&)>;
 
-    /* start listening to console events from the given CDP client. */
-    void start(std::shared_ptr<cdp_client> cdp, std::shared_ptr<plugin_manager> pm);
+    static sdk_ready_bus& instance();
 
-    std::vector<console_entry> get_recent(const std::string& plugin, std::size_t max = 200) const;
+    void notify(const sdk_ready_event& ev);
 
-    int add_listener(const std::string& plugin, listener_fn fn);
+    /* if sdk.ready already fired before this call, the listener is invoked immediately. */
+    int add_listener(listener_fn fn);
     void remove_listener(int id);
 
+    std::optional<sdk_ready_event> get_last() const;
+
   private:
-    console_capture() = default;
+    sdk_ready_bus() = default;
 
-    void on_console_event(const nlohmann::json& params);
-    std::string attribute_plugin(const nlohmann::json& params) const;
-
-    static constexpr std::size_t RING_SIZE = 512;
-
-    mutable std::mutex m_ring_mutex;
-    std::vector<console_entry> m_ring;
-    std::size_t m_write_pos = 0;
-
-    std::mutex m_listener_mutex;
-    std::unordered_map<int, std::pair<std::string, listener_fn>> m_listeners;
+    mutable std::mutex m_mutex;
+    std::unordered_map<int, listener_fn> m_listeners;
+    std::optional<sdk_ready_event> m_last;
     std::atomic<int> m_id_counter{ 0 };
-
-    std::shared_ptr<plugin_manager> m_pm;
-    std::shared_ptr<cdp_client> m_cdp;
-    std::atomic<bool> m_started{ false };
 };
+
 } // namespace mep

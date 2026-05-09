@@ -7,9 +7,7 @@ execute_process(
 )
 
 if(NOT _rc EQUAL 0)
-  message("${_out}")
-  message("${_err}")
-  message(FATAL_ERROR " FAIL")
+    message("${_out}")
+    message("${_err}")
+    message(FATAL_ERROR " FAIL")
 endif()
-
-message(" OK")

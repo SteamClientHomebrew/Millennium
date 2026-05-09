@@ -1,4 +1,5 @@
 export * from './class-mapper';
+export * from './error-monitor';
 export * from './components';
 export * from './custom-components';
 export * from './custom-hooks';
@@ -15,10 +16,11 @@ import { JSX } from 'react';
 import ErrorBoundaryHook from './hooks/error-boundary-hook';
 import RouterHook from './hooks/router/router-hook';
 import Toaster from './hooks/toaster-hook';
+import { guardedInit } from './error-monitor';
 
-export const errorBoundaryHook: ErrorBoundaryHook = new ErrorBoundaryHook();
-export const routerHook: RouterHook = new RouterHook();
-export const toaster: Toaster = new Toaster();
+export const errorBoundaryHook: ErrorBoundaryHook = guardedInit(() => new ErrorBoundaryHook(), 'ErrorBoundaryHook')!;
+export const routerHook: RouterHook = guardedInit(() => new RouterHook(), 'RouterHook')!;
+export const toaster: Toaster = guardedInit(() => new Toaster(), 'Toaster')!;
 
 export interface Plugin {
 	version?: string;

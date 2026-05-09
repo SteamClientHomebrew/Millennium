@@ -183,7 +183,7 @@ std::string webkit_world_mgr::compile_api_shim()
 console.log("%cMillennium%c loading webkit modules...", "background: white; color: black; padding: 2px 6px; border-radius: 6px;", "");
 
 import('{1}')
-.then(module => (new module.default).startWebkitPreloader('{2}', [{3}], [{4}], [{5}], '{6}'))
+.then(module => (new module.default).startBrowser([{2}], [{3}], [{4}], '{5}'))
 .catch((error) => console.error("%cMillennium%c failed to load webkit modules.", "background: black; color: red; padding: 2px 6px; border-radius: 2px;", "", error));
 )";
 
@@ -202,11 +202,10 @@ import('{1}')
         return acc + std::format("'{}',", p.plugin_name);
     });
     const std::string location = GET_GITHUB_URL_FROM_HERE();
-    const std::string token = GetAuthToken();
     const std::string ftp_path = m_ftp_url + platform::get_millennium_preload_path();
     const std::string ftp_base = m_ftp_url + GetScrambledApiPathToken();
 
-    return std::format(m_api_shim_script, location, ftp_path, token, plugins, modules, "", ftp_base);
+    return std::format(m_api_shim_script, location, ftp_path, plugins, modules, "", ftp_base);
 }
 
 void webkit_world_mgr::expose_millennium_to_ctx(const std::string& session_id, bool can_reload)

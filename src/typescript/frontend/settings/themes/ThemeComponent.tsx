@@ -66,7 +66,7 @@ export const ChangeActiveTheme = async (themeName: string, reloadProps: UIReload
 		return false;
 	}
 
-    await backend.themes.setActiveTheme(themeName);
+	await backend.themes.setActiveTheme(themeName);
 
 	return new Promise((resolve) => {
 		switch (reloadProps) {

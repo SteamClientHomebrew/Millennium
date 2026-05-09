@@ -37,7 +37,7 @@ function (find_steam_path project_name)
 
             target_link_options(${project_name} PRIVATE "/INCREMENTAL" "/ILK:${CMAKE_BINARY_DIR}/pdb/${project_name}.ilk")
         else()
-            message(WARNING "[Millennium] Failed to read Steam installation path from HKCU\\Software\\Valve\\Steam.")
+            message(WARNING "[MLNM] Failed to read Steam installation path from HKCU\\Software\\Valve\\Steam.")
         endif()
     endif()
 endfunction()

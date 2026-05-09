@@ -29,11 +29,11 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Classes, DialogBody, IconsModule, Navigation, SidebarNavigation, SidebarNavigationPage } from '@steambrew/client';
+import { Classes, DialogBody, Navigation, SidebarNavigation, SidebarNavigationPage } from '@steambrew/client';
 import { locale } from '../utils/localization-manager';
 import { settingsClasses } from '../utils/classes';
 import { GeneralViewModal } from './general';
-import { MillenniumIcons } from '../components/Icons';
+import { CctvIcon, CloudDownloadIcon, CoffeeIcon, ConnectIcon, ContrastIcon, RabbitIcon } from '../components/Icons';
 import { ThemeViewModal } from './themes';
 import { PluginViewModal } from './plugins';
 import { UpdatesViewModal } from './updates';
@@ -41,8 +41,6 @@ import { UpdateContextProvider } from './updates/useUpdateContext';
 import { RenderLogViewer } from './logs';
 import { ConfigProvider } from '../utils/config-provider';
 import Styles from '../utils/styles';
-import { FaPaintRoller } from 'react-icons/fa';
-import { PiPlugsFill } from 'react-icons/pi';
 import { QuickCssViewModal } from './quickcss';
 import { useQuickAccessStore } from '../quick-access/quickAccessStore';
 
@@ -53,7 +51,7 @@ declare global {
 const tabSpotGeneral: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelGeneral,
-	icon: <MillenniumIcons.SteamBrewLogo />,
+	icon: <CoffeeIcon size={20} />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>
 			<GeneralViewModal />
@@ -65,7 +63,7 @@ const tabSpotGeneral: SidebarNavigationPage = {
 const tabSpotThemes: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelThemes,
-	icon: <FaPaintRoller style={{ height: '20px', width: '20px' }} />,
+	icon: <ContrastIcon size={20} />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>
 			<ThemeViewModal />
@@ -77,7 +75,7 @@ const tabSpotThemes: SidebarNavigationPage = {
 const tabSpotQuickCSS: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelQuickCSS,
-	icon: <MillenniumIcons.RabbitRunning />,
+	icon: <RabbitIcon size={20} />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>
 			<QuickCssViewModal />
@@ -89,7 +87,7 @@ const tabSpotQuickCSS: SidebarNavigationPage = {
 const tabSpotPlugins: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelPlugins,
-	icon: <PiPlugsFill style={{ height: '20px', width: '20px' }} />,
+	icon: <ConnectIcon size={20} />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>
 			<PluginViewModal />
@@ -101,7 +99,7 @@ const tabSpotPlugins: SidebarNavigationPage = {
 const tabSpotUpdates: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelUpdates,
-	icon: <IconsModule.Update />,
+	icon: <CloudDownloadIcon size={20} />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>
 			<UpdatesViewModal />
@@ -113,7 +111,7 @@ const tabSpotUpdates: SidebarNavigationPage = {
 const tabSpotLogs: SidebarNavigationPage = {
 	visible: true,
 	title: locale.settingsPanelLogs,
-	icon: <IconsModule.TextCodeBlock />,
+	icon: <CctvIcon size={20} />,
 	content: (
 		<DialogBody className={Classes.SettingsDialogBodyFade}>
 			<RenderLogViewer />

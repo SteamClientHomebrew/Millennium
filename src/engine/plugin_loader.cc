@@ -52,6 +52,7 @@
 #include "state/shared_memory.h"
 
 #include "mep/console_capture.h"
+#include "mep/exception_capture.h"
 #include "mep/crash_event_bus.h"
 
 #include "head/entry_point.h"
@@ -72,7 +73,7 @@ template <typename Range> std::string join_strings(const Range& items, std::stri
     }
     return out;
 }
-}
+} // namespace
 
 #ifdef __linux__
 #include <mutex>
@@ -131,6 +132,7 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
     m_millennium_backend->set_ipc_main(m_ipc_main);
 
     mep::console_capture::instance().start(m_cdp, m_plugin_manager);
+    mep::exception_capture::instance().start(m_cdp, m_plugin_manager);
 
     m_thread_pool->enqueue([this]()
     {
@@ -274,7 +276,7 @@ std::string plugin_loader::cdp_generate_bootstrap_module(const std::vector<std::
     const std::string ftp_path = m_network_hook_ctl->get_ftp_url() + preload_path;
     const std::string module_list = std::format(R"("{}")", join_strings(modules, R"(", ")"));
 
-    return std::format("import('{}').then(m => (new m.default).StartPreloader('{}', [{}]))", ftp_path, token, module_list);
+    return std::format("import('{}').then(m => (new m.default).startClient('{}', '{}', [{}]))", ftp_path, MILLENNIUM_VERSION, token, module_list);
 }
 
 std::string plugin_loader::cdp_generate_shim_module()

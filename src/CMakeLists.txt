@@ -89,7 +89,9 @@ set(SOURCE_FILES
     mep/mep_hooks.cc
     mep/ffi_recorder.cc
     mep/console_capture.cc
+    mep/exception_capture.cc
     mep/crash_event_bus.cc
+    mep/sdk_ready_bus.cc
 )
 
 if(WIN32)
@@ -214,10 +216,10 @@ endif()
 find_steam_path(Millennium)
 
 if (WIN32 AND NOT GITHUB_ACTION_BUILD)
-    message(STATUS "[Millennium] Build Path: ${out_steam_path}")
+    message(STATUS "[MLNM] Build Path: ${out_steam_path}")
 endif()
-message(STATUS "[Millennium] Version:    ${MILLENNIUM_VERSION}")
-message(STATUS "[Millennium] Commit OID: ${GIT_COMMIT_HASH}")
+message(STATUS "[MLNM] Version:    ${MILLENNIUM_VERSION}")
+message(STATUS "[MLNM] Commit OID: ${GIT_COMMIT_HASH}")
 
 set_target_properties(Millennium PROPERTIES
     PREFIX ""

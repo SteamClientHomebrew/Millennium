@@ -35,6 +35,7 @@ import {
 	OpIdResponse,
 	PluginCrashInfo,
 	PluginComponent,
+	PluginMetrics,
 	SettingsProps,
 	SystemAccentColor,
 	ThemeColorOption,
@@ -56,6 +57,7 @@ export const backend = {
 		update: ffi<[id: string, name: string, commit: string], OpIdResponse>('Core_DownloadPluginUpdate'),
 		stop: ffi<[pluginName: string], void>('Core_KillPluginBackend'),
 		getBackendLogs: ffi<[], LogData[]>('Core_GetPluginBackendLogs'),
+		getMetrics: ffi<[], PluginMetrics[]>('Core_GetAllPluginMetrics'),
 	},
 
 	themes: {

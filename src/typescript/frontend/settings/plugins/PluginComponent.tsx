@@ -34,12 +34,14 @@ import { IconButton } from '../../components/IconButton';
 import { DesktopTooltip, Separator } from '../../components/SteamComponents';
 import { DesktopSideBarFocusedItemType } from '../../quick-access/DesktopMenuContext';
 import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
-import { PluginComponent } from '../../types';
+import { PluginComponent, PluginMetrics } from '../../types';
 import { Utils } from '../../utils';
 import { backend } from '../../utils/ffi';
 import { formatString, locale } from '../../utils/localization-manager';
 import { MillenniumIcons } from '../../components/Icons';
 import { showPluginCrashModal } from '../../components/PluginCrashModal';
+import { FiCpu } from 'react-icons/fi';
+import { FaMemory } from 'react-icons/fa';
 
 interface PluginComponentProps {
 	plugin: PluginComponent;
@@ -53,6 +55,7 @@ interface PluginComponentProps {
 	allPlugins: Array<PluginComponent>;
 	isPluginConfigurable: boolean;
 	isLegacy: boolean;
+	metrics?: PluginMetrics;
 }
 
 enum TooltipType {
@@ -61,10 +64,24 @@ enum TooltipType {
 	None = 'none',
 }
 
-export class RenderPluginComponent extends Component<PluginComponentProps> {
+interface RenderPluginComponentState {
+	flashKey: number;
+}
+
+export class RenderPluginComponent extends Component<PluginComponentProps, RenderPluginComponentState> {
+	state: RenderPluginComponentState = { flashKey: 0 };
+
 	constructor(props: PluginComponentProps) {
 		super(props);
 		this.showCtxMenu = this.showCtxMenu.bind(this);
+	}
+
+	componentDidUpdate(prevProps: PluginComponentProps) {
+		const prev = prevProps.metrics;
+		const curr = this.props.metrics;
+		if (curr && (!prev || prev.rss_bytes !== curr.rss_bytes || prev.cpu_percent !== curr.cpu_percent)) {
+			this.setState((s) => ({ flashKey: s.flashKey + 1 }));
+		}
 	}
 
 	async uninstallPlugin() {
@@ -204,12 +221,17 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 	}
 
 	render() {
-		const { plugin, index, isLastPlugin, isEnabled, onSelectionChange } = this.props;
+		const { plugin, index, isLastPlugin, isEnabled, onSelectionChange, metrics } = this.props;
+		const { flashKey } = this.state;
 
 		/** Don't render the Millennium plugin */
 		if (plugin.data.name === 'core') return null;
 
 		const { type, content } = this.getTooltipContent();
+
+		const formatBytes = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${(bytes / 1024).toFixed(1)} KB`);
+
+		const showMetrics = isEnabled && metrics && metrics.rss_bytes > 0;
 
 		return (
 			<Field
@@ -217,7 +239,23 @@ export class RenderPluginComponent extends Component<PluginComponentProps> {
 				label={
 					<div className="MillenniumPlugins_PluginLabel">
 						{plugin.data.common_name}
-						{plugin.data.version && <div className="MillenniumItem_Version">{plugin.data.version}</div>}
+						{plugin.data.version && (
+							<div className="MillenniumItem_Version">
+								<span>v{plugin.data.version}</span>
+							</div>
+						)}
+						{showMetrics && (
+							<div className="MillenniumPlugins_Metrics" key={flashKey}>
+								<span>
+									<FiCpu />
+									{formatBytes(metrics.heap_bytes)}
+								</span>
+								<span>
+									<FaMemory />
+									{metrics.cpu_percent.toFixed(1)}% CPU
+								</span>
+							</div>
+						)}
 					</div>
 				}
 				description={plugin?.data?.description}

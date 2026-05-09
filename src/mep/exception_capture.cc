@@ -28,31 +28,31 @@
  * SOFTWARE.
  */
 
-#include "mep/console_capture.h"
+#include "mep/exception_capture.h"
 #include <algorithm>
 
 namespace mep
 {
-console_capture& console_capture::instance()
+
+exception_capture& exception_capture::instance()
 {
-    static console_capture inst;
+    static exception_capture inst;
     return inst;
 }
 
-void console_capture::start(std::shared_ptr<cdp_client> cdp, std::shared_ptr<plugin_manager> pm)
+void exception_capture::start(std::shared_ptr<cdp_client> cdp, std::shared_ptr<plugin_manager> pm)
 {
+    if (m_started.exchange(true)) return;
     m_pm = std::move(pm);
-    m_cdp = cdp;
-    cdp->on("Runtime.consoleAPICalled", [this](const nlohmann::json& params)
+    cdp->on("Runtime.exceptionThrown", [this](const nlohmann::json& params)
     {
-        on_console_event(params);
+        on_exception_event(params);
     });
-    m_started.store(true);
 }
 
-void console_capture::on_console_event(const nlohmann::json& params)
+void exception_capture::on_exception_event(const nlohmann::json& params)
 {
-    console_entry entry;
+    exception_entry entry;
     entry.plugin = attribute_plugin(params);
     entry.raw = params;
 
@@ -70,7 +70,7 @@ void console_capture::on_console_event(const nlohmann::json& params)
     {
         std::lock_guard<std::mutex> lock(m_listener_mutex);
         for (const auto& [id, pair] : m_listeners) {
-            if (pair.first == entry.plugin) {
+            if (pair.first.empty() || pair.first == entry.plugin) {
                 targets.push_back(pair.second);
             }
         }
@@ -84,35 +84,52 @@ void console_capture::on_console_event(const nlohmann::json& params)
     }
 }
 
-std::string console_capture::attribute_plugin(const nlohmann::json& params) const
+std::string exception_capture::attribute_plugin(const nlohmann::json& params) const
 {
     if (!m_pm) return "millennium";
 
-    if (params.contains("stackTrace") && params["stackTrace"].contains("callFrames")) {
-        const auto plugins = m_pm->get_all_plugins();
+    const nlohmann::json* details = nullptr;
+    if (params.contains("exceptionDetails")) {
+        details = &params["exceptionDetails"];
+    }
+    if (!details) return "millennium";
 
-        for (const auto& frame : params["stackTrace"]["callFrames"]) {
-            if (!frame.contains("url") || !frame["url"].is_string()) continue;
-            const std::string url = frame["url"].get<std::string>();
+    const auto plugins = m_pm->get_all_plugins();
 
-            for (const auto& p : plugins) {
-                if (p.is_internal) continue;
-                const std::string base = p.plugin_base_dir.generic_string();
-                if (!base.empty() && url.find(base) != std::string::npos) {
-                    return p.plugin_name;
-                }
+    auto check_url = [&](const std::string& url) -> std::string {
+        for (const auto& p : plugins) {
+            if (p.is_internal) continue;
+            const std::string base = p.plugin_base_dir.generic_string();
+            if (!base.empty() && url.find(base) != std::string::npos) {
+                return p.plugin_name;
             }
+        }
+        return {};
+    };
+
+    /* check the direct exception url first */
+    if (details->contains("url") && (*details)["url"].is_string()) {
+        auto result = check_url((*details)["url"].get<std::string>());
+        if (!result.empty()) return result;
+    }
+
+    /* then walk the stack trace */
+    if (details->contains("stackTrace") && (*details)["stackTrace"].contains("callFrames")) {
+        for (const auto& frame : (*details)["stackTrace"]["callFrames"]) {
+            if (!frame.contains("url") || !frame["url"].is_string()) continue;
+            auto result = check_url(frame["url"].get<std::string>());
+            if (!result.empty()) return result;
         }
     }
 
     return "millennium";
 }
 
-std::vector<console_entry> console_capture::get_recent(const std::string& plugin, std::size_t max) const
+std::vector<exception_entry> exception_capture::get_recent(const std::string& plugin, std::size_t max) const
 {
     std::lock_guard<std::mutex> lock(m_ring_mutex);
 
-    std::vector<console_entry> out;
+    std::vector<exception_entry> out;
     out.reserve((std::min)(max, m_ring.size()));
 
     const std::size_t total = m_ring.size();
@@ -121,7 +138,7 @@ std::vector<console_entry> console_capture::get_recent(const std::string& plugin
     for (std::size_t i = 0; i < total && out.size() < max; ++i) {
         std::size_t idx = (total < RING_SIZE) ? (total - 1 - i) : ((start - i + RING_SIZE) % RING_SIZE);
         const auto& e = m_ring[idx];
-        if (e.plugin == plugin) {
+        if (plugin.empty() || e.plugin == plugin) {
             out.push_back(e);
         }
     }
@@ -130,7 +147,7 @@ std::vector<console_entry> console_capture::get_recent(const std::string& plugin
     return out;
 }
 
-int console_capture::add_listener(const std::string& plugin, listener_fn fn)
+int exception_capture::add_listener(const std::string& plugin, listener_fn fn)
 {
     int id = ++m_id_counter;
     std::lock_guard<std::mutex> lock(m_listener_mutex);
@@ -138,9 +155,10 @@ int console_capture::add_listener(const std::string& plugin, listener_fn fn)
     return id;
 }
 
-void console_capture::remove_listener(int id)
+void exception_capture::remove_listener(int id)
 {
     std::lock_guard<std::mutex> lock(m_listener_mutex);
     m_listeners.erase(id);
 }
+
 } // namespace mep

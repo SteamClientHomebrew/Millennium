@@ -30,7 +30,7 @@
 
 import { Component } from 'react';
 import { ConfirmModal, DialogButton, DialogControlsSection, joinClassNames, pluginSelf, showModal } from '@steambrew/client';
-import { PluginComponent } from '../../types';
+import { PluginComponent, PluginMetrics } from '../../types';
 import { locale } from '../../utils/localization-manager';
 import { settingsClasses } from '../../utils/classes';
 import { FaFolderOpen, FaSave, FaStore } from 'react-icons/fa';
@@ -69,6 +69,7 @@ interface PluginViewModalState {
 	pluginsWithLogs?: Map<string, PluginStatusProps>;
 	updatedPlugins: UpdatedPluginProps[];
 	configurablePluginStore: Array<{ name: string; isEditable: boolean }>;
+	metrics: Map<string, PluginMetrics>;
 }
 
 class PluginViewModal extends Component<{}, PluginViewModalState> {
@@ -78,17 +79,33 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 		pluginsWithLogs: undefined,
 		updatedPlugins: [],
 		configurablePluginStore: [],
+		metrics: new Map(),
 	};
 
 	private crashEventHandler = () => this.FetchAllPlugins();
+	private metricsInterval: ReturnType<typeof setInterval> | null = null;
 
 	componentDidMount() {
 		this.FetchAllPlugins();
+		this.fetchMetrics();
+		this.metricsInterval = setInterval(this.fetchMetrics.bind(this), 2000);
 		window.addEventListener('millennium-plugin-crash', this.crashEventHandler);
 	}
 
 	componentWillUnmount() {
+		if (this.metricsInterval) clearInterval(this.metricsInterval);
 		window.removeEventListener('millennium-plugin-crash', this.crashEventHandler);
+	}
+
+	async fetchMetrics() {
+		try {
+			const list = await backend.plugins.getMetrics();
+			const map = new Map<string, PluginMetrics>();
+			for (const m of list) map.set(m.name, m);
+			this.setState({ metrics: map });
+		} catch {
+			/* metrics are best-effort */
+		}
 	}
 
 	getEnabledPlugins(plugins: PluginComponent[]) {
@@ -170,6 +187,7 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 				allPlugins={this.state.plugins ?? []}
 				isPluginConfigurable={this.state.configurablePluginStore?.find((p) => p.name === plugin.data.name)?.isEditable ?? false}
 				isLegacy={isLegacyPlugin(plugin)}
+				metrics={this.state.metrics.get(plugin.data.name)}
 			/>
 		);
 	}

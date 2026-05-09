@@ -30,7 +30,7 @@
 
 import { ConfirmModal } from '@steambrew/client';
 import { InstallerProps } from '../types';
-import { OnProgressUpdate, RendererProps } from '../settings/general/Installer';
+import { OnProgressUpdate, RendererProps } from './InstallerProgress';
 import { API_URL } from '../utils/globals';
 import { backend } from '../utils/ffi';
 import { formatString, locale } from '../utils/localization-manager';

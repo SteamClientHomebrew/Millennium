@@ -28,26 +28,20 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, ConfirmModalProps, Millennium, pluginSelf, ProgressBar, showModal, ShowModalResult } from '@steambrew/client';
+import { ConfirmModal, ConfirmModalProps, Millennium, pluginSelf, showModal, ShowModalResult } from '@steambrew/client';
 import React, { useEffect, useState } from 'react';
 import { StartThemeInstaller } from '../../components/ThemeInstaller';
 import { IProgressProps } from '../../types';
 import { StartPluginInstaller } from '../../components/PluginInstaller';
+import { RendererProps } from '../../components/InstallerProgress';
 import { API_URL } from '../../utils/globals';
 import { locale } from '../../utils/localization-manager';
 import { Logger } from '../../utils/Logger';
 import { IncrementPluginDownloadFromId, IncrementThemeDownloadFromId } from '../../utils/update-bump';
-import Styles from 'utils/styles';
 
 export enum InstallType {
 	Plugin,
 	Theme,
-}
-
-export interface RendererProps {
-	onInstallComplete: () => React.ReactNode;
-	onProgressUpdate: ({ status }: { status: string }) => React.ReactElement;
-	opId: number;
 }
 
 /**
@@ -102,41 +96,6 @@ function InstallerMessageEmitter(status: string, progress: number, isComplete: b
 
 Millennium.exposeObj({ InstallerMessageEmitter });
 
-export const OnProgressUpdate = ({ status }: { status: string }) => {
-	const RenderBody = () => {
-		return (
-			<>
-                <Styles />
-                <style>
-                    {`.MillenniumInstallerDialog .DialogButton { display: none; }
-                    .MillenniumInstallerDialog_ProgressStatus { font-weight: 500; float: right; margin-bottom: 10px; }
-                    .DialogBodyText { margin-bottom: unset; }`}
-                </style>
-				<div className='MillenniumInstallerDialog_ProgressStatus'>{status}</div>
-				<ProgressBar
-                    /* @ts-ignore */
-					className="MillenniumInstallerDialog_ProgressBar"
-                    indeterminate
-                    nProgress={0}
-				/>
-			</>
-		);
-	};
-
-	return (
-		<ConfirmModal
-			className="MillenniumInstallerDialog"
-			strTitle={locale.strInstallProgress}
-			strDescription={<RenderBody />}
-			onCancel={() => {}}
-			bHideCloseIcon
-            bAlertDialog
-			bOKDisabled
-			bCancelDisabled
-			bDisableBackgroundDismiss
-		/>
-	);
-};
 
 export class Installer {
 	async FetchPluginInfo(id: string) {

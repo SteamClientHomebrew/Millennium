@@ -36,6 +36,7 @@ export const devClasses = findClassModule((m) => m.richPresenceLabel && m.blocke
 export const fieldClasses: any = findClassModule((m) => m.FieldLabel && !m.GyroButtonPickerDialog && !m.ControllerOutline && !m.AwaitingEmailConfIcon);
 
 export const pagedSettingsClasses = findClassModule((m) => m.PagedSettingsDialog_PageList) as any;
+export const pagedSettingsListItemClass: string | undefined = (findClassModule((m) => 'PagedSettingsDialog_PageListItem' in m && !('PageSettingsDialog_PageList_NoHeaderPadding' in m)) as any)?.PagedSettingsDialog_PageListItem;
 export const settingsClasses = findClassModule((m) => m.SettingsTitleBar && m.SettingsDialogButton) as any;
 export const notificationClasses = findClassModule((m) => m.GroupMessageTitle && !m.ShortTemplate && !m.TwoLine && !m.FriendIndicator && !m.AchievementIcon) as any;
 export const steamSuperNavClass = (findClassModule((m) => m.RootMenuButton && m.RootMenuBar && m.SteamButton) as any)?.SteamButton;

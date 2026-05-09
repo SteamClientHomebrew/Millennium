@@ -45,36 +45,38 @@
 namespace mep
 {
 
-struct console_entry
+struct exception_entry
 {
     std::string plugin; /* attributed plugin name, or "millennium" for core */
-    nlohmann::json raw; /* full CDP Runtime.consoleAPICalled params */
+    nlohmann::json raw; /* full CDP Runtime.exceptionThrown params */
 };
 
-class console_capture
+class exception_capture
 {
   public:
-    using listener_fn = std::function<void(const console_entry&)>;
-    static console_capture& instance();
+    using listener_fn = std::function<void(const exception_entry&)>;
+    static exception_capture& instance();
 
-    /* start listening to console events from the given CDP client. */
+    /* start listening to uncaught exception events from the given CDP client. */
     void start(std::shared_ptr<cdp_client> cdp, std::shared_ptr<plugin_manager> pm);
 
-    std::vector<console_entry> get_recent(const std::string& plugin, std::size_t max = 200) const;
+    /* get recent entries; pass empty string for all plugins. */
+    std::vector<exception_entry> get_recent(const std::string& plugin, std::size_t max = 200) const;
 
+    /* pass empty string to receive events for all plugins. */
     int add_listener(const std::string& plugin, listener_fn fn);
     void remove_listener(int id);
 
   private:
-    console_capture() = default;
+    exception_capture() = default;
 
-    void on_console_event(const nlohmann::json& params);
+    void on_exception_event(const nlohmann::json& params);
     std::string attribute_plugin(const nlohmann::json& params) const;
 
-    static constexpr std::size_t RING_SIZE = 512;
+    static constexpr std::size_t RING_SIZE = 256;
 
     mutable std::mutex m_ring_mutex;
-    std::vector<console_entry> m_ring;
+    std::vector<exception_entry> m_ring;
     std::size_t m_write_pos = 0;
 
     std::mutex m_listener_mutex;
@@ -82,7 +84,7 @@ class console_capture
     std::atomic<int> m_id_counter{ 0 };
 
     std::shared_ptr<plugin_manager> m_pm;
-    std::shared_ptr<cdp_client> m_cdp;
     std::atomic<bool> m_started{ false };
 };
+
 } // namespace mep

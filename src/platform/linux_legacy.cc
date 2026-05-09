@@ -29,6 +29,8 @@
  */
 
 #ifdef __linux__
+#include <linux/limits.h>
+
 #include "millennium/environment.h"
 #include "millennium/linux_distro_helpers.h"
 #include "millennium/logger.h"

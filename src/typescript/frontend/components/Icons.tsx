@@ -28,6 +28,281 @@
  * SOFTWARE.
  */
 
+import { motion, useAnimation } from 'motion/react';
+import type { Transition, Variants } from 'motion/react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, type HTMLAttributes } from 'react';
+import { pagedSettingsListItemClass } from '../utils/classes';
+
+function useNavItemAnimation(
+	divRef: React.RefObject<HTMLDivElement | null>,
+	controlled: React.MutableRefObject<boolean>,
+	controls: ReturnType<typeof useAnimation>,
+	enterVariant: string,
+	leaveVariant: string,
+) {
+	const inNavItem = useRef(false);
+	useEffect(() => {
+		if (controlled.current || !divRef.current || !pagedSettingsListItemClass) return;
+		let el: HTMLElement | null = divRef.current.parentElement;
+		while (el && !el.classList.contains(pagedSettingsListItemClass)) el = el.parentElement;
+		if (!el) return;
+		inNavItem.current = true;
+		const navItem = el;
+		const onEnter = () => controls.start(enterVariant);
+		const onLeave = () => controls.start(leaveVariant);
+		navItem.addEventListener('mouseenter', onEnter);
+		navItem.addEventListener('mouseleave', onLeave);
+		return () => {
+			inNavItem.current = false;
+			navItem.removeEventListener('mouseenter', onEnter);
+			navItem.removeEventListener('mouseleave', onLeave);
+		};
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+	return inNavItem;
+}
+
+// ─── ConnectIcon (Plugins) ───────────────────────────────────────────────────
+
+const CONNECT_PLUG_VARIANTS: Variants = {
+	normal: { x: 0, y: 0 },
+	animate: { x: -3, y: 3 },
+};
+const CONNECT_SOCKET_VARIANTS: Variants = {
+	normal: { x: 0, y: 0 },
+	animate: { x: 3, y: -3 },
+};
+const CONNECT_PATH_VARIANTS = {
+	normal: (c: { x: number; y: number }) => ({ d: `M${c.x} ${c.y} l2.5 -2.5` }),
+	animate: (c: { x: number; y: number }) => ({ d: `M${c.x + 2.93} ${c.y - 2.93} l0.10 -0.10` }),
+};
+
+const ConnectIcon = forwardRef<{ startAnimation: () => void; stopAnimation: () => void }, HTMLAttributes<HTMLDivElement> & { size?: number }>(
+	({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
+		const controls = useAnimation();
+		const controlled = useRef(false);
+		const divRef = useRef<HTMLDivElement>(null);
+		useImperativeHandle(ref, () => {
+			controlled.current = true;
+			return { startAnimation: () => controls.start('animate'), stopAnimation: () => controls.start('normal') };
+		});
+		const inNavItem = useNavItemAnimation(divRef, controlled, controls, 'animate', 'normal');
+		const onEnter = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseEnter?.(e); else if (!inNavItem.current) controls.start('animate'); }, [controls, inNavItem, onMouseEnter]);
+		const onLeave = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseLeave?.(e); else if (!inNavItem.current) controls.start('normal'); }, [controls, inNavItem, onMouseLeave]);
+		return (
+			<div ref={divRef} className={className} onMouseEnter={onEnter} onMouseLeave={onLeave} {...props}>
+				<svg fill="none" height={size} width={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<motion.path animate={controls} d="M19 5l3 -3" transition={{ type: 'spring', stiffness: 500, damping: 30 }} variants={{ normal: { d: 'M19 5l3 -3' }, animate: { d: 'M17 7l5 -5' } }} />
+					<motion.path animate={controls} d="m2 22 3-3" transition={{ type: 'spring', stiffness: 500, damping: 30 }} variants={{ normal: { d: 'm2 22 3-3' }, animate: { d: 'm2 22 6-6' } }} />
+					<motion.path animate={controls} d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z" transition={{ type: 'spring', stiffness: 500, damping: 30 }} variants={CONNECT_SOCKET_VARIANTS} />
+					<motion.path animate={controls} custom={{ x: 7.5, y: 13.5 }} initial="normal" transition={{ type: 'spring', stiffness: 500, damping: 30 }} variants={CONNECT_PATH_VARIANTS} />
+					<motion.path animate={controls} custom={{ x: 10.5, y: 16.5 }} initial="normal" transition={{ type: 'spring', stiffness: 500, damping: 30 }} variants={CONNECT_PATH_VARIANTS} />
+					<motion.path animate={controls} d="m12 6 6 6 2.3-2.3a2.4 2.4 0 0 0 0-3.4l-2.6-2.6a2.4 2.4 0 0 0-3.4 0Z" transition={{ type: 'spring', stiffness: 500, damping: 30 }} variants={CONNECT_PLUG_VARIANTS} />
+				</svg>
+			</div>
+		);
+	}
+);
+ConnectIcon.displayName = 'ConnectIcon';
+
+// ─── CoffeeIcon (General) ────────────────────────────────────────────────────
+
+const COFFEE_PATH_VARIANTS: Variants = {
+	normal: { y: 0, opacity: 1 },
+	animate: (custom: number) => ({
+		y: -3,
+		opacity: [0, 1, 0],
+		transition: { repeat: Number.POSITIVE_INFINITY, duration: 1.5, ease: 'easeInOut', delay: 0.2 * custom },
+	}),
+};
+
+const CoffeeIcon = forwardRef<{ startAnimation: () => void; stopAnimation: () => void }, HTMLAttributes<HTMLDivElement> & { size?: number }>(
+	({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
+		const controls = useAnimation();
+		const controlled = useRef(false);
+		const divRef = useRef<HTMLDivElement>(null);
+		useImperativeHandle(ref, () => {
+			controlled.current = true;
+			return { startAnimation: () => controls.start('animate'), stopAnimation: () => controls.start('normal') };
+		});
+		const inNavItem = useNavItemAnimation(divRef, controlled, controls, 'animate', 'normal');
+		const onEnter = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseEnter?.(e); else if (!inNavItem.current) controls.start('animate'); }, [controls, inNavItem, onMouseEnter]);
+		const onLeave = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseLeave?.(e); else if (!inNavItem.current) controls.start('normal'); }, [controls, inNavItem, onMouseLeave]);
+		return (
+			<div ref={divRef} className={className} onMouseEnter={onEnter} onMouseLeave={onLeave} {...props}>
+				<svg fill="none" height={size} width={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" style={{ overflow: 'visible' }} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<motion.path animate={controls} custom={0.2} d="M10 2v2" variants={COFFEE_PATH_VARIANTS} />
+					<motion.path animate={controls} custom={0.4} d="M14 2v2" variants={COFFEE_PATH_VARIANTS} />
+					<motion.path animate={controls} custom={0} d="M6 2v2" variants={COFFEE_PATH_VARIANTS} />
+					<path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1" />
+				</svg>
+			</div>
+		);
+	}
+);
+CoffeeIcon.displayName = 'CoffeeIcon';
+
+// ─── ContrastIcon (Themes) ───────────────────────────────────────────────────
+
+const CONTRAST_PATH_VARIANT: Variants = {
+	normal: { rotate: 0 },
+	animate: { rotate: 180, transformOrigin: 'left center', transition: { type: 'spring', stiffness: 80, damping: 12 } },
+};
+
+const ContrastIcon = forwardRef<{ startAnimation: () => void; stopAnimation: () => void }, HTMLAttributes<HTMLDivElement> & { size?: number }>(
+	({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
+		const controls = useAnimation();
+		const controlled = useRef(false);
+		const divRef = useRef<HTMLDivElement>(null);
+		useImperativeHandle(ref, () => {
+			controlled.current = true;
+			return { startAnimation: () => controls.start('animate'), stopAnimation: () => controls.start('normal') };
+		});
+		const inNavItem = useNavItemAnimation(divRef, controlled, controls, 'animate', 'normal');
+		const onEnter = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseEnter?.(e); else if (!inNavItem.current) controls.start('animate'); }, [controls, inNavItem, onMouseEnter]);
+		const onLeave = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseLeave?.(e); else if (!inNavItem.current) controls.start('normal'); }, [controls, inNavItem, onMouseLeave]);
+		return (
+			<div ref={divRef} className={className} onMouseEnter={onEnter} onMouseLeave={onLeave} {...props}>
+				<svg fill="none" height={size} width={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<circle cx="12" cy="12" r="10" />
+					<motion.path animate={controls} d="M12 18a6 6 0 0 0 0-12v12z" initial="normal" variants={CONTRAST_PATH_VARIANT} />
+				</svg>
+			</div>
+		);
+	}
+);
+ContrastIcon.displayName = 'ContrastIcon';
+
+// ─── CloudDownloadIcon (Updates) ─────────────────────────────────────────────
+
+const CLOUD_VARIANTS: Variants = {
+	initial: { y: 2 },
+	active: { y: 0 },
+};
+
+const CloudDownloadIcon = forwardRef<{ startAnimation: () => void; stopAnimation: () => void }, HTMLAttributes<HTMLDivElement> & { size?: number }>(
+	({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
+		const controls = useAnimation();
+		const controlled = useRef(false);
+		const divRef = useRef<HTMLDivElement>(null);
+		useImperativeHandle(ref, () => {
+			controlled.current = true;
+			return { startAnimation: () => controls.start('initial'), stopAnimation: () => controls.start('active') };
+		});
+		const inNavItem = useNavItemAnimation(divRef, controlled, controls, 'initial', 'active');
+		const onEnter = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseEnter?.(e); else if (!inNavItem.current) controls.start('initial'); }, [controls, inNavItem, onMouseEnter]);
+		const onLeave = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseLeave?.(e); else if (!inNavItem.current) controls.start('active'); }, [controls, inNavItem, onMouseLeave]);
+		return (
+			<div ref={divRef} className={className} onMouseEnter={onEnter} onMouseLeave={onLeave} {...props}>
+				<svg fill="none" height={size} width={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<path d="M4.2 15.1A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.2" />
+					<motion.g animate={controls} transition={{ duration: 0.3, ease: [0.68, -0.6, 0.32, 1.6] }} variants={CLOUD_VARIANTS}>
+						<path d="M12 13v8l-4-4" />
+						<path d="m12 21 4-4" />
+					</motion.g>
+				</svg>
+			</div>
+		);
+	}
+);
+CloudDownloadIcon.displayName = 'CloudDownloadIcon';
+
+// ─── CctvIcon (Logs) ─────────────────────────────────────────────────────────
+
+const CCTV_GROUP_VARIANTS: Variants = {
+	normal: { rotate: 0, y: 0, x: 0 },
+	animate: { rotate: [0, -20, -20, 15, 15, 0], y: [0, -0.5, -0.5, 0, 0, 0], x: [0, 0, 0, 0.5, 0.5, 0], transition: { duration: 1.8, ease: 'easeInOut' } },
+};
+const CCTV_PATH_VARIANTS: Variants = {
+	normal: { opacity: 1 },
+	animate: { opacity: [1, 0, 1, 0, 1, 0, 1], transition: { duration: 1.8, ease: 'easeInOut' } },
+};
+
+const CctvIcon = forwardRef<{ startAnimation: () => void; stopAnimation: () => void }, HTMLAttributes<HTMLDivElement> & { size?: number }>(
+	({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
+		const controls = useAnimation();
+		const controlled = useRef(false);
+		const divRef = useRef<HTMLDivElement>(null);
+		useImperativeHandle(ref, () => {
+			controlled.current = true;
+			return { startAnimation: () => controls.start('animate'), stopAnimation: () => controls.start('normal') };
+		});
+		const inNavItem = useNavItemAnimation(divRef, controlled, controls, 'animate', 'normal');
+		const onEnter = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseEnter?.(e); else if (!inNavItem.current) controls.start('animate'); }, [controls, inNavItem, onMouseEnter]);
+		const onLeave = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseLeave?.(e); else if (!inNavItem.current) controls.start('normal'); }, [controls, inNavItem, onMouseLeave]);
+		return (
+			<div ref={divRef} className={className} onMouseEnter={onEnter} onMouseLeave={onLeave} {...props}>
+				<svg fill="none" height={size} width={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+					<motion.g animate={controls} initial="normal" variants={CCTV_GROUP_VARIANTS}>
+						<path d="M16.75 12h3.632a1 1 0 0 1 .894 1.447l-2.034 4.069a1 1 0 0 1-1.708.134l-2.124-2.97" />
+						<path d="M17.106 9.053a1 1 0 0 1 .447 1.341l-3.106 6.211a1 1 0 0 1-1.342.447L3.61 12.3a2.92 2.92 0 0 1-1.3-3.91L3.69 5.6a2.92 2.92 0 0 1 3.92-1.3z" />
+						<motion.path animate={controls} d="M7 9h.01" variants={CCTV_PATH_VARIANTS} />
+					</motion.g>
+					<path d="M2 19h3.76a2 2 0 0 0 1.8-1.1L9 15" />
+					<path d="M2 21v-4" />
+				</svg>
+			</div>
+		);
+	}
+);
+CctvIcon.displayName = 'CctvIcon';
+
+// ─── RabbitIcon (QuickCSS) ───────────────────────────────────────────────────
+
+const RABBIT_TRANSITION: Transition = {
+	duration: 0.6,
+	ease: [0.42, 0, 0.58, 1],
+};
+
+const RABBIT_VARIANTS: Variants = {
+	normal: { rotate: 0, x: 0, y: 0 },
+	animate: {
+		rotate: [0, 5, -5, 3, -3, 0],
+		x: [0, 3, -3, 2, -2, 0],
+		y: [0, 1.5, -1.5, 1, -1, 0],
+		transition: RABBIT_TRANSITION,
+	},
+};
+
+const RabbitIcon = forwardRef<{ startAnimation: () => void; stopAnimation: () => void }, HTMLAttributes<HTMLDivElement> & { size?: number }>(
+	({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
+		const controls = useAnimation();
+		const controlled = useRef(false);
+		const divRef = useRef<HTMLDivElement>(null);
+		useImperativeHandle(ref, () => {
+			controlled.current = true;
+			return { startAnimation: () => controls.start('animate'), stopAnimation: () => controls.start('normal') };
+		});
+		const inNavItem = useNavItemAnimation(divRef, controlled, controls, 'animate', 'normal');
+		const onEnter = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseEnter?.(e); else if (!inNavItem.current) controls.start('animate'); }, [controls, inNavItem, onMouseEnter]);
+		const onLeave = useCallback((e: React.MouseEvent<HTMLDivElement>) => { if (controlled.current) onMouseLeave?.(e); else if (!inNavItem.current) controls.start('normal'); }, [controls, inNavItem, onMouseLeave]);
+		return (
+			<div ref={divRef} className={className} onMouseEnter={onEnter} onMouseLeave={onLeave} {...props}>
+				<motion.svg
+					animate={controls}
+					fill="none"
+					height={size}
+					stroke="currentColor"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					strokeWidth="2"
+					variants={RABBIT_VARIANTS}
+					viewBox="0 0 24 24"
+					width={size}
+					xmlns="http://www.w3.org/2000/svg"
+				>
+					<path d="M18 21h-8a4 4 0 0 1-4-4 7 7 0 0 1 7-7h.2L9.6 6.4a1 1 0 1 1 2.8-2.8L15.8 7h.2c3.3 0 6 2.7 6 6v1a2 2 0 0 1-2 2h-1a3 3 0 0 0-3 3" />
+					<path d="M13 16a3 3 0 0 1 2.24 5" />
+					<path d="M18 12h.01" />
+					<path d="M20 8.54V4a2 2 0 1 0-4 0v3" />
+					<path d="M7.612 12.524a3 3 0 1 0-1.6 4.3" />
+				</motion.svg>
+			</div>
+		);
+	}
+);
+RabbitIcon.displayName = 'RabbitIcon';
+
 const MillenniumIcons = {
 	SteamBrewLogo: () => (
 		<svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0,0,256,256" fill-rule="nonzero">
@@ -101,4 +376,4 @@ const MillenniumIcons = {
 	),
 };
 
-export { MillenniumIcons };
+export { MillenniumIcons, ConnectIcon, CoffeeIcon, ContrastIcon, CloudDownloadIcon, CctvIcon, RabbitIcon };

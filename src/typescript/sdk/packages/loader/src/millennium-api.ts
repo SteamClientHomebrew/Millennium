@@ -16,12 +16,6 @@ type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 type IPC_types = string | number | boolean | Json;
 declare const g_PopupManager: any;
 
-let millenniumAuthToken: string | undefined = undefined;
-
-export function setMillenniumAuthToken(token: string) {
-	millenniumAuthToken = token;
-}
-
 const backendIPC = {
 	postMessage: async (messageId: number, contents: any): Promise<any> => {
 		/**

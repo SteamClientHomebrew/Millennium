@@ -81,7 +81,7 @@ std::string millennium_updater::parse_version(const std::string& version)
     return version;
 }
 
-void millennium_updater::check_for_updates()
+void millennium_updater::check_for_updates(const std::string& channel_override)
 {
 #ifdef DISTRO_NIX
     logger.log("Skipping update check on Nix-based releases");
@@ -89,7 +89,9 @@ void millennium_updater::check_for_updates()
 #endif
 
     const bool checkForUpdates = CONFIG.get({ "general", "checkForMillenniumUpdates" }, true).get<bool>();
-    std::string channel = CONFIG.get({ "general", "millenniumUpdateChannel" }, "stable").get<std::string>();
+    std::string channel = channel_override.empty()
+        ? CONFIG.get({ "general", "millenniumUpdateChannel" }, "stable").get<std::string>()
+        : channel_override;
 
     if (!checkForUpdates) {
         logger.warn("User has disabled update checking for Millennium.");

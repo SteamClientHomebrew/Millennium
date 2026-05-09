@@ -86,6 +86,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
 
     /** Theme and Plugin update API */
     builtin_payload Core_GetUpdates(const builtin_payload& args);
+    builtin_payload Core_CheckMillenniumUpdate(const builtin_payload& args);
 
     /** Theme manager API */
     builtin_payload Core_GetActiveTheme(const builtin_payload& args);
@@ -111,6 +112,7 @@ class millennium_backend : public std::enable_shared_from_this<millennium_backen
     builtin_payload Core_InstallPlugin(const builtin_payload& args);
     builtin_payload Core_IsPluginInstalled(const builtin_payload& args);
     builtin_payload Core_UninstallPlugin(const builtin_payload& args);
+    builtin_payload Core_GetAllPluginMetrics(const builtin_payload& args);
 
     /** Get plugin backend logs */
     builtin_payload Core_GetPluginBackendLogs(const builtin_payload& args);

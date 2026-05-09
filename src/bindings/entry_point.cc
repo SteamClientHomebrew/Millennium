@@ -131,9 +131,11 @@ head::millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> n
         register_function(Core_InstallPlugin, "download_url", "total_size"),
         register_function(Core_IsPluginInstalled, "pluginName"),
         register_function(Core_UninstallPlugin, "pluginName"),
+        register_function(Core_GetAllPluginMetrics),
         register_function(Core_GetPluginBackendLogs),
         register_function(Core_UpdateMillennium, "downloadUrl", "downloadSize", "background"),
         register_function(Core_HasPendingMillenniumUpdateRestart),
+        register_function(Core_CheckMillenniumUpdate, "channel"),
         register_function(Core_GetPendingCrashes),
         register_function(Core_AcknowledgeCrash, "plugin"),
         register_function(PluginConfig_GetAll, "plugin_name"),
@@ -483,6 +485,22 @@ builtin_payload head::millennium_backend::Core_KillPluginBackend(const builtin_p
     g_millennium->get_plugin_loader()->get_backend_manager()->destroy_plugin(pluginName);
     return {};
 }
+builtin_payload head::millennium_backend::Core_GetAllPluginMetrics(const builtin_payload&)
+{
+    auto bm = g_millennium->get_plugin_loader()->get_backend_manager();
+    auto all_metrics = bm->get_all_plugin_metrics();
+
+    builtin_payload result = builtin_payload::array();
+    for (const auto& [name, metrics] : all_metrics) {
+        result.push_back({
+            { "name",        name                },
+            { "rss_bytes",   metrics.rss_bytes   },
+            { "heap_bytes",  metrics.heap_bytes   },
+            { "cpu_percent", metrics.cpu_percent  }
+        });
+    }
+    return result;
+}
 builtin_payload head::millennium_backend::Core_InstallPlugin(const builtin_payload& args)
 {
     if (!args.contains("download_url") || !args["download_url"].is_string()) {
@@ -653,6 +671,13 @@ builtin_payload head::millennium_backend::Core_UpdateMillennium(const builtin_pa
 builtin_payload head::millennium_backend::Core_HasPendingMillenniumUpdateRestart(const builtin_payload&)
 {
     return m_millennium_updater->is_pending_restart();
+}
+
+builtin_payload head::millennium_backend::Core_CheckMillenniumUpdate(const builtin_payload& args)
+{
+    const std::string channel = args.value("channel", std::string{});
+    m_millennium_updater->check_for_updates(channel);
+    return m_millennium_updater->has_any_updates();
 }
 
 builtin_payload head::millennium_backend::Core_GetPendingCrashes(const builtin_payload&)

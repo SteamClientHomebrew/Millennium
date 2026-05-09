@@ -166,6 +166,13 @@ export interface PluginComponent {
 	isChromeExtension?: boolean;
 }
 
+export interface PluginMetrics {
+	name: string;
+	rss_bytes: number;
+	heap_bytes: number;
+	cpu_percent: number;
+}
+
 /**
  * SystemAccentColor, High-level abstraction derived from the backend.
  */

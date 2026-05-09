@@ -302,10 +302,38 @@ const styles = /* css */ `
 	align-items: center;
 }
 
-.MillenniumItem_Version {
+.MillenniumItem_Version,
+.MillenniumPlugins_Metrics {
+	display: flex;
+	gap: var(--MillenniumSpacing-Small);
+}
+
+@keyframes MillenniumMetrics_Flash {
+	from {
+		color: #fff;
+		background: rgba(255, 255, 255, 0.18);
+	}
+	to {
+		color: var(--MillenniumTextColor-Muted);
+		background: rgba(255, 255, 255, 0.05);
+	}
+}
+
+.MillenniumItem_Version span,
+.MillenniumPlugins_Metrics span {
 	color: var(--MillenniumTextColor-Muted);
 	font: var(--MillenniumText-BodySmall);
-	margin-left: var(--MillenniumSpacing-Normal);
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: 4px;
+	padding: 1px 6px;
+	display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+}
+
+.MillenniumPlugins_Metrics span {
+	animation: MillenniumMetrics_Flash 0.6s ease-out;
 }
 
 .MillenniumItem_BrowserExtension {

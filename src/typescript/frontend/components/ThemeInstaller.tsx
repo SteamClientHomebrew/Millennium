@@ -30,7 +30,7 @@
 
 import { ConfirmModal } from '@steambrew/client';
 import { InstallerProps, Theme } from '../types';
-import { OnProgressUpdate, RendererProps } from '../settings/general/Installer';
+import { OnProgressUpdate, RendererProps } from './InstallerProgress';
 import { backend } from '../utils/ffi';
 import { formatString, locale } from '../utils/localization-manager';
 import { ChangeActiveTheme, UIReloadProps } from '../settings/themes/ThemeComponent';

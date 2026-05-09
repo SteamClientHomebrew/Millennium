@@ -32,6 +32,7 @@
 #include "millennium/logger.h"
 #include "millennium/core_ipc.h"
 #include "mep/ffi_recorder.h"
+#include "mep/sdk_ready_bus.h"
 
 #include <chrono>
 
@@ -357,6 +358,28 @@ void ffi_binder::cdp_event_dispatch(const std::string& method, const json& param
     }
 }
 
+void ffi_binder::sdk_ready_hdlr(const json& params)
+{
+    mep::sdk_ready_event ev;
+
+    if (params.contains("payload") && params["payload"].is_string()) {
+        try {
+            const auto payload = json::parse(params["payload"].get<std::string>());
+            ev.sdk_version = payload.value("sdk_version", std::string{});
+            ev.millennium_version = payload.value("millennium_version", std::string{});
+            ev.api_total = payload.value("api_total", 0);
+            if (payload.contains("api_missing") && payload["api_missing"].is_array()) {
+                for (const auto& k : payload["api_missing"]) {
+                    if (k.is_string()) ev.api_missing.push_back(k.get<std::string>());
+                }
+            }
+        } catch (...) {
+        }
+    }
+
+    mep::sdk_ready_bus::instance().notify(ev);
+}
+
 void ffi_binder::binding_call_hdlr(const json& params)
 {
     if (!params.contains("name")) {
@@ -372,6 +395,11 @@ void ffi_binder::binding_call_hdlr(const json& params)
 
     if (binding_name == ffi_constants::cdp_proxy_binding_name) {
         cdp_proxy_hdlr(params);
+        return;
+    }
+
+    if (binding_name == ffi_constants::sdk_ready_binding_name) {
+        sdk_ready_hdlr(params);
         return;
     }
 
@@ -465,6 +493,15 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
             { "executionContextId", context_id                            }
         };
         m_client->send_host("Runtime.addBinding", add_cdp_proxy_params, session_id).get();
+    } catch (...) {
+    }
+
+    try {
+        const json add_sdk_ready_params = {
+            { "name",               ffi_constants::sdk_ready_binding_name },
+            { "executionContextId", context_id                            }
+        };
+        m_client->send_host("Runtime.addBinding", add_sdk_ready_params, session_id).get();
     } catch (...) {
     }
 }

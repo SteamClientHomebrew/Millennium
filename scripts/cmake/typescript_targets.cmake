@@ -18,11 +18,11 @@ add_custom_command(
 )
 add_custom_target(ts_install DEPENDS "${TS_STAMPS}/install.stamp")
 
-file(GLOB_RECURSE _src_ttc    CONFIGURE_DEPENDS "${TS_ROOT}/ttc/src/*.ts")
-file(GLOB_RECURSE _src_client CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/client/src/*.ts")
-file(GLOB_RECURSE _src_webkit CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/browser/src/*.ts")
-file(GLOB_RECURSE _src_api    CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/loader/src/*.ts")
-file(GLOB_RECURSE _src_cdp_isolated_ctx CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/cdp-isolated-ctx/src/*.ts")
+file(GLOB_RECURSE _src_ttc    CONFIGURE_DEPENDS "${TS_ROOT}/ttc/src/*.ts"    "${TS_ROOT}/ttc/src/*.tsx")
+file(GLOB_RECURSE _src_client CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/client/src/*.ts"  "${TS_ROOT}/sdk/packages/client/src/*.tsx")
+file(GLOB_RECURSE _src_webkit CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/browser/src/*.ts" "${TS_ROOT}/sdk/packages/browser/src/*.tsx")
+file(GLOB_RECURSE _src_api    CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/loader/src/*.ts"  "${TS_ROOT}/sdk/packages/loader/src/*.tsx")
+file(GLOB_RECURSE _src_cdp_isolated_ctx CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/cdp-isolated-ctx/src/*.ts" "${TS_ROOT}/sdk/packages/cdp-isolated-ctx/src/*.tsx")
 file(GLOB_RECURSE _src_core   CONFIGURE_DEPENDS
     "${TS_ROOT}/frontend/*.ts"
     "${TS_ROOT}/frontend/*.tsx"

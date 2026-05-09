@@ -32,7 +32,9 @@
 #include "mep_message.h"
 #include "ffi_recorder.h"
 #include "console_capture.h"
+#include "exception_capture.h"
 #include "crash_event_bus.h"
+#include "sdk_ready_bus.h"
 
 #include "millennium/plugin_loader.h"
 #include "millennium/plugin_manager.h"
@@ -124,10 +126,12 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!name) return response_t::err(req.id, "missing required param: name");
 
         loader->set_plugin_enable(*name, true);
-        return response_t::ok(req.id, {
-                                          { "name",    *name },
-                                          { "enabled", true  }
-        });
+
+        const json params = {
+            { "name",    *name },
+            { "enabled", true  }
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("plugin.disable", [loader](const request_t& req, const std::shared_ptr<client_context>&)
@@ -136,10 +140,11 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!name) return response_t::err(req.id, "missing required param: name");
 
         loader->set_plugin_enable(*name, false);
-        return response_t::ok(req.id, {
-                                          { "name",    *name },
-                                          { "enabled", false }
-        });
+        const json params = {
+            { "name",    *name },
+            { "enabled", false }
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("plugin.start", [loader](const request_t& req, const std::shared_ptr<client_context>&)
@@ -151,10 +156,11 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (bm->is_any_backend_running(*name)) return response_t::err(req.id, "plugin backend is already running: " + *name);
 
         loader->set_plugin_enable(*name, true);
-        return response_t::ok(req.id, {
-                                          { "name",    *name                             },
-                                          { "running", bm->is_any_backend_running(*name) },
-        });
+        const json params = {
+            { "name",    *name                             },
+            { "running", bm->is_any_backend_running(*name) },
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("plugin.stop", [loader](const request_t& req, const std::shared_ptr<client_context>&)
@@ -163,10 +169,12 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!name) return response_t::err(req.id, "missing required param: name");
 
         loader->get_backend_manager()->destroy_plugin(*name);
-        return response_t::ok(req.id, {
-                                          { "name",    *name },
-                                          { "running", false }
-        });
+
+        const json params = {
+            { "name",    *name },
+            { "running", false }
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("plugin.restart", [loader](const request_t& req, const std::shared_ptr<client_context>&)
@@ -177,10 +185,12 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         auto bm = loader->get_backend_manager();
         bm->destroy_plugin(*name);
         loader->set_plugin_enable(*name, true);
-        return response_t::ok(req.id, {
-                                          { "name",    *name                             },
-                                          { "running", bm->is_any_backend_running(*name) },
-        });
+
+        const json params = {
+            { "name",    *name                             },
+            { "running", bm->is_any_backend_running(*name) },
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("plugin.status", [loader](const request_t& req, const std::shared_ptr<client_context>&)
@@ -199,20 +209,9 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
             { "running", bm->is_any_backend_running(*name) },
             { "enabled", pm->is_enabled(*name)             },
         };
-
         return response_t::ok(req.id, result);
     });
 
-    // plugin.logs — subscribe to a plugin's log stream.
-    //
-    // initial response:
-    //   { "subscription_id": "<id>", "logs": [ { "level", "message" }, ... ] }
-    //
-    // subsequent push events (server → client, unsolicited):
-    //   { "type": "event", "subscription_id": "<id>",
-    //     "plugin": "<name>", "data": { "level", "message" } }
-    //
-    // params: { name, min_level? }
     router.register_handler("plugin.logs", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
     {
         if (!ctx) return response_t::err(req.id, "plugin.logs requires a live connection");
@@ -247,10 +246,11 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         }
 
         if (!lgr) {
-            return response_t::ok(req.id, {
-                                              { "subscription_id", nullptr },
-                                              { "logs",            initial }
-            });
+            const json params = {
+                { "subscription_id", nullptr },
+                { "logs",            initial }
+            };
+            return response_t::ok(req.id, params);
         }
 
         auto cancelled = std::make_shared<std::atomic<bool>>(false);
@@ -290,20 +290,13 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
 
         listener_id_r->store(id);
 
-        return response_t::ok(req.id, {
-                                          { "subscription_id", sub_id  },
-                                          { "logs",            initial }
-        });
+        const json params = {
+            { "subscription_id", sub_id  },
+            { "logs",            initial }
+        };
+        return response_t::ok(req.id, params);
     });
 
-    // plugin.crash — subscribe to plugin crash events.
-    //
-    // initial response:
-    //   { "subscription_id": "<id>" }
-    //
-    // subsequent push events (server → client, unsolicited):
-    //   { "type": "event", "subscription_id": "<id>",
-    //     "data": { "plugin": "<name>", "exit_code": <n>, "crash_dump_dir": "<path>" } }
     router.register_handler("plugin.crash", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
     {
         if (!ctx) return response_t::err(req.id, "plugin.crash requires a live connection");
@@ -342,9 +335,10 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
 
         listener_id_r->store(id);
 
-        return response_t::ok(req.id, {
-                                          { "subscription_id", sub_id }
-        });
+        const json params = {
+            { "subscription_id", sub_id }
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("plugin.crash.unsubscribe", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
@@ -355,11 +349,11 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!sub_id) return response_t::err(req.id, "missing required param: subscription_id");
 
         const bool ok = ctx->unsubscribe(*sub_id);
-        return ok ? response_t::ok(req.id,
-                                   {
-                                       { "subscription_id", *sub_id }
-        })
-                  : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
+
+        const json params = {
+            { "subscription_id", *sub_id }
+        };
+        return ok ? response_t::ok(req.id, params) : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
     });
 
     router.register_handler("plugin.logs.unsubscribe", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
@@ -370,24 +364,25 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!sub_id) return response_t::err(req.id, "missing required param: subscription_id");
 
         const bool ok = ctx->unsubscribe(*sub_id);
-        return ok ? response_t::ok(req.id,
-                                   {
-                                       { "subscription_id", *sub_id }
-        })
-                  : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
+
+        const json params = {
+            { "subscription_id", *sub_id }
+        };
+        return ok ? response_t::ok(req.id, params) : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
     });
 
     router.register_handler("millennium.version", [](const request_t& req, const std::shared_ptr<client_context>&)
     {
-        return response_t::ok(req.id, {
-                                          { "version",    MILLENNIUM_VERSION },
-                                          { "commit",     GIT_COMMIT_HASH    },
+        const json params = {
+            { "version",    MILLENNIUM_VERSION },
+            { "commit",     GIT_COMMIT_HASH    },
 #ifdef MILLENNIUM_DEBUG
-                                          { "build_type", "Debug"            },
+            { "build_type", "Debug"            },
 #else
-                                          { "build_type", "Release" },
+            { "build_type", "Release" },
 #endif
-        });
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("millennium.status", [loader](const request_t& req, const std::shared_ptr<client_context>&)
@@ -405,11 +400,12 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
             if (bm->is_any_backend_running(p.plugin_name)) ++running_count;
         }
 
-        return response_t::ok(req.id, {
-                                          { "plugin_count",  total         },
-                                          { "enabled_count", enabled_count },
-                                          { "running_count", running_count },
-        });
+        const json params = {
+            { "plugin_count",  total         },
+            { "enabled_count", enabled_count },
+            { "running_count", running_count },
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("plugin.memory", [loader](const request_t& req, const std::shared_ptr<client_context>&)
@@ -424,12 +420,13 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
             if (!p) return response_t::err(req.id, "plugin not found: " + *name);
 
             auto metrics = bm->get_plugin_metrics(*name);
-            return response_t::ok(req.id, {
-                                              { "name",        *name               },
-                                              { "rss_bytes",   metrics.rss_bytes   },
-                                              { "heap_bytes",  metrics.heap_bytes  },
-                                              { "cpu_percent", metrics.cpu_percent },
-            });
+            const json params = {
+                { "name",        *name               },
+                { "rss_bytes",   metrics.rss_bytes   },
+                { "heap_bytes",  metrics.heap_bytes  },
+                { "cpu_percent", metrics.cpu_percent },
+            };
+            return response_t::ok(req.id, params);
         }
 
         auto all_metrics = bm->get_all_plugin_metrics();
@@ -520,11 +517,11 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         });
 
         listener_id_r->store(id);
-
-        return response_t::ok(req.id, {
-                                          { "subscription_id", sub_id  },
-                                          { "calls",           initial },
-        });
+        const json params = {
+            { "subscription_id", sub_id  },
+            { "calls",           initial },
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("plugin.ffi.unsubscribe", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
@@ -535,23 +532,13 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!sub_id) return response_t::err(req.id, "missing required param: subscription_id");
 
         const bool ok = ctx->unsubscribe(*sub_id);
-        return ok ? response_t::ok(req.id,
-                                   {
-                                       { "subscription_id", *sub_id }
-        })
-                  : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
+
+        const json params = {
+            { "subscription_id", *sub_id }
+        };
+        return ok ? response_t::ok(req.id, params) : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
     });
 
-    // plugin.console — subscribe to a plugin's console (CDP) stream.
-    //
-    // initial response:
-    //   { "subscription_id": "<id>", "messages": [ { ... }, ... ] }
-    //
-    // subsequent push events:
-    //   { "type": "event", "subscription_id": "<id>",
-    //     "plugin": "<name>", "data": <full CDP consoleAPICalled params> }
-    //
-    // params: { name }
     router.register_handler("plugin.console", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
     {
         if (!ctx) return response_t::err(req.id, "plugin.console requires a live connection");
@@ -597,10 +584,11 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
 
         listener_id_r->store(id);
 
-        return response_t::ok(req.id, {
-                                          { "subscription_id", sub_id  },
-                                          { "messages",        initial },
-        });
+        const json params = {
+            { "subscription_id", sub_id  },
+            { "messages",        initial },
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("plugin.console.unsubscribe", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
@@ -611,39 +599,166 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!sub_id) return response_t::err(req.id, "missing required param: subscription_id");
 
         const bool ok = ctx->unsubscribe(*sub_id);
-        return ok ? response_t::ok(req.id,
-                                   {
-                                       { "subscription_id", *sub_id }
-        })
-                  : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
+
+        const json params = {
+            { "subscription_id", *sub_id }
+        };
+        return ok ? response_t::ok(req.id, params) : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
     });
 
-    router.register_handler("cdp.getProperties", [](const request_t& req, const std::shared_ptr<client_context>&)
+    router.register_handler("runtime.exceptions", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
     {
-        auto object_id = require_string(req, "objectId");
-        if (!object_id) return response_t::err(req.id, "missing required param: objectId");
+        if (!ctx) return response_t::err(req.id, "runtime.exceptions requires a live connection");
 
-        auto session_id = require_string(req, "sessionId");
-        if (!session_id) return response_t::err(req.id, "missing required param: sessionId");
+        const std::string plugin =
+            (!req.params.is_null() && req.params.contains("plugin") && req.params["plugin"].is_string()) ? req.params["plugin"].get<std::string>() : std::string{};
 
-        auto result = console_capture::instance().get_properties(*object_id, *session_id);
-        if (result.contains("error") && !result.contains("result")) {
-            return response_t::err(req.id, result["error"].get<std::string>());
+        auto& capture = exception_capture::instance();
+
+        json initial = json::array();
+        for (const auto& e : capture.get_recent(plugin, 200)) {
+            initial.push_back(e.raw);
         }
 
-        return response_t::ok(req.id, result);
+        auto cancelled = std::make_shared<std::atomic<bool>>(false);
+        auto listener_id_r = std::make_shared<std::atomic<int>>(-1);
+
+        const std::string sub_id = ctx->subscribe([&capture, listener_id_r, cancelled]()
+        {
+            cancelled->store(true);
+            const int id = listener_id_r->load();
+            if (id >= 0) capture.remove_listener(id);
+        });
+
+        const std::string captured_sub_id = sub_id;
+        const std::string captured_plugin = plugin;
+        const auto ctx_weak = std::weak_ptr<client_context>(ctx);
+
+        const int id = capture.add_listener(plugin, [ctx_weak, cancelled, captured_sub_id, captured_plugin](const exception_entry& entry)
+        {
+            if (cancelled->load()) return;
+
+            auto ctx_s = ctx_weak.lock();
+            if (!ctx_s) return;
+
+            ctx_s->push({
+                { "type",            "event"         },
+                { "subscription_id", captured_sub_id },
+                { "plugin",          entry.plugin    },
+                { "data",            entry.raw       },
+            });
+        });
+
+        listener_id_r->store(id);
+
+        const json params = {
+            { "subscription_id", sub_id  },
+            { "exceptions",      initial },
+        };
+        return response_t::ok(req.id, params);
+    });
+
+    router.register_handler("sdk.ready", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
+    {
+        if (!ctx) return response_t::err(req.id, "sdk.ready requires a live connection");
+
+        auto& bus = sdk_ready_bus::instance();
+        const auto last = bus.get_last();
+
+        auto cancelled = std::make_shared<std::atomic<bool>>(false);
+        auto listener_id_r = std::make_shared<std::atomic<int>>(-1);
+
+        const std::string sub_id = ctx->subscribe([&bus, listener_id_r, cancelled]()
+        {
+            cancelled->store(true);
+            const int id = listener_id_r->load();
+            if (id >= 0) bus.remove_listener(id);
+        });
+
+        const std::string captured_sub_id = sub_id;
+        const auto ctx_weak = std::weak_ptr<client_context>(ctx);
+
+        const int id = bus.add_listener([ctx_weak, cancelled, captured_sub_id](const sdk_ready_event& ev)
+        {
+            if (cancelled->load()) return;
+            auto ctx_s = ctx_weak.lock();
+            if (!ctx_s) return;
+
+            ctx_s->push({
+                { "type",            "event"                                                                                },
+                { "subscription_id", captured_sub_id                                                                        },
+                { "data",            { { "millennium_version", ev.millennium_version }, { "sdk_version", ev.sdk_version } } },
+            });
+        });
+
+        listener_id_r->store(id);
+
+        const json params = {
+            { "subscription_id", sub_id                                                                                                                  },
+            { "ready",           last ? json{ { "millennium_version", last->millennium_version }, { "sdk_version", last->sdk_version } } : json(nullptr) },
+        };
+        return response_t::ok(req.id, params);
+    });
+
+    router.register_handler("sdk.ready.unsubscribe", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
+    {
+        if (!ctx) return response_t::err(req.id, "sdk.ready.unsubscribe requires a live connection");
+
+        auto sub_id = require_string(req, "subscription_id");
+        if (!sub_id) return response_t::err(req.id, "missing required param: subscription_id");
+
+        const bool ok = ctx->unsubscribe(*sub_id);
+        const json params = {
+            { "subscription_id", *sub_id }
+        };
+        return ok ? response_t::ok(req.id, params) : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
+    });
+
+    router.register_handler("runtime.exceptions.unsubscribe", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
+    {
+        if (!ctx) return response_t::err(req.id, "runtime.exceptions.unsubscribe requires a live connection");
+
+        auto sub_id = require_string(req, "subscription_id");
+        if (!sub_id) return response_t::err(req.id, "missing required param: subscription_id");
+
+        const bool ok = ctx->unsubscribe(*sub_id);
+        const json params = {
+            { "subscription_id", *sub_id }
+        };
+        return ok ? response_t::ok(req.id, params) : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
+    });
+
+    router.register_handler("millennium.api_health", [](const request_t& req, const std::shared_ptr<client_context>&)
+    {
+        const auto last = sdk_ready_bus::instance().get_last();
+        if (!last) {
+            return response_t::err(req.id, "sdk.ready has not fired yet — call after subscribing to sdk.ready");
+        }
+
+        json missing_arr = json::array();
+        for (const auto& k : last->api_missing)
+            missing_arr.push_back(k);
+
+        const json params = {
+            { "healthy", last->api_missing.empty() },
+            { "missing", std::move(missing_arr)    },
+            { "total",   last->api_total           },
+        };
+        return response_t::ok(req.id, params);
     });
 
     auto make_mep_targets = [loader]() -> plugin_config::notify_targets
     {
         auto ipc = loader->get_ipc_main();
-        return { ipc ? plugin_config::eval_js_fn(
-                           [ipc](const std::string& s)
+        plugin_config::notify_targets res = { plugin_config::eval_js_fn{}, loader->get_backend_manager() };
+
+        if (!ipc) return res;
+
+        res.eval_js = plugin_config::eval_js_fn([ipc](const std::string& s)
         {
             ipc->evaluate_javascript_expression(s);
-        })
-                     : plugin_config::eval_js_fn{},
-                 loader->get_backend_manager() };
+        });
+        return res;
     };
 
     router.register_handler("plugin.config.get", [](const request_t& req, const std::shared_ptr<client_context>&)
@@ -654,11 +769,11 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!key) return response_t::err(req.id, "missing required param: key");
 
         auto r = plugin_config::get(*name, *key);
-        return r.success ? response_t::ok(req.id,
-                                          {
-                                              { "value", r.value }
-        })
-                         : response_t::err(req.id, r.value.get<std::string>());
+
+        const json params = {
+            { "value", r.value }
+        };
+        return r.success ? response_t::ok(req.id, params) : response_t::err(req.id, r.value.get<std::string>());
     });
 
     router.register_handler("plugin.config.set", [make_mep_targets](const request_t& req, const std::shared_ptr<client_context>&)
@@ -690,9 +805,11 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!name) return response_t::err(req.id, "missing required param: name");
 
         auto r = plugin_config::get_all(*name);
-        return response_t::ok(req.id, {
-                                          { "config", r.value }
-        });
+
+        const json params = {
+            { "config", r.value }
+        };
+        return response_t::ok(req.id, params);
     });
 
     router.register_handler("file.list", [](const request_t& req, const std::shared_ptr<client_context>&)
@@ -733,9 +850,11 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         if (!file.is_open()) return response_t::err(req.id, "could not open file: " + *path);
 
         std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        return response_t::ok(req.id, {
-                                          { "content", std::move(content) }
-        });
+
+        const json params = {
+            { "content", std::move(content) }
+        };
+        return response_t::ok(req.id, params);
     });
 }
 } // namespace mep

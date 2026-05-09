@@ -1,4 +1,5 @@
 import { ErrorBoundary } from '../components';
+import MillenniumErrorBoundary from '../components/MillenniumErrorBoundary';
 import { Logger } from '../logger';
 import { callOriginal, Patch, replacePatch } from '../utils';
 import { findModuleExport } from '../webpack';
@@ -6,7 +7,7 @@ import { getLikelyErrorSourceFromValveError } from './error-from-source';
 
 declare global {
 	interface Window {
-		__ERRORBOUNDARY_HOOK_INSTANCE: any;
+		__ERRORBOUNDARY_HOOK_INSTANCE: ErrorBoundaryHook;
 	}
 }
 
@@ -68,22 +69,29 @@ class ErrorBoundaryHook extends Logger {
 
 		this.errorBoundaryPatch = replacePatch(ErrorBoundary.prototype, 'render', function (this: any) {
 			if (this.state._millenniumForceRerender) {
-				console.debug('Forcing rerender');
 				const stateClone = { ...this.state, _millenniumForceRerender: null };
 				this.setState(stateClone);
-				return;
+				return null;
 			}
-			// if (this.state.error) {
-			//   const store = Object.getPrototypeOf(this)?.constructor?.sm_ErrorReportingStore || errorReportingStore;
-			//   return (
-			//     <DeckyErrorBoundary
-			//       error={this.state.error}
-			//       errorKey={this.props.errorKey}
-			//       identifier={`${store.product}_${store.version}_${this.state.identifierHash}`}
-			//       reset={() => this.Reset()}
-			//     />
-			//   );
-			// }
+			// yoinked from valve error boundary
+			if (this.state.error && this.props.errorKey == this.state.lastErrorKey) {
+				const store = Object.getPrototypeOf(this)?.constructor?.sm_ErrorReportingStore || errorReportingStore;
+
+				return void 0 !== this.props.fallback ? (
+					'function' == typeof this.props.fallback ? (
+						this.props.fallback(this.state.error.error)
+					) : (
+						this.props.fallback
+					)
+				) : (
+					<MillenniumErrorBoundary
+						error={this.state.error}
+						errorKey={this.props.errorKey}
+						identifier={`${store.product}_${store.version}_${this.state.identifierHash}`}
+						reset={() => this.Reset()}
+					/>
+				);
+			}
 			return callOriginal;
 		});
 		// Small hack that gives us a lot more flexibility to force rerenders.

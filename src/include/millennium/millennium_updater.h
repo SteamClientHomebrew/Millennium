@@ -42,7 +42,7 @@ class millennium_updater
   public:
     millennium_updater();
     ~millennium_updater();
-    void check_for_updates();
+    void check_for_updates(const std::string& channel_override = "");
     json has_any_updates();
     bool is_pending_restart();
     void update(const std::string& downloadUrl, const size_t downloadSize, bool background);
