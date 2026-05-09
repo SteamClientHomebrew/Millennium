@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2026 Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,23 +30,23 @@
 
 #pragma once
 
-template <typename T> class Singleton
+template <typename T> class singleton
 {
   public:
-    static T& GetInstance()
+    static T& get_instance()
     {
-        static T instance;
-        return instance;
+        static T* instance = new T();
+        return *instance;
     }
 
-    Singleton(const Singleton&) = delete;
-    Singleton& operator=(const Singleton&) = delete;
+    singleton(const singleton&) = delete;
+    singleton& operator=(const singleton&) = delete;
 
   protected:
-    Singleton()
+    singleton()
     {
     }
-    virtual ~Singleton()
+    virtual ~singleton()
     {
     }
 };

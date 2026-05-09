@@ -1,11 +1,20 @@
 # Build files
 **/build
+src/typescript/.build-cache.json
+src/typescript/.frontend.bin
 
-# Node 
+# Node
 node_modules/
+
+# Incremental TypeScript build cache
+src/typescript/.build-cache.json
+src/typescript/.frontend.bin*
 
 # Visual Studio & Visual Studio Code
 .vs*/
+
+# Zed Editor
+.zed/
 
 # Jetbrains IDEs
 .idea/

@@ -1,0 +1,25 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["../../*"]
+		},
+		"module": "ESNext",
+		"target": "ES2020",
+		"jsx": "react-jsx",
+		"declaration": false,
+		"moduleResolution": "node",
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"esModuleInterop": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"strict": true,
+		"noImplicitAny": true,
+		"allowSyntheticDefaultImports": true,
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
+		"declarationMap": false,
+		"sourceMap": false
+	}
+}

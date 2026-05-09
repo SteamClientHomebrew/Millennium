@@ -52,7 +52,7 @@ let
     fi
 
     rm -rf ~/.local/share/Steam/ubuntu12_32/libXtst.so.6
-    ln -s ${millennium}/lib/libmillennium_bootstrap_86x.so "$HOME/.local/share/Steam/ubuntu12_32/libXtst.so.6"
+    ln -s ${millennium}/lib/libmillennium_bootstrap_x86.so "$HOME/.local/share/Steam/ubuntu12_32/libXtst.so.6"
   '';
 
   upstreamArgs = removeAttrs args [

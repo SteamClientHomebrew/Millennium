@@ -1,0 +1,16 @@
+{
+	"workspaces": [
+		"ttc",
+		"sdk/packages/client",
+		"sdk/packages/browser",
+		"sdk/packages/cdp-isolated-ctx",
+		"sdk/packages/loader",
+		"sdk/packages/test",
+		"frontend",
+		"../../tests/ffi"
+	],
+	"overrides": {
+		"@codemirror/view": "6.41.0",
+		"@codemirror/state": "6.6.0"
+	}
+}

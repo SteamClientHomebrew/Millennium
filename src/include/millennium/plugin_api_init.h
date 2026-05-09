@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2026 Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,13 +29,8 @@
  */
 
 #pragma once
-#include "millennium/ffi.h"
-
-static std::map<std::string, JavaScript::Types> typeMap = {
-    { "string",  JavaScript::Types::String  },
-    { "boolean", JavaScript::Types::Boolean },
-    { "number",  JavaScript::Types::Integer }
-};
+#include <map>
+#include <string>
 
 inline std::string getMonthNumber(const std::string& monthAbbr)
 {
@@ -77,6 +72,3 @@ inline std::string GetBuildTimestamp()
     if (day[0] == ' ') day[0] = '0';
     return year + "-" + month + "-" + day + "T" + time;
 }
-
-PyMethodDef* PyGetMillenniumModule();
-extern "C" int Lua_OpenMillenniumLibrary(lua_State* L);

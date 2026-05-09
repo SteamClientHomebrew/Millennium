@@ -1,0 +1,206 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2026 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#include "head/library_updater.h"
+#include "head/entry_point.h"
+#include "head/plugin_mgr.h"
+#include "head/theme_mgr.h"
+
+#include "millennium/core_ipc.h"
+#include "millennium/http.h"
+#include "millennium/logger.h"
+#include <cmath>
+#include <memory>
+
+head::library_updater::library_updater(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<ipc_main> ipc_main)
+    : m_millennium_backend(std::move(millennium_backend)), m_ipc_main(std::move(ipc_main)), m_has_checked_for_updates(false)
+{
+}
+
+void head::library_updater::init(std::shared_ptr<plugin_manager> plugin_manager)
+{
+    theme_updater = std::make_shared<theme_installer>(plugin_manager, shared_from_this());
+    plugin_updater = std::make_shared<plugin_installer>(m_millennium_backend, plugin_manager, shared_from_this());
+
+    if (!CONFIG.get({ "general", "checkForPluginAndThemeUpdates" }).get<bool>()) {
+        logger.warn("User has disabled update checking for plugins and themes.");
+        return;
+    }
+
+    cached_updates = check_for_updates();
+    m_has_checked_for_updates = true;
+}
+
+bool head::library_updater::download_plugin_update(const std::string& id, const std::string& name, const std::string& commit)
+{
+    bool ok = plugin_updater->update_plugin(id, name, commit);
+    if (ok) {
+        cached_updates.reset();
+    }
+    return ok;
+}
+
+bool head::library_updater::download_theme_update(std::shared_ptr<theme_config_store> themeConfig, const std::string& native)
+{
+    bool ok = theme_updater->update_theme(themeConfig, native);
+    if (ok) {
+        cached_updates.reset();
+    }
+    return ok;
+}
+
+std::optional<json> head::library_updater::get_cached_updates() const
+{
+    return cached_updates;
+}
+
+bool head::library_updater::has_checked_for_updates() const
+{
+    return m_has_checked_for_updates;
+}
+
+std::optional<json> head::library_updater::check_for_updates(bool force)
+{
+    try {
+        if (!force && cached_updates.has_value()) {
+            logger.log("Using cached updates.");
+            return cached_updates;
+        }
+
+        auto plugins = plugin_updater->get_updater_request_body();
+        auto themes = theme_updater->get_request_body();
+
+        json request_body;
+
+        if (!plugins.empty()) request_body["plugins"] = plugins;
+
+        if (themes.contains("post_body") && themes["post_body"].is_array() && !themes["post_body"].empty()) request_body["themes"] = themes["post_body"];
+
+        if (request_body.empty()) {
+            logger.log("No themes or plugins to update!");
+            return json{
+                { "themes",  {} },
+                { "plugins", {} }
+            };
+        }
+
+        auto response_str = Http::Post(api_url.c_str(), request_body.dump());
+        json resp = json::parse(response_str);
+
+        if (resp.contains("themes") && !resp["themes"].empty() && !resp["themes"].contains("error")) {
+            logger.log("[update-check] API returned {} theme(s), processing...", resp["themes"].size());
+            for (const auto& t : resp["themes"]) {
+                logger.log("[update-check] API theme name='{}' commit='{}'", t.value("name", "?"), t.value("commit", "?"));
+            }
+            resp["themes"] = theme_updater->process_update(themes["update_query"], resp["themes"]);
+            logger.log("[update-check] After filtering: {} theme(s) have updates", resp["themes"].size());
+        }
+
+        cached_updates = resp;
+        m_has_checked_for_updates = true;
+        return resp;
+    } catch (const std::exception& e) {
+        logger.log(std::string("An error occurred while checking for updates: ") + e.what());
+        return json{
+            { "themes", { { "error", e.what() } } }
+        };
+    }
+}
+
+std::string head::library_updater::re_check_for_updates()
+{
+    logger.log("Resyncing updates...");
+    cached_updates = check_for_updates(true);
+    m_has_checked_for_updates = true;
+    logger.log("Resync complete.");
+    return cached_updates.has_value() ? cached_updates->dump() : "{}";
+}
+
+std::weak_ptr<head::theme_installer> head::library_updater::get_theme_updater()
+{
+    return theme_updater;
+}
+
+std::weak_ptr<head::plugin_installer> head::library_updater::get_plugin_updater()
+{
+    return plugin_updater;
+}
+
+void head::library_updater::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
+{
+    m_ipc_main = std::move(ipc_main);
+}
+
+// Thread-local state for per-operation progress dispatching.
+// Each background thread gets its own op_id and throttle state.
+static thread_local int t_current_op_id = 0;
+static thread_local std::chrono::steady_clock::time_point t_last_dispatch_time{};
+static thread_local double t_last_dispatched_progress = -1.0;
+
+void head::library_updater::dispatch_progress(const std::string& status, double progress, bool is_complete, bool success)
+{
+    if (!m_ipc_main) {
+        logger.warn("Skipping installer progress dispatch because IPC bridge is not ready. status='{}', progress={}", status, progress);
+        return;
+    }
+
+    // Completion events always go through immediately.
+    if (!is_complete) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - t_last_dispatch_time).count();
+        double delta = std::abs(progress - t_last_dispatched_progress);
+
+        // Throttle: skip if progress hasn't moved ≥2% and it's been less than 250ms.
+        // This prevents flooding the CDP channel during rapid download/extraction callbacks.
+        if (delta < 2.0 && elapsed_ms < 250) {
+            return;
+        }
+
+        t_last_dispatched_progress = progress;
+        t_last_dispatch_time = now;
+    }
+
+    int op_id = t_current_op_id;
+    std::vector<ipc_main::javascript_parameter> params = { status, progress, is_complete, success, static_cast<int64_t>(op_id) };
+    m_ipc_main->evaluate_javascript_expression(m_ipc_main->compile_javascript_expression("core", "InstallerMessageEmitter", params));
+}
+
+int head::library_updater::start_operation()
+{
+    return m_next_op_id.fetch_add(1);
+}
+
+void head::library_updater::set_thread_op_id(int op_id)
+{
+    t_current_op_id = op_id;
+    // Reset per-thread throttle state for the new operation.
+    t_last_dispatch_time = {};
+    t_last_dispatched_progress = -1.0;
+}

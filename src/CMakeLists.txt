@@ -6,113 +6,127 @@ set(VERSION_TRADEMARK1   "All Rights Reserved")
 set(VERSION_DESCRIPTION  "A plugin loader for the modern Steam Client")
 set(VERSION_FILENAME     "${MILLENNIUM_OUTPUT_NAME}")
 set(VERSION_PRODUCT      "Millennium")
+set(VERSION_FILETYPE     "VFT_DLL")
 
-set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard to use" FORCE)
+set(CMAKE_CXX_STANDARD 23 CACHE STRING "C++ standard to use" FORCE)
 set(CMAKE_C_STANDARD   11 CACHE STRING "C standard to use"   FORCE)
 
 include(ExternalProject)
 include(FetchContent)
 project(Millennium LANGUAGES C CXX)
+
 include(${MILLENNIUM_BASE}/scripts/cmake/millennium_version.cmake)
+include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
 
 add_compile_definitions(
     "_CRT_SECURE_NO_WARNINGS"
-    "USE_INTERNAL_FPCONV"
     "NGHTTP2_STATICLIB"
-    "LJ_HASJIT"
-    "_WEBSOCKETPP_CPP11_THREAD_"
-    "_WEBSOCKETPP_CPP11_TYPE_TRAITS_"
-    "_WEBSOCKETPP_CPP11_RANDOM_DEVICE_"
-    "ASIO_STANDALONE"
-    "ASIO_HAS_STD_INVOKE_RESULT"
-    "FMT_HEADER_ONLY"
     "CURL_STATICLIB"
-    __HOOK_HELPER_OUTPUT_ABSPATH__="$<TARGET_FILE:hhx64>"
-    __DBG_MILLENNIUM_OUTPUT_DIR__="$<TARGET_FILE_DIR:Millennium>"
+    $<$<BOOL:${WIN32}>:WIN32_LEAN_AND_MEAN>
+    $<$<BOOL:${WIN32}>:NOMINMAX>
+    $<$<CONFIG:Debug>:__HOOK_HELPER_OUTPUT_ABSPATH__="$<TARGET_FILE:hhx64>">
+    $<$<CONFIG:Debug>:__LUA_HOST_OUTPUT_ABSPATH__="$<TARGET_FILE:${MILLENNIUM_RTB_NAME}>">
+    $<$<CONFIG:Debug>:__DBG_MILLENNIUM_OUTPUT_DIR__="$<TARGET_FILE_DIR:Millennium>">
+    $<$<AND:$<CONFIG:Debug>,$<PLATFORM_ID:Linux>>:__PVS64_OUTPUT_ABSPATH__="$<TARGET_FILE:libmillennium_pvs64>">
 )
-
-if (WIN32)
-    add_compile_definitions("LJ_TARGET_X64")
-elseif(UNIX AND NOT APPLE)
-    add_compile_definitions("LJ_TARGET_X86")
-endif()
 
 include_directories(
     ${MILLENNIUM_BASE}/src
     ${MILLENNIUM_BASE}/src/include
-    ${MILLENNIUM_BASE}/src/vendor/subhook
-    ${MILLENNIUM_BASE}/src/vendor/plthook
+)
+include_directories(SYSTEM
+    ${snare_SOURCE_DIR}
 )
 
 set(SOURCE_FILES
-    runtime/libjs_interop.cc
-    runtime/liblj_api.cc
-    runtime/liblj_http.cc
-    runtime/liblj_interop.cc
-    runtime/liblj_logger.cc
-    runtime/liblj_utils.cc
-    runtime/liblj_fs.cc
-    runtime/liblj_regex.cc
-    runtime/liblj_datetime.cc
-    runtime/libpy_api.cc
-    runtime/libpy_gil.cc
-    runtime/libpy_interop.cc
-    runtime/libpy_logger.cc
-    runtime/libpy_stdout_fwd.cc
-    runtime/liblj_vfs_hook_api.cc
-    core/auth.cc
-    core/backend_init.cc
-    core/backend_mgr.cc
-    core/core_ipc.cc
-    core/http_hooks.cc
-    core/init.cc
-    core/lifecycle.cc
-    core/millennium_api.cc
-    core/millennium_updater.cc
+    ${MILLENNIUM_BASE}/src/lua_host/lua_interop.cc
+    engine/auth.cc
+    engine/backend_init.cc
+    engine/backend_mgr.cc
+    engine/child_process.cc
+    engine/cdp_api.cc
+    engine/cdp_connector.cc
+    engine/cmdline_api.cc
+    engine/core_ipc.cc
+    engine/ffi_binder.cc
+    engine/http_hooks.cc
+    engine/lifecycle.cc
+    engine/millennium_updater.cc
+    engine/plugin_loader.cc
+    engine/plugin_manager.cc
+    engine/plugin_webkit_store.cc
+    engine/plugin_webkit_world_mgr.cc
+    engine/thread_pool.cc
+    util/cmdline_parser.cc
+    util/file_watcher.cc
     util/semver.cc
     util/zip.cc
-    backend/css_parser.cc
-    backend/default_cfg.cc
-    backend/entry_point.cc
-    backend/ipc_handler.cc
-    backend/library_updater.cc
-    backend/plugin_mgr.cc
-    backend/scan.cc
-    backend/sys_accent_col.cc
-    backend/theme_cfg.cc
-    backend/theme_mgr.cc
-    backend/webkit.cc
-    hooks/steam_hooks.cc
-    hhx64/smem.cc
-    sys/cfg.cc
-    sys/env.cc
-    sys/logger.cc
-    sys/sysfs.cc
-    main.cc
+    bindings/plugin_config.cc
+    bindings/css_parser.cc
+    bindings/default_cfg.cc
+    bindings/entry_point.cc
+    bindings/library_updater.cc
+    bindings/plugin_mgr.cc
+    bindings/scan.cc
+    bindings/sys_accent_col.cc
+    bindings/theme_cfg.cc
+    bindings/theme_mgr.cc
+    bindings/webkit.cc
+    instrumentation/internal/steam_hooks.cc
+    state/shared_memory.cc
+    shared/crash_report.cc
+    shared/crash_handler.cc
+    shared/crash_handler_core.cc
+    system/config.cc
+    system/environment.cc
+    system/filesystem.cc
+    system/health_check.cc
+    system/logger.cc
+    millennium.cc
+    mep/mep_message.cc
+    mep/mep_router.cc
+    mep/mep_server.cc
+    mep/mep_hooks.cc
+    mep/ffi_recorder.cc
+    mep/console_capture.cc
+    mep/exception_capture.cc
+    mep/crash_event_bus.cc
+    mep/sdk_ready_bus.cc
 )
 
 if(WIN32)
     configure_file(${MILLENNIUM_BASE}/scripts/version.rc.in ${CMAKE_BINARY_DIR}/millennium_version.rc @ONLY)
 
-    list(APPEND SOURCE_FILES "plat/init_win32.cc")
+    list(APPEND SOURCE_FILES "platform/windows.cc")
     list(APPEND SOURCE_FILES "${CMAKE_BINARY_DIR}/millennium_version.rc")
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
         list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/scripts/resources.rc")
     endif()
+elseif(APPLE)
+    enable_language(OBJCXX)
+    list(APPEND SOURCE_FILES "platform/posix.cc")
+    list(APPEND SOURCE_FILES "platform/macos.cc")
+    list(APPEND SOURCE_FILES "platform/macos_menu.mm")
+    list(APPEND SOURCE_FILES "platform/macos_window_style.mm")
+    list(APPEND SOURCE_FILES "platform/macos_accent_color.mm")
 elseif(UNIX)
-    list(APPEND SOURCE_FILES "plat/init_posix.cc")
-    list(APPEND SOURCE_FILES "plat/init_posix_deprecated.cc")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_x86.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/subhook/subhook_linux.c")
-    list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/vendor/plthook/plthook_elf.c")
+    list(APPEND SOURCE_FILES "platform/posix.cc")
+    list(APPEND SOURCE_FILES "platform/linux.cc")
+    list(APPEND SOURCE_FILES "platform/linux_legacy.cc")
 endif()
 
 if(WIN32)
-    add_subdirectory(boot/win32)
+    add_subdirectory(bootstrap/win32)
 elseif(UNIX AND NOT APPLE AND NOT NIX_BUILD)
-    add_subdirectory(boot/linux)
+    add_subdirectory(bootstrap/linux)
 elseif(UNIX AND APPLE)
-    add_subdirectory(boot/macos)
+    add_subdirectory(bootstrap/macos)
+endif()
+
+add_subdirectory(lua_host)
+
+if(WIN32)
+    add_subdirectory(crash_handler)
 endif()
 
 if(UNIX AND NOT APPLE)
@@ -131,14 +145,30 @@ endif()
 
 include(${MILLENNIUM_BASE}/scripts/cmake/bootstrap_deps.cmake)
 
+target_include_directories(${MILLENNIUM_RTB_NAME} PRIVATE
+    ${luajit_BINARY_DIR}
+    ${luajit_SOURCE_DIR}/src
+)
+
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${MILLENNIUM_BASE}/src/sdk/packages/loader/build")
+    set(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS      "${MILLENNIUM_BASE}/src/typescript/sdk/packages/loader/build")
     set(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS "${MILLENNIUM_BASE}/src")
 
     add_compile_definitions(
              MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS}"
         MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS="${MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS}"
+                                   MILLENNIUM_DEBUG=1
     )
+
+    # Replace /Zi (shared PDB) with /Z7 (embed debug info per-object) to eliminate
+    # PDB write races when compiling many TUs in parallel on MSVC.
+    if(MSVC)
+        string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+        string(REPLACE "/Zi" "/Z7" CMAKE_C_FLAGS_DEBUG   "${CMAKE_C_FLAGS_DEBUG}")
+        set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} CACHE STRING "" FORCE)
+        set(CMAKE_C_FLAGS_DEBUG   ${CMAKE_C_FLAGS_DEBUG}   CACHE STRING "" FORCE)
+    endif()
 endif()
 
 if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -152,69 +182,45 @@ if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS_DEBUG "")
 endif()
 
-include(${MILLENNIUM_BASE}/scripts/cmake/detect_aur_helper.cmake)
-
-if(WIN32)
-    include_directories(${MILLENNIUM_BASE}/src/vendor/python/win32)
-elseif(APPLE)
-    set(python_path "$ENV{HOME}/.pyenv/versions/3.11.8")
-    include_directories("${python_path}/include/python3.11")
-    set(MILLENNIUM__PYTHON_ENV "${python_path}")
-    set(LIBPYTHON_RUNTIME_PATH "${python_path}/lib/libpython3.11.dylib")
-    message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
-elseif(DISTRO_NIX)
-    set(default_python_path "${NIX_PYTHON}")
-    set(MILLENNIUM__PYTHON_ENV "${NIX_PYTHON}")
-    set(LIBPYTHON_RUNTIME_PATH "${NIX_PYTHON_LIB}")
-
-    include_directories("${NIX_PYTHON}/include/python3.11/")
-    detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
-    set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "echo {}")
-
-    message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
-else()
-    set(default_python_path "/opt/python-i686-3.11.8")
-    set(MILLENNIUM__PYTHON_ENV "${default_python_path}")
-    set(LIBPYTHON_RUNTIME_PATH "${default_python_path}/lib/libpython-3.11.8.so")
-
-    if(DISTRO_ARCH OR LSB_RELEASE_ID_SHORT STREQUAL "Arch")
-        include_directories("${MILLENNIUM_BASE}/src/vendor/python/posix")
-        detect_aur_helper(MILLENNIUM__UPDATE_SCRIPT_PROMPT)
-    elseif(NIX_BUILD OR LSB_RELEASE_ID_SHORT STREQUAL "NixOS")
-        include_directories("${default_python_path}/include/python3.11/")
-        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "nix flake update millennium")
-    else()
-        include_directories("${MILLENNIUM_BASE}/src/vendor/python/posix")
-        set(MILLENNIUM__UPDATE_SCRIPT_PROMPT "curl -fsSL 'https://steambrew.app/install.sh' | bash")
-    endif()
-    message(STATUS "[Millennium] Setting MILLENNIUM__UPDATE_SCRIPT_PROMPT to: ${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
-    message(STATUS "[Millennium] Using python library ${LIBPYTHON_RUNTIME_PATH}")
+# TypeScript build targets (individual per-package, incremental via stamp files).
+# Nix builds TS externally — this is a no-op for DISTRO_NIX.
+if(NOT DISTRO_NIX)
+    include(${MILLENNIUM_BASE}/scripts/cmake/typescript_targets.cmake)
 endif()
 
-include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
-include(${MILLENNIUM_BASE}/scripts/cmake/generate_virtfs.cmake)
+# Nix: generate virtfs.h at configure time using pre-built paths.
+if(DISTRO_NIX)
+    include(${MILLENNIUM_BASE}/scripts/cmake/generate_virtfs.cmake)
+endif()
 
 if(WIN32)
     add_library(Millennium SHARED "${SOURCE_FILES}")
-    target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="https://github.com/SteamClientHomebrew/Installer/releases/latest/download/MillenniumInstaller-Windows.exe")
 elseif(UNIX)
-    if(APPLE)
-        add_executable(Millennium "${SOURCE_FILES}")
-    else()
-        add_library(Millennium SHARED "${SOURCE_FILES}")
-    endif()
+    add_library(Millennium SHARED "${SOURCE_FILES}")
 
     add_compile_definitions(MILLENNIUM_SHARED)
-    target_compile_definitions(Millennium PRIVATE MILLENNIUM__PYTHON_ENV="${MILLENNIUM__PYTHON_ENV}")
-    target_compile_definitions(Millennium PRIVATE LIBPYTHON_RUNTIME_PATH="${LIBPYTHON_RUNTIME_PATH}")
-    target_compile_definitions(Millennium PRIVATE MILLENNIUM__UPDATE_SCRIPT_PROMPT="${MILLENNIUM__UPDATE_SCRIPT_PROMPT}")
+    if(APPLE)
+        target_compile_definitions(Millennium PRIVATE MILLENNIUM_MENU_ICON_PATH="${MILLENNIUM_BASE}/src/bootstrap/macos/AppIcon.icns")
+    endif()
     if(DISTRO_NIX)
         target_compile_definitions(Millennium PRIVATE DISTRO_NIX)
     endif()
 endif()
 
+if(NOT DISTRO_NIX)
+    add_dependencies(Millennium virtfs_header)
+    set_property(SOURCE engine/http_hooks.cc
+        APPEND PROPERTY OBJECT_DEPENDS "${MILLENNIUM_BASE}/src/include/millennium/virtfs.h")
+endif()
+
 find_steam_path(Millennium)
-target_include_directories(Millennium SYSTEM PRIVATE ${websocketpp_SOURCE_DIR})
+
+if (WIN32 AND NOT GITHUB_ACTION_BUILD)
+    message(STATUS "[MLNM] Build Path: ${out_steam_path}")
+endif()
+message(STATUS "[MLNM] Version:    ${MILLENNIUM_VERSION}")
+message(STATUS "[MLNM] Commit OID: ${GIT_COMMIT_HASH}")
+
 set_target_properties(Millennium PROPERTIES
     PREFIX ""
     OUTPUT_NAME "${MILLENNIUM_OUTPUT_NAME}"
@@ -228,36 +234,15 @@ elseif(UNIX AND NOT APPLE)
     target_compile_options(Millennium PRIVATE -m32 -Wall -Wextra -Wpedantic -Werror)
 endif()
 
-target_link_libraries(Millennium luajit::lib libcurl minizip cjson libgit2package nlohmann_json fmt::fmt mINI)
+target_link_libraries(Millennium libcurl minizip nlohmann_json)
 
 if(WIN32)
-    set(PYTHON_LIB "${MILLENNIUM_BASE}/src/vendor/python/lib64/python311.lib")
-    set(PYTHON_LIB_IN_PATH "${MILLENNIUM_BASE}/src/vendor/python/lib64/python311.dll")
-    set(PYTHON_LIB_OUT_PATH "${out_steam_path}/python311.dll")
-
-    if (NOT GITHUB_ACTION_BUILD)
-        add_custom_command(
-            OUTPUT ${PYTHON_LIB_OUT_PATH}
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PYTHON_LIB_IN_PATH} ${PYTHON_LIB_OUT_PATH}
-            COMMENT "Adding Millennium python runtime to Steam directory"
-        )
-
-        add_custom_target(copy_python311_dll ALL DEPENDS ${PYTHON_LIB_OUT_PATH} COMMENT "Ensuring python311.dll is present in Steam directory")
-        add_dependencies(Millennium copy_python311_dll)
-    endif()
-
-    target_link_libraries(Millennium minhook ${PYTHON_LIB} user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)
+    target_link_libraries(Millennium user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_link_options(Millennium PRIVATE /NODEFAULTLIB:LIBCMT)
     endif()
+elseif(APPLE)
+    target_link_libraries(Millennium "-framework AppKit")
 elseif(UNIX)
     target_link_options(Millennium PRIVATE -Wl,--no-undefined)
-
-    if(APPLE)
-        target_link_libraries(Millennium "$ENV{HOME}/.pyenv/versions/3.11.8/lib/libpython3.11.dylib")
-    elseif(DISTRO_NIX)
-        target_link_libraries(Millennium "${NIX_PYTHON_LIB}")
-    else()
-        target_link_libraries(Millennium "/opt/python-i686-3.11.8/lib/libpython-3.11.8.so")
-    endif()
 endif()

@@ -16,22 +16,35 @@ remove_deprecated_patches() {
     fi
 }
 
-post_install() {
-    if [ -n "$SUDO_USER" ]; then
-        USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-    else
-        USER_HOME="$HOME"
-    fi
-    
-    # Remove any deprecated patches from the Steam binary
-    remove_deprecated_patches
-    
-    # Link millennium to the Steam runtime
-    rm -f "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
-    ln -s /usr/lib/millennium/libmillennium_bootstrap_86x.so "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
+for_each_steam_user() {
+    local callback="$1"
+    getent passwd | while IFS=: read -r _ _ uid _ _ home _; do
+        [ "$uid" -ge 1000 ] || continue
+        [ -d "$home/.local/share/Steam" ] || continue
+        "$callback" "$home"
+    done
+}
 
-    # Setup Steam remote debugging
-    touch "${USER_HOME}/.steam/steam/.cef-enable-remote-debugging"
+link_millennium() {
+    local home="$1"
+    local steam="$home/.local/share/Steam"
+
+    ln -sf /usr/lib/millennium/libmillennium_bootstrap_x86.so   "$steam/ubuntu12_32/libXtst.so.6"
+    ln -sf /usr/lib/millennium/libmillennium_bootstrap_hhx64.so "$steam/ubuntu12_64/libXtst.so.6"
+}
+
+unlink_millennium() {
+    local home="$1"
+    local steam="$home/.local/share/Steam"
+
+    rm -f "$steam/ubuntu12_32/libXtst.so.6"
+    rm -f "$steam/ubuntu12_64/libXtst.so.6"
+    rm -f "$home/.steam/steam/.cef-enable-remote-debugging"
+}
+
+post_install() {
+    remove_deprecated_patches
+    for_each_steam_user link_millennium
 }
 
 post_upgrade() {
@@ -39,15 +52,5 @@ post_upgrade() {
 }
 
 post_remove() {
-    if [ -n "$SUDO_USER" ]; then
-        USER_HOME=$(getent passwd "$SUDO_USER" | cut -d: -f6)
-    else
-        USER_HOME="$HOME"
-    fi
-    
-    # Remove the symlink created during post_install
-    rm -f "${USER_HOME}/.local/share/Steam/ubuntu12_32/libXtst.so.6"
-
-    # Disable Steam remote debugging
-    rm -f "${USER_HOME}/.steam/steam/.cef-enable-remote-debugging"
+    for_each_steam_user unlink_millennium
 }

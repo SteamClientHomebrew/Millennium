@@ -69,16 +69,13 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
         deps = [
           "zlib"
           "luajit"
-          "luajson"
           "minhook"
           "mini"
           "websocketpp"
-          "fmt"
           "json"
           "libgit2"
           "minizip"
           "curl"
-          "incbin"
           "asio"
         ];
       in
@@ -122,7 +119,8 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
 
     mkdir -p $out/lib/
     install -Dm755 src/libmillennium_x86.so                      $out/lib/libmillennium_x86.so
-    install -Dm755 src/boot/linux/libmillennium_bootstrap_86x.so $out/lib/libmillennium_bootstrap_86x.so
+    install -Dm755 src/boot/linux/libmillennium_bootstrap_x86.so $out/lib/libmillennium_bootstrap_x86.so
+    install -Dm755 libmillennium_pvs64                           $out/lib/libmillennium_pvs64
 
     runHook postInstall
   '';
