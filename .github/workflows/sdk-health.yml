@@ -89,25 +89,11 @@ jobs:
           echo "steam steam/license note ''"         | sudo debconf-set-selections
           sudo apt-get install -y xvfb steam
 
-      - name: Authenticate Steam
+      - name: Run SDK health check
+        id: health
         env:
           STEAM_USER: ${{ secrets.STEAM_USER }}
           STEAM_PASS: ${{ secrets.STEAM_PASS }}
-        run: |
-          xvfb-run -a steam -login "$STEAM_USER" "$STEAM_PASS" -silent -nofriendsui -nochatui &
-          SPID=$!
-          for i in $(seq 1 60); do
-            if [ -f "$HOME/.steam/steam/config/loginusers.vdf" ]; then
-              echo "session files written"
-              break
-            fi
-            sleep 1
-          done
-          kill $SPID 2>/dev/null || true
-          wait $SPID 2>/dev/null || true
-
-      - name: Run SDK health check
-        id: health
         run: build/sdk_health --dump-file dump.json
         continue-on-error: true
 
