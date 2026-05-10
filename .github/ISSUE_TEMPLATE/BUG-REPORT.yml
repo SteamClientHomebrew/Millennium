@@ -77,7 +77,7 @@ body:
       required: false
   - type: dropdown
     attributes:
-      label: Install Method
+      label: Linux Install Method
       description: How did you install Millennium?
       options:
         - Not applicable
