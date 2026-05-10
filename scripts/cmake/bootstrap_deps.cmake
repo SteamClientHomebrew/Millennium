@@ -157,6 +157,9 @@ include_directories(SYSTEM
 
 millennium_process_package("${luajit_SOURCE_DIR}")
 millennium_process_package("${curl_SOURCE_DIR}")
+if(EXISTS "${luajit_SOURCE_DIR}/LuaJIT.cmake")
+  file(READ "${luajit_SOURCE_DIR}/LuaJIT.cmake" _luajit_content)
+  string(REPLACE
 millennium_process_package("${nlohmann_json_SOURCE_DIR}")
 millennium_process_package("${minizip_ng_SOURCE_DIR}")
 millennium_process_package("${re2_SOURCE_DIR}")

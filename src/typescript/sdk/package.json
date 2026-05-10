@@ -37,8 +37,5 @@
       "electron",
       "nx"
     ]
-  },
-  "workspaces": [
-    "packages/*"
-  ]
+  }
 }

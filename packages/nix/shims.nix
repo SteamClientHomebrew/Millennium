@@ -22,12 +22,12 @@ stdenv.mkDerivation (finalAttrs: {
     pnpmConfigHook
   ];
 
-  pnpmRoot = "src/typescript/sdk";
+  pnpmRoot = "src/typescript";
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) version pname;
     pnpm = pnpm_9;
-    src = "${finalAttrs.src}/src/typescript/sdk";
+    src = "${finalAttrs.src}/src/typescript";
     fetcherVersion = 3;
     hash = "sha256-H7k+nkNCb4yuaXcZVmfMI0sqgdYgTO3C2MlXPpYX0x0=";
   };
@@ -35,7 +35,7 @@ stdenv.mkDerivation (finalAttrs: {
   buildPhase = ''
     runHook preBuild
 
-    pnpm --dir src/typescript/sdk run build
+    pnpm --dir src/typescript run build
 
     runHook postBuild
   '';
