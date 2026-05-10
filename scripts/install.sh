@@ -37,6 +37,8 @@ readonly NIGHTLY_URI="https://nightly.link/${GITHUB_ACCOUNT}/actions/runs"
 readonly INSTALL_DIR="/tmp/millennium"
 DRY_RUN=0
 RUN_ID=""
+BETA=0
+YES=0
 
 log() { printf "%b\n" "$1"; }
 is_root() { [ "$(id -u)" -eq 0 ]; }
@@ -65,6 +67,8 @@ check_dependencies() {
 
 fetch_release_info() {
     local page=1 per_page=100 response tag size
+    local filter
+    [ "${BETA}" -eq 1 ] && filter='.[]' || filter='.[] | select(.prerelease == false)'
 
     while :; do
         response=$(curl -fsSL \
@@ -73,16 +77,14 @@ fetch_release_info() {
 
         [ "$(echo "${response}" | jq 'length')" -eq 0 ] && break
 
-        tag=$(echo "${response}" | jq -r '
-            .[] | select(.prerelease == false) | .tag_name
-        ' | head -n1)
+        tag=$(echo "${response}" | jq -r "${filter} | .tag_name" | head -n1)
 
         if [ -n "${tag}" ] && [ "${tag}" != "null" ]; then
             size=$(echo "${response}" | jq -r "
-                .[] 
-                | select(.tag_name == \"${tag}\") 
-                | .assets[] 
-                | select(.name == \"millennium-v${tag#v}-${target}.tar.gz\") 
+                .[]
+                | select(.tag_name == \"${tag}\")
+                | .assets[]
+                | select(.name == \"millennium-v${tag#v}-${target}.tar.gz\")
                 | .size
             ")
             echo "${tag#v}:${size:-0}"
@@ -92,7 +94,7 @@ fetch_release_info() {
         page=$((page + 1))
     done
 
-    log "No non-prerelease releases found."
+    log "No releases found."
     return 1
 }
 
@@ -114,6 +116,7 @@ fetch_artifact_from_run() {
 }
 
 confirm_installation() {
+    [ "${YES}" -eq 1 ] && return 0
     echo -e "\n:: Proceed with installation? [Y/n] \c"
     read -r proceed </dev/tty
     case "${proceed}" in
@@ -166,9 +169,10 @@ post_install() {
     fi
 
     # create symlinks for millenniums preload bootstraps.
-    [ -d "${HOME}/.steam/steam/ubuntu12_32" ] && ln -sf /usr/lib/millennium/libmillennium_bootstrap_x86.so "${HOME}/.steam/steam/ubuntu12_32/libXtst.so.6"
-    [ -d "${HOME}/.steam/steam/ubuntu12_64" ] && ln -sf /usr/lib/millennium/libmillennium_bootstrap_hhx64.so "${HOME}/.steam/steam/ubuntu12_64/libXtst.so.6"
-    [ -d "${HOME}/.steam/steam/ubuntu12_64" ] && ln -sf /usr/lib/millennium/libmillennium_hhx64.so "${HOME}/.steam/steam/ubuntu12_64/libmillennium_hhx64.so"
+    mkdir -p "${HOME}/.steam/steam/ubuntu12_32" "${HOME}/.steam/steam/ubuntu12_64"
+    ln -sf /usr/lib/millennium/libmillennium_bootstrap_x86.so   "${HOME}/.steam/steam/ubuntu12_32/libXtst.so.6"
+    ln -sf /usr/lib/millennium/libmillennium_bootstrap_hhx64.so "${HOME}/.steam/steam/ubuntu12_64/libXtst.so.6"
+    ln -sf /usr/lib/millennium/libmillennium_hhx64.so           "${HOME}/.steam/steam/ubuntu12_64/libmillennium_hhx64.so"
 }
 
 cleanup() {
@@ -183,9 +187,11 @@ main() {
     # Parse arguments
     while [ $# -gt 0 ]; do
         case "$1" in
-            --dry-run) DRY_RUN=1 ;;
-            --run-id) shift; RUN_ID="$1" ;;
-            --run-id=*) RUN_ID="${1#*=}" ;;
+            --dry-run)    DRY_RUN=1 ;;
+            --beta)       BETA=1 ;;
+            --yes)        YES=1 ;;
+            --run-id)     shift; RUN_ID="$1" ;;
+            --run-id=*)   RUN_ID="${1#*=}" ;;
         esac
         shift
     done

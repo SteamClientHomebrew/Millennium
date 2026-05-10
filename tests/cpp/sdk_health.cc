@@ -158,14 +158,24 @@ static pid_t launch_steam()
         return -1;
     }
 
+    const char* steam_user = std::getenv("STEAM_USER");
+    const char* steam_pass = std::getenv("STEAM_PASS");
+    bool has_creds = steam_user && steam_pass && steam_user[0] && steam_pass[0];
+
     pid_t pid = fork();
     if (pid == 0) {
         close(pipefd[0]);
         dup2(pipefd[1], STDOUT_FILENO);
         dup2(pipefd[1], STDERR_FILENO);
         close(pipefd[1]);
-        const char* argv[] = { "xvfb-run", "-a", "steam", "-dev", "-silent", "-nofriendsui", "-nochatui", nullptr };
-        execvp("xvfb-run", const_cast<char* const*>(argv));
+
+        if (has_creds) {
+            const char* argv[] = { "xvfb-run", "-a", "dbus-run-session", "steam", "-login", steam_user, steam_pass, "-dev", "-silent", "-nofriendsui", "-nochatui", nullptr };
+            execvp("xvfb-run", const_cast<char* const*>(argv));
+        } else {
+            const char* argv[] = { "xvfb-run", "-a", "dbus-run-session", "steam", "-dev", "-silent", "-nofriendsui", "-nochatui", nullptr };
+            execvp("xvfb-run", const_cast<char* const*>(argv));
+        }
         _exit(1);
     }
 
