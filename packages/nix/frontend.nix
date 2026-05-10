@@ -12,7 +12,7 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "millennium-frontend";
-  version = "2.34.0";
+  version = "2.36.0";
 
   src = millennium-src;
 
@@ -22,12 +22,12 @@ stdenv.mkDerivation (finalAttrs: {
     pnpmConfigHook
   ];
 
-  pnpmRoot = "src/frontend";
+  pnpmRoot = "src/typescript/frontend";
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) version pname;
     pnpm = pnpm_9;
-    src = "${finalAttrs.src}/src/frontend";
+    src = "${finalAttrs.src}/src/typescript/frontend";
     fetcherVersion = 3;
     hash = "sha256-i53ZZ8ehOi3ybuckUo1Js5tC4LB0QCe4IQCwDwoegXg=";
   };
@@ -35,7 +35,7 @@ stdenv.mkDerivation (finalAttrs: {
   buildPhase = ''
     runHook preBuild
 
-    pnpm --dir src/frontend run prod
+    pnpm --dir src/typescript/frontend run prod
 
     runHook postBuild
   '';
@@ -44,7 +44,7 @@ stdenv.mkDerivation (finalAttrs: {
     runHook preInstall
 
     mkdir -p $out/share/frontend/
-    cp -r build/frontend.bin $out/share/frontend/
+    cp -r src/typescript/.frontend.bin $out/share/frontend/frontend.bin
 
     runHook postInstall
   '';

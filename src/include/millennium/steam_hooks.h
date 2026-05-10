@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2026 Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,19 +29,17 @@
  */
 
 #pragma once
-#include <asio.hpp>
-#include <asio/ip/tcp.hpp>
+
+#if defined(_WIN32) && !defined(_WIN32_WINNT)
+#define _WIN32_WINNT 0x0A00 /** Windows 10 & 11 */
+#endif
+
 #define DEFAULT_DEVTOOLS_PORT "8080"
-extern std::string STEAM_DEVELOPER_TOOLS_PORT;
-const char* GetAppropriateDevToolsPort(const bool isDevMode);
 
 #ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#include <winsock2.h>
-#define _WINSOCKAPI_
-#include "MinHook.h"
-#include <iostream>
-#include <thread>
+#endif
 #include <windows.h>
 #include <winternl.h>
 
@@ -60,12 +58,21 @@ typedef VOID(CALLBACK* PLDR_DLL_NOTIFICATION_FUNCTION)(ULONG NotificationReason,
 typedef NTSTATUS(NTAPI* LdrRegisterDllNotification_t)(ULONG Flags, PLDR_DLL_NOTIFICATION_FUNCTION NotificationFunction, PVOID Context, PVOID* Cookie);
 typedef NTSTATUS(NTAPI* LdrUnregisterDllNotification_t)(PVOID Cookie);
 
-bool InitializeSteamHooks();
+bool initialize_steam_hooks();
+void uninitialize_steam_hooks();
 
-bool Millennium_Plat_CommandLineIsSetup();
-bool SetupEntryPointHook();
-#elif __linux__
-bool InitializeSteamHooks();
+/**
+ * Register DLL load/unload notifications and hook any already-loaded modules.
+ * MUST be called while holding the loader lock.
+ */
+void register_dll_notifications();
+
+#elif defined(__linux__) || defined(__APPLE__)
+bool initialize_steam_hooks();
 #endif
 
-bool Plat_InitializeSteamHooks();
+namespace platform
+{
+void wait_for_backend_load();
+bool initialize_steam_hooks();
+} // namespace platform

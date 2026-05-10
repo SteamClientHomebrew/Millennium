@@ -1,0 +1,223 @@
+name: SDK Health
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
+      stable:  ${{ steps.tags.outputs.stable }}
+      beta:    ${{ steps.tags.outputs.beta }}
+      same:    ${{ steps.tags.outputs.same }}
+    steps:
+      - name: Fetch latest SteamTracking SHA
+        id: fetch
+        run: |
+          SHA=$(curl -s https://api.github.com/repos/SteamTracking/SteamTracking/commits/master \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" | jq -r '.sha')
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+
+      - name: Restore SHA cache
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .steamtracking-sha
+          key: steamtracking-${{ steps.fetch.outputs.sha }}
+
+      - name: Evaluate
+        id: compare
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ steps.cache.outputs.cache-hit }}" != "true" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Save SHA cache
+        if: steps.compare.outputs.changed == 'true' && github.event_name != 'workflow_dispatch'
+        run: touch .steamtracking-sha
+
+      - uses: actions/cache/save@v4
+        if: steps.compare.outputs.changed == 'true' && github.event_name != 'workflow_dispatch'
+        with:
+          path: .steamtracking-sha
+          key: steamtracking-${{ steps.fetch.outputs.sha }}
+
+      - name: Resolve tags
+        id: tags
+        if: steps.compare.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          STABLE=$(gh api repos/SteamClientHomebrew/Millennium/releases \
+            --jq '[.[] | select(.prerelease == false)] | first | .tag_name')
+          BETA=$(gh api repos/SteamClientHomebrew/Millennium/releases \
+            --jq 'first | .tag_name')
+          echo "stable=$STABLE" >> $GITHUB_OUTPUT
+          echo "beta=$BETA"     >> $GITHUB_OUTPUT
+          [ "$STABLE" = "$BETA" ] && echo "same=true" >> $GITHUB_OUTPUT || echo "same=false" >> $GITHUB_OUTPUT
+
+  build-sdk-health:
+    needs: resolve
+    if: needs.resolve.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install build dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential gcc-multilib g++-multilib libc6-dev-i386 \
+            ninja-build libssl-dev:i386 pkg-config:i386
+
+      - uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: "3.28"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Configure
+        run: |
+          export PKG_CONFIG_PATH="/usr/lib/i386-linux-gnu/pkgconfig:/usr/lib/pkgconfig"
+          export PKG_CONFIG_LIBDIR="/usr/lib/i386-linux-gnu/pkgconfig"
+          cmake --preset linux-debug
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc) --target sdk_health
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdk-health
+          path: build/sdk_health
+
+  test-stable:
+    needs: [resolve, build-sdk-health]
+    if: needs.resolve.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdk-health
+          path: bin
+
+      - run: chmod +x bin/sdk_health
+
+      - name: Install Steam and xvfb
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          echo "steam steam/question select I AGREE" | sudo debconf-set-selections
+          echo "steam steam/license note ''"         | sudo debconf-set-selections
+          sudo apt-get install -y xvfb steam
+
+      - name: Stub zenity
+        run: printf '#!/bin/sh\nexit 0\n' | sudo tee /usr/local/bin/zenity && sudo chmod +x /usr/local/bin/zenity
+
+      - name: Initialize Steam
+        env:
+          STEAM_USER: ${{ secrets.STEAM_USER }}
+          STEAM_PASS: ${{ secrets.STEAM_PASS }}
+        run: |
+          xvfb-run -a dbus-run-session steam -login "$STEAM_USER" "$STEAM_PASS" -silent -nofriendsui -nochatui &
+          SPID=$!
+          for i in $(seq 1 120); do
+            if [ -d "$HOME/.steam/steam/ubuntu12_32" ] && [ -d "$HOME/.steam/steam/ubuntu12_64" ]; then
+              break
+            fi
+            sleep 1
+          done
+          kill $SPID 2>/dev/null || true
+          wait $SPID 2>/dev/null || true
+
+      - name: Install Millennium (stable)
+        run: bash scripts/install.sh --yes
+
+      - name: Run SDK health check
+        id: health
+        env:
+          STEAM_USER: ${{ secrets.STEAM_USER }}
+          STEAM_PASS: ${{ secrets.STEAM_PASS }}
+        run: bin/sdk_health --dump-file dump.json
+        continue-on-error: true
+
+      - name: Print dump on failure
+        if: steps.health.outcome == 'failure'
+        run: |
+          if [ -f dump.json ]; then cat dump.json; else echo "(no dump file written)"; fi
+
+      - name: Fail
+        if: steps.health.outcome == 'failure'
+        run: exit 1
+
+  test-beta:
+    needs: [resolve, build-sdk-health]
+    if: needs.resolve.outputs.changed == 'true' && needs.resolve.outputs.same != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdk-health
+          path: bin
+
+      - run: chmod +x bin/sdk_health
+
+      - name: Install Steam and xvfb
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          echo "steam steam/question select I AGREE" | sudo debconf-set-selections
+          echo "steam steam/license note ''"         | sudo debconf-set-selections
+          sudo apt-get install -y xvfb steam
+
+      - name: Stub zenity
+        run: printf '#!/bin/sh\nexit 0\n' | sudo tee /usr/local/bin/zenity && sudo chmod +x /usr/local/bin/zenity
+
+      - name: Initialize Steam
+        env:
+          STEAM_USER: ${{ secrets.STEAM_USER }}
+          STEAM_PASS: ${{ secrets.STEAM_PASS }}
+        run: |
+          xvfb-run -a dbus-run-session steam -login "$STEAM_USER" "$STEAM_PASS" -silent -nofriendsui -nochatui &
+          SPID=$!
+          for i in $(seq 1 120); do
+            if [ -d "$HOME/.steam/steam/ubuntu12_32" ] && [ -d "$HOME/.steam/steam/ubuntu12_64" ]; then
+              break
+            fi
+            sleep 1
+          done
+          kill $SPID 2>/dev/null || true
+          wait $SPID 2>/dev/null || true
+
+      - name: Install Millennium (beta)
+        run: bash scripts/install.sh --yes --beta
+
+      - name: Run SDK health check
+        id: health
+        env:
+          STEAM_USER: ${{ secrets.STEAM_USER }}
+          STEAM_PASS: ${{ secrets.STEAM_PASS }}
+        run: bin/sdk_health --dump-file dump.json
+        continue-on-error: true
+
+      - name: Print dump on failure
+        if: steps.health.outcome == 'failure'
+        run: |
+          if [ -f dump.json ]; then cat dump.json; else echo "(no dump file written)"; fi
+
+      - name: Fail
+        if: steps.health.outcome == 'failure'
+        run: exit 1

@@ -1,0 +1,13 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"rootDir": "./src",
+		"outDir": "./build",
+		"declaration": true,
+		"types": ["bun"],
+		"lib": ["ES2022", "DOM"],
+		"noUnusedLocals": false,
+		"noUnusedParameters": false
+	},
+	"include": ["./src"]
+}

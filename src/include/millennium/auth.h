@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2026 Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,5 +30,6 @@
 
 #include <string>
 
+const std::string build_random_string(size_t length);
 const std::string GetAuthToken();
 const std::string GetScrambledApiPathToken();

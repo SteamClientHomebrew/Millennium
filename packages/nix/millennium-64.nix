@@ -16,7 +16,7 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "millennium-64";
-  version = "2.34.0";
+  version = "2.36.0";
 
   src = inputs.millennium-src;
 

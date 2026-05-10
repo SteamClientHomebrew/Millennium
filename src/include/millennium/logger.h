@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2026 Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,16 +32,23 @@
 
 #include "millennium/singleton.h"
 
-#include <fmt/color.h>
-#include <fmt/core.h>
+#include <array>
+#include <atomic>
+#include <format>
+#include <functional>
+#include <fstream>
 #include <mutex>
+#include <unordered_map>
+#include <vector>
 
-#ifdef _WIN32
-#include <winsock2.h>
-#include <windows.h>
-#endif
-
-#define DEFAULT_ACCENT_COL fg(fmt::color::light_sky_blue)
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[38;5;214m"
+#define BLUE "\x1b[94m"
+#define MAGENTA "\033[35m"
+#define CYAN "\033[36m"
+#define WHITE "\033[37m"
+#define RESET "\033[0m"
 
 #define COL_RED "\033[31m"
 #define COL_GREEN "\033[32m"
@@ -52,71 +59,217 @@
 #define COL_WHITE "\033[37m"
 #define COL_RESET "\033[0m"
 
-class OutputLogger : public Singleton<OutputLogger>
+#define MILLENNIUM_REPOSITORY "https://github.com/SteamClientHomebrew/Millennium"
+
+constexpr std::array<char, 1024> __sanitize_nt(const char* path)
 {
-    friend class Singleton<OutputLogger>;
-
-  private:
-    bool m_bIsConsoleEnabled = false;
-    std::mutex logMutex;
-    std::string GetLocalTime();
-
-    constexpr std::string_view ConstexprGetSourceFile(const char* file)
-    {
-        std::string_view srcPath(file);
-        std::string_view root(MILLENNIUM_ROOT);
-
-        return srcPath.size() >= root.size() && srcPath.compare(0, root.size(), root) == 0 ? srcPath.substr(root.length()) : srcPath;
+    std::array<char, 1024> result{};
+    size_t i = 0;
+    while (path[i] != '\0') {
+        result[i] = (path[i] == '\\') ? '/' : path[i];
+        ++i;
     }
+    result[i] = '\0';
+    return result;
+}
+
+constexpr std::string_view __get_source_loc(const char* file)
+{
+    std::string_view srcPath(file);
+#ifdef MILLENNIUM_ROOT
+    std::string_view root(MILLENNIUM_ROOT);
+    return srcPath.size() >= root.size() && srcPath.compare(0, root.size(), root) == 0 ? srcPath.substr(root.length()) : srcPath;
+#else
+    return srcPath;
+#endif
+}
+
+class logger_base
+{
+  public:
+    enum class log_level
+    {
+        info,
+        warn,
+        error
+    };
+
+    struct log_entry
+    {
+        std::string message;
+        log_level level;
+        std::string timestamp;
+    };
+
+  protected:
+    std::mutex log_mutex;
+    std::vector<log_entry> logBuffer;
+
+    std::string get_local_time(bool withHours = false);
+    std::string get_local_date_str();
 
   public:
-    OutputLogger();
+    virtual ~logger_base() = default;
+};
 
-    void PrintMessage(std::string type, const std::string& message, std::string color = COL_WHITE);
+class plugin_logger : public logger_base
+{
+  private:
+    std::ofstream file;
+    std::string filename;
+    std::string pluginName;
 
-    void LogPluginMessage(std::string pname, std::string val);
+    std::mutex m_listener_mutex;
+    std::unordered_map<int, std::function<void(const log_entry&)>> m_listeners;
+    std::atomic<int> m_listener_id_counter{ 0 };
 
-    template <typename... Args> void Log(std::string fmt, Args&&... args)
+    void notify_listeners(const log_entry& entry);
+
+  public:
+    plugin_logger(const std::string& pluginName);
+    ~plugin_logger();
+
+    void log(const std::string& message, bool onlyBuffer = false);
+    void warn(const std::string& message, bool onlyBuffer = false);
+    void error(const std::string& message, bool onlyBuffer = false);
+    void print(const std::string& message);
+
+    std::vector<log_entry> collect_logs();
+    std::string get_plugin_name(bool upperCase = true);
+
+    /**
+     * Register a listener that is called with each new log entry as it is written.
+     * Safe to call from any thread. Returns a listener ID for use with remove_listener().
+     */
+    int add_listener(std::function<void(const log_entry&)> fn);
+
+    /**
+     * Deregister the listener with the given ID.
+     * Safe to call from any thread, including during an active notify_listeners() call.
+     * A no-op if @p id is unknown or already removed.
+     */
+    void remove_listener(int id);
+};
+
+class millennium_logger : public logger_base, public singleton<millennium_logger>
+{
+    friend class singleton<millennium_logger>;
+
+  private:
+    bool m_should_log = false;
+    [[maybe_unused]] bool m_bIsConsoleEnabled = false;
+
+    std::string get_local_time_stamp();
+    millennium_logger();
+
+  public:
+    void print(std::string type, const std::string& message, std::string color = COL_WHITE);
+    void log_plugin_message(std::string pname, std::string val);
+
+    template <typename... Args> void log(std::string fmt_str, Args&&... args)
     {
-        PrintMessage(" INFO ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_GREEN);
+        print(" INFO ", (sizeof...(args) == 0) ? fmt_str : std::vformat(fmt_str, std::make_format_args(args...)), COL_GREEN);
     }
 
-    template <typename... Args> void ErrorTrace(std::string fmt, const char* file, int line, const char* function, Args&&... args)
+    template <typename... Args> void private_error_do_not_use(std::string fmt_str, const char* file, int line, const char* function, Args&&... args)
     {
-        std::string remoteRepository = fmt::format("https://github.com/SteamClientHomebrew/Millennium/blob/{}{}#L{}", GIT_COMMIT_HASH, ConstexprGetSourceFile(file).data(), line);
+        std::string remoteRepository = std::format("{}/blob/{}{}#L{}", MILLENNIUM_REPOSITORY, GIT_COMMIT_HASH, __get_source_loc(file).data(), line);
 
-        PrintMessage(" ERROR ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_RED);
-        PrintMessage(" * FUNCTION: ", function, COL_RED);
-        PrintMessage(" * LOCATION: ", remoteRepository, COL_RED);
+        print(" ERROR ", (sizeof...(args) == 0) ? fmt_str : std::vformat(fmt_str, std::make_format_args(args...)), COL_RED);
+        print(" * FUNCTION: ", function, COL_RED);
+        print(" * LOCATION: ", remoteRepository, COL_RED);
     }
 
-    template <typename... Args> void Warn(std::string fmt, Args&&... args)
+    template <typename... Args> void warn(std::string fmt_str, Args&&... args)
     {
-        PrintMessage(" WARN ", (sizeof...(args) == 0) ? fmt : fmt::format(fmt, std::forward<Args>(args)...), COL_YELLOW);
+        print(" WARN ", (sizeof...(args) == 0) ? fmt_str : std::vformat(fmt_str, std::make_format_args(args...)), COL_YELLOW);
     }
 };
 
-extern OutputLogger& Logger;
+extern millennium_logger& logger;
+
+inline std::vector<plugin_logger*>& get_plugin_logger_mgr()
+{
+    static std::vector<plugin_logger*> loggerList;
+    return loggerList;
+}
+
+static void add_logger_message(const std::string pluginName, const std::string message, logger_base::log_level level)
+{
+    const auto add_log = [](plugin_logger* logger, const std::string& message, const logger_base::log_level& level)
+    {
+        switch (level) {
+            case logger_base::log_level::info:
+                logger->log(message);
+                break;
+            case logger_base::log_level::warn:
+                logger->warn(message);
+                break;
+            case logger_base::log_level::error:
+                logger->error(message);
+                break;
+        }
+    };
+
+    for (auto logger : get_plugin_logger_mgr()) {
+        if (logger->get_plugin_name(false) == pluginName) {
+            add_log(logger, message, level);
+            return;
+        }
+    }
+
+    plugin_logger* newLogger = new plugin_logger(pluginName);
+    add_log(newLogger, message, level);
+    get_plugin_logger_mgr().push_back(newLogger);
+}
+
+inline void InfoToLogger(const std::string pluginNme, const std::string message)
+{
+    add_logger_message(pluginNme, message, logger_base::log_level::info);
+}
+
+inline void WarnToLogger(const std::string pluginNme, const std::string message)
+{
+    add_logger_message(pluginNme, message, logger_base::log_level::warn);
+}
+
+inline void ErrorToLogger(const std::string pluginNme, const std::string message)
+{
+    add_logger_message(pluginNme, message, logger_base::log_level::error);
+}
+
+inline void RawToLogger(const std::string pluginName, const std::string message)
+{
+    for (auto logger : get_plugin_logger_mgr()) {
+        if (logger->get_plugin_name(false) == pluginName) {
+            logger->print(message);
+            return;
+        }
+    }
+
+    plugin_logger* logger = new plugin_logger(pluginName);
+    logger->print(message);
+    get_plugin_logger_mgr().push_back(logger);
+}
+
+void CleanupLoggers();
 
 #if defined(_MSC_VER)
 #define PRETTY_FUNCTION __FUNCSIG__
 #else
 #define PRETTY_FUNCTION __PRETTY_FUNCTION__
 #endif
-
-#if defined(__clang__)
 #ifndef LOG_ERROR
-#define LOG_ERROR(...) Logger.ErrorTrace(FIRST(__VA_ARGS__), __FILE__, __LINE__, PRETTY_FUNCTION REST(__VA_ARGS__))
-#define FIRST(...) FIRST_HELPER(__VA_ARGS__, throwaway)
-#define FIRST_HELPER(first, ...) first
-#define REST(...) REST_HELPER(NUM(__VA_ARGS__), __VA_ARGS__)
-#define REST_HELPER(qty, ...) REST_HELPER2(qty, __VA_ARGS__)
-#define REST_HELPER2(qty, ...) REST_HELPER_##qty(__VA_ARGS__)
-#define REST_HELPER_ONE(first)
-#define REST_HELPER_TWOORMORE(first, ...) , __VA_ARGS__
-#define NUM(...) SELECT_10TH(__VA_ARGS__, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, ONE, throwaway)
-#define SELECT_10TH(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, ...) a10
-#endif
+#if defined(__clang__)
+#define LOG_ERROR(...) LOG_ERROR_IMPL(NUM(__VA_ARGS__), __VA_ARGS__)
+#define LOG_ERROR_IMPL(qty, ...) LOG_ERROR_IMPL2(qty, __VA_ARGS__)
+#define LOG_ERROR_IMPL2(qty, ...) LOG_ERROR_##qty(__VA_ARGS__)
+#define LOG_ERROR_ONE(fmt) logger.private_error_do_not_use(fmt, __sanitize_nt(__FILE__).data(), __LINE__, PRETTY_FUNCTION)
+#define LOG_ERROR_TWOORMORE(fmt, ...) logger.private_error_do_not_use(fmt, __sanitize_nt(__FILE__).data(), __LINE__, PRETTY_FUNCTION, __VA_ARGS__)
+#define NUM(...) SELECT_11TH(__VA_ARGS__, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, TWOORMORE, ONE, throwaway)
+#define SELECT_11TH(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, ...) a11
 #else
-#define LOG_ERROR(fmt, ...) Logger.ErrorTrace(fmt, __FILE__, __LINE__, PRETTY_FUNCTION, ##__VA_ARGS__)
+#define LOG_ERROR(fmt, ...) logger.private_error_do_not_use(fmt, __sanitize_nt(__FILE__).data(), __LINE__, PRETTY_FUNCTION, ##__VA_ARGS__)
 #endif
+#endif
+#define GET_GITHUB_URL_FROM_HERE() std::format("{}/blob/{}{}#L{}", MILLENNIUM_REPOSITORY, GIT_COMMIT_HASH, __get_source_loc(__sanitize_nt(__FILE__).data()).data(), __LINE__)

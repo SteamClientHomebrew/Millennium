@@ -7,7 +7,7 @@
  *
  * ==================================================
  *
- * Copyright (c) 2025 Project Millennium
+ * Copyright (c) 2026 Project Millennium
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,70 +30,29 @@
 
 #pragma once
 
-#include "millennium/singleton.h"
-#include "millennium/init.h"
-#include "millennium/sysfs.h"
+#include "millennium/fwd_decl.h"
+#include "millennium/life_cycle.h"
+#include "millennium/logger.h"
+#include "millennium/backend_mgr.h"
+#include <memory>
 
-namespace CoInitializer
+class backend_initializer
 {
-class BackendCallbacks : public Singleton<BackendCallbacks>
-{
-    friend class Singleton<BackendCallbacks>;
-
   public:
-    enum eBackendLoadEvents
+    backend_initializer(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<backend_manager> manager, std::shared_ptr<backend_event_dispatcher> event_dispatcher)
+        : m_plugin_manager(std::move(plugin_manager)), m_backend_manager(std::move(manager)), m_backend_event_dispatcher(std::move(event_dispatcher))
     {
-        BACKEND_LOAD_SUCCESS,
-        BACKEND_LOAD_FAILED,
-    };
-
-    struct PluginTypeSchema
+    }
+    ~backend_initializer()
     {
-        std::string pluginName;
-        eBackendLoadEvents event;
+        logger.log("Successfully shut down backend_initializer...");
+    }
 
-        bool operator==(const PluginTypeSchema& other) const
-        {
-            return pluginName == other.pluginName && event == other.event;
-        }
-
-        PluginTypeSchema(const std::string& name) : pluginName(name), event(BACKEND_LOAD_SUCCESS)
-        {
-        }
-        PluginTypeSchema(const std::string& name, eBackendLoadEvents ev) : pluginName(name), event(ev)
-        {
-        }
-    };
-
-    using EventCallback = std::function<void()>;
-
-    void RegisterForLoad(EventCallback callback);
-    void StatusDispatch();
-    void BackendLoaded(PluginTypeSchema plugin);
-    void BackendUnLoaded(PluginTypeSchema plugin, bool isShuttingDown);
-    void Reset();
+    /** Fix an old issue previous versions of Millennium introduced */
+    void compat_restore_shared_js_context();
 
   private:
-    bool EvaluateBackendStatus();
-    std::string GetFailedBackendsStr();
-    std::string GetSuccessfulBackendsStr();
-
-    enum eEvents
-    {
-        ON_BACKEND_READY_EVENT
-    };
-
-    bool isReadyForCallback = false;
-    std::vector<PluginTypeSchema> emittedPlugins;
-    std::vector<eEvents> missedEvents;
-    std::unordered_map<eEvents, std::vector<EventCallback>> listeners;
-    std::mutex listenersMutex;
+    std::shared_ptr<plugin_manager> m_plugin_manager;
+    std::shared_ptr<backend_manager> m_backend_manager;
+    std::shared_ptr<backend_event_dispatcher> m_backend_event_dispatcher;
 };
-
-void InjectFrontendShims(bool reloadFrontend = true);
-void ReInjectFrontendShims(std::shared_ptr<PluginLoader> pluginLoader, bool reloadFrontend = true);
-void PyBackendStartCallback(SettingsStore::PluginTypeSchema plugin);
-void LuaBackendStartCallback(SettingsStore::PluginTypeSchema plugin, lua_State* L);
-} // namespace CoInitializer
-
-void SetPluginSecretName(PyObject* globalDictionary, const std::string& pluginName);

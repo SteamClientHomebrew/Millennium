@@ -12,7 +12,7 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "millennium-shims";
-  version = "2.34.0";
+  version = "2.36.0";
 
   src = millennium-src;
 
@@ -22,20 +22,20 @@ stdenv.mkDerivation (finalAttrs: {
     pnpmConfigHook
   ];
 
-  pnpmRoot = "src/sdk";
+  pnpmRoot = "src/typescript/sdk";
 
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) version pname;
     pnpm = pnpm_9;
-    src = "${finalAttrs.src}/src/sdk";
+    src = "${finalAttrs.src}/src/typescript/sdk";
     fetcherVersion = 3;
-    hash = "sha256-NGq5c1E8yM1hwHvVmjtTnReVrXSxb+AK1Qv4K0FsNDg=";
+    hash = "sha256-H7k+nkNCb4yuaXcZVmfMI0sqgdYgTO3C2MlXPpYX0x0=";
   };
 
   buildPhase = ''
     runHook preBuild
 
-    pnpm --dir src/sdk run build
+    pnpm --dir src/typescript/sdk run build
 
     runHook postBuild
   '';

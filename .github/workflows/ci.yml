@@ -23,6 +23,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+          fetch-depth: 0
 
       - name: Download Node.js
         uses: actions/setup-node@v3
@@ -59,144 +60,42 @@ jobs:
           submodules: true
 
       - name: Update Millennium Version
+        if: ${{ needs.prepare.outputs.version != '' }}
         run: |
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
 
-      - name: Build Millennium Plugin Backend
-        run: |
-          function Install-EmbeddedPython {
-              param(
-                  [Parameter(Mandatory=$true)]
-                  [ValidateSet('x64', 'x86')]
-                  [string]$Architecture,
-
-                  [Parameter(Mandatory=$true)]
-                  [string]$DestinationPath
-              )
-
-              $archSuffix = if ($Architecture -eq 'x64') { 'amd64' } else { 'win32' }
-              $pythonUrl = "https://www.python.org/ftp/python/3.11.8/python-3.11.8-embed-$archSuffix.zip"
-              $getPipUrl = "https://bootstrap.pypa.io/get-pip.py"
-
-              if (-Not (Test-Path $DestinationPath)) {
-                  New-Item -ItemType Directory -Path $DestinationPath | Out-Null
-              }
-
-              $zipFilePath = Join-Path $DestinationPath "python-3.11.8-embed-$archSuffix.zip"
-              $getPipFilePath = Join-Path $DestinationPath "get-pip.py"
-
-              function Download-File($Url, $DestinationPath) {
-                  $webRequest = [System.Net.HttpWebRequest]::Create($Url)
-                  $webRequest.Method = "GET"
-                  $webRequest.UserAgent = "Millennium.Installer/1.0"
-                  $response = $webRequest.GetResponse()
-                  $responseStream = $response.GetResponseStream()
-                  $fileStream = New-Object System.IO.FileStream($DestinationPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-                  $buffer = New-Object byte[] 8192
-                  while (($bytesRead = $responseStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-                      $fileStream.Write($buffer, 0, $bytesRead)
-                  }
-                  $fileStream.Close()
-                  $responseStream.Close()
-              }
-
-              function Extract-ZipFile($zipPath, $extractPath) {
-                  Add-Type -AssemblyName System.IO.Compression.FileSystem
-                  $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
-                  foreach ($entry in $zipArchive.Entries) {
-                      $destinationPath = Join-Path $extractPath $entry.FullName
-                      $destinationDir = [System.IO.Path]::GetDirectoryName($destinationPath)
-                      if (-Not (Test-Path $destinationDir)) {
-                          New-Item -ItemType Directory -Path $destinationDir | Out-Null
-                      }
-                      if ($entry.Name -ne "") {
-                          if (Test-Path $destinationPath) {
-                              Remove-Item $destinationPath -Force
-                          }
-                          $fileStream = [System.IO.File]::Create($destinationPath)
-                          $entryStream = $entry.Open()
-                          $buffer = New-Object byte[] 8192
-                          while (($bytesRead = $entryStream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-                              $fileStream.Write($buffer, 0, $bytesRead)
-                          }
-                          $fileStream.Close()
-                          $entryStream.Close()
-                      }
-                  }
-                  $zipArchive.Dispose()
-              }
-
-              Download-File -Url $pythonUrl -DestinationPath $zipFilePath
-              Extract-ZipFile -zipPath $zipFilePath -extractPath $DestinationPath
-              Remove-Item $zipFilePath
-              Write-Host "Downloaded python packages to $DestinationPath"
-
-              Set-Content -Path (Join-Path $DestinationPath "python311._pth") -Value @'
-          python311.zip
-          .
-          # The following line has been added by Millennium
-          # This will implicitly run site.main() which lets us pip from 'python -m pip'
-          import site
-          '@
-              Write-Host "Enabled external site package support."
-
-              Download-File -Url $getPipUrl -DestinationPath $getPipFilePath
-              $pythonExe = Join-Path $DestinationPath "python.exe"
-              & $pythonExe $getPipFilePath --no-warn-script-location
-              Remove-Item $getPipFilePath
-              Write-Host "Installed pip on embedded packages"
-          }
-
-          Install-EmbeddedPython -Architecture 'x64' -DestinationPath 'D:/a/env/ext/data/pyx64'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: 24
-
-      - name: Setup PNPM
-        run: npm install -g pnpm
+          bun-version: latest
 
       - name: Build Millennium Backend
         shell: pwsh
         run: |
-          pushd "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools"
+          $vsDevCmd = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
 
-          # Initialize Visual Studio x64 host/toolchain and import the environment into PowerShell
-          cmd /c "VsDevCmd.bat -arch=x64 -host_arch=x64 & set" |
+          cmd /c "`"$vsDevCmd`" -arch=x64 -host_arch=x64 & set" |
+          Where-Object { $_ -match '=' } |
           ForEach-Object {
-            if ($_ -match "=") {
-              $v = $_.Split("=", 2)
-              Set-Item -Force -Path "ENV:\$($v[0])" -Value "$($v[1])"
-            }
+              $k,$v = $_ -split '=',2
+              Set-Item "env:$k" $v
           }
 
-          popd
-          Write-Host "`nVisual Studio 2022 x64 Command Prompt variables set." -ForegroundColor Yellow
-
-          # optional sanity checks (helpful for CI debugging)
-          cmd /c "where cl.exe"
-          cmd /c "cl.exe /Bv" 2>&1 | Write-Host
-
-          pnpm --dir src/sdk install
-          pnpm --dir src/sdk run build
-
-          pnpm --dir src/frontend install
-          pnpm --dir src/frontend run prod
-
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
-          mkdir build/artifacts
           cmake --build build
 
-          Copy-Item ./src/vendor/python/lib64/python311.dll   D:/a/env/python311.dll
-          Copy-Item ./build/src/millennium.dll                D:/a/env/millennium.dll
-          Copy-Item ./build/src/boot/win32/wsock32.dll        D:/a/env/wsock32.dll
-          Copy-Item ./build/src/boot/win32/legacy/version.dll D:/a/env/version.dll
-          Copy-Item ./build/src/hhx64/millennium.hhx64.dll    D:/a/env/millennium.hhx64.dll
+          New-Item -ItemType Directory -Force -Path D:/a/millennium-build/millennium/lib
+          New-Item -ItemType Directory -Force -Path D:/a/millennium-build/millennium/bin
+          Copy-Item ./build/millennium.bootstrap64.dll    D:/a/millennium-build/wsock32.dll
+          Copy-Item ./build/millennium.dll               D:/a/millennium-build/millennium/lib/millennium.dll
+          Copy-Item ./build/millennium.hhx64.dll         D:/a/millennium-build/millennium/lib/millennium.hhx64.dll
+          Copy-Item ./build/millennium.luavm64.exe        D:/a/millennium-build/millennium/bin/millennium.luavm64.exe
+          Copy-Item ./build/millennium.crashhandler64.exe D:/a/millennium-build/millennium/bin/millennium.crashhandler64.exe
 
-          mkdir D:/a/env/ext/data/assets
-          Move-Item src/pipx D:/a/env/ext/data/assets/pipx
+          # Collect PDB files for debug symbols
+          New-Item -ItemType Directory -Force -Path D:/a/pdb
+          Get-ChildItem -Path ./build -Recurse -Filter *.pdb | Copy-Item -Destination D:/a/pdb/
 
       - name: Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
@@ -204,7 +103,13 @@ jobs:
         with:
           include-hidden-files: true
           name: unsigned-millennium-windows
-          path: D:/a/env/
+          path: D:/a/millennium-build/
+
+      - name: Upload PDB Symbols
+        uses: actions/upload-artifact@v4
+        with:
+          name: millennium-pdb
+          path: D:/a/pdb/
 
       - name: Sign Millennium Build
         id: sign_artifact
@@ -243,35 +148,26 @@ jobs:
           submodules: true
 
       - name: Update Millennium Version
+        if: ${{ needs.prepare.outputs.version != '' }}
         run: |
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Install Dependencies
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386 nodejs npm
-
-      - name: Download Python Dependencies
-        run: |
-          npm install -g pnpm
-
-          wget https://github.com/shdwmtr/pybuilder/releases/download/v1.0.6/python-3.11.8-32-bit.tar.gz -O python-3.11.8-32-bit.tar.gz
-          mkdir -p ~/build/opt/python-i686-3.11.8
-          mkdir -p ~/build/usr/lib/millennium
-          mkdir -p /opt/python-i686-3.11.8/lib
-
-          tar -xzf python-3.11.8-32-bit.tar.gz -C ~/build/opt/python-i686-3.11.8
-          mv ~/build/opt/python-i686-3.11.8/python-build/* ~/build/opt/python-i686-3.11.8/
-
-          cp ~/build/opt/python-i686-3.11.8/lib/libpython-3.11.8.so /opt/python-i686-3.11.8/lib/libpython-3.11.8.so
-          ~/build/opt/python-i686-3.11.8/bin/python3.11 --version
+          sudo apt-get install -y build-essential gcc-multilib g++-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386
 
       - name: Install CMake
         uses: jwlawson/actions-setup-cmake@v2
         with:
-          cmake-version: "3.21.1"
+          cmake-version: "3.28"
 
       - name: Build Millennium Backend
         run: |
@@ -279,12 +175,6 @@ jobs:
           export CMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu"
           export CMAKE_INCLUDE_PATH="/usr/include/i386-linux-gnu"
           export PKG_CONFIG_LIBDIR="/usr/lib/i386-linux-gnu/pkgconfig"
-
-          pnpm --dir src/sdk install
-          pnpm --dir src/sdk run build
-
-          pnpm --dir src/frontend install
-          pnpm --dir src/frontend run prod
 
           cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
             -DCMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
@@ -295,22 +185,15 @@ jobs:
             -DPKG_CONFIG_EXECUTABLE="/usr/bin/pkg-config" \
             -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=ON
 
-          # Build the project
           cmake --build build --config Release -- -j$(nproc)
 
-          # Create final directory structure
           mkdir -p ~/build/usr/lib/millennium
-          mkdir -p ~/build/usr/bin
-          mkdir -p ~/build/usr/share/millennium
-          mkdir -p ~/build/opt
-
-          # Copy binaries and libraries directly to final locations
-          cp build/src/libmillennium_x86.so ~/build/usr/lib/millennium/libmillennium_x86.so
-          cp build/src/boot/linux/libmillennium_bootstrap_86x.so ~/build/usr/lib/millennium/libmillennium_bootstrap_86x.so
-          cp build/src/hhx64/libmillennium_hhx64.so ~/build/usr/lib/millennium/libmillennium_hhx64.so
-
-          mkdir -p ~/build/usr/share/millennium/assets
-          mv src/pipx ~/build/usr/share/millennium/assets/pipx
+          cp build/libmillennium_x86.so ~/build/usr/lib/millennium/
+          cp build/libmillennium_bootstrap_x86.so ~/build/usr/lib/millennium/
+          cp build/libmillennium_bootstrap_hhx64.so ~/build/usr/lib/millennium/
+          cp build/libmillennium_hhx64.so ~/build/usr/lib/millennium/
+          cp build/libmillennium_luavm_x86 ~/build/usr/lib/millennium/
+          cp build/libmillennium_pvs64 ~/build/usr/lib/millennium/
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
@@ -319,8 +202,95 @@ jobs:
           name: millennium-linux
           path: ~/build/
 
+  test-pkgbuild:
+    needs: prepare
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+
+    steps:
+      - name: Setup pacman
+        run: |
+          printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >> /etc/pacman.conf
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm git
+
+          useradd -m builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Build package
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          cp -r packages/arch /home/builder/pkg
+          sed -i "s/'steam'//" /home/builder/pkg/PKGBUILD
+          mkdir -p /home/builder/pkg/src
+          cp -r "$GITHUB_WORKSPACE" /home/builder/pkg/src/Millennium
+          chown -R builder:builder /home/builder/pkg
+          su builder -c "git config --global --add safe.directory /home/builder/pkg/src/Millennium"
+          su builder -c 'cd /home/builder/pkg && makepkg -s --noconfirm --noextract'
+
+      - name: Verify package
+        run: |
+          echo "=== Built packages ==="
+          ls -lh /home/builder/pkg/*.pkg.tar.zst
+
+          echo ""
+          echo "=== Extracting package for verification ==="
+          mkdir -p /tmp/pkg-verify
+          MAIN_PKG=$(ls /home/builder/pkg/millennium-*.pkg.tar.zst | grep -v -- '-debug-')
+          tar -xf "$MAIN_PKG" -C /tmp/pkg-verify
+
+          echo ""
+          echo "=== Verifying required binaries are present ==="
+          REQUIRED=(
+            "usr/lib/millennium/libmillennium_x86.so"
+            "usr/lib/millennium/libmillennium_hhx64.so"
+            "usr/lib/millennium/libmillennium_bootstrap_x86.so"
+            "usr/lib/millennium/libmillennium_luavm_x86"
+            "usr/lib/millennium/libmillennium_bootstrap_hhx64.so"
+            "usr/lib/millennium/libmillennium_pvs64"
+          )
+          MISSING=0
+          for f in "${REQUIRED[@]}"; do
+            if [ -f "/tmp/pkg-verify/$f" ]; then
+              echo "  FOUND:   $f"
+            else
+              echo "  MISSING: $f"
+              MISSING=1
+            fi
+          done
+          [ $MISSING -eq 0 ] || { echo "ERROR: one or more required binaries missing from package"; exit 1; }
+
+          echo ""
+          echo "=== Verifying binary architectures ==="
+          check_arch() {
+            local path="$1" bits="$2"
+            local info
+            info=$(file "/tmp/pkg-verify/$path")
+            if echo "$info" | grep -q "ELF ${bits}-bit"; then
+              echo "  OK  (${bits}-bit ELF): $path"
+            else
+              echo "  FAIL (expected ${bits}-bit ELF): $path"
+              echo "       got: $info"
+              return 1
+            fi
+          }
+          ARCH_FAIL=0
+          check_arch "usr/lib/millennium/libmillennium_x86.so"             32 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_bootstrap_x86.so"   32 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_luavm_x86"          32 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_hhx64.so"           64 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_bootstrap_hhx64.so" 64 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_pvs64"              64 || ARCH_FAIL=1
+          [ $ARCH_FAIL -eq 0 ] || { echo "ERROR: binary architecture mismatch"; exit 1; }
+
   release:
-    needs: [prepare, build-windows, build-linux]
+    needs: [prepare, build-windows, build-linux, test-pkgbuild]
     runs-on: ubuntu-latest
     if: ${{ inputs.release_artifacts == 'yes' }}
     steps:
@@ -328,6 +298,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: true
+          fetch-depth: 0
 
       - name: Download Node.js
         uses: actions/setup-node@v3
@@ -351,7 +322,14 @@ jobs:
           name: millennium-linux
           path: ./artifacts/linux
 
+      - name: Download PDB Symbols
+        uses: actions/download-artifact@v4
+        with:
+          name: millennium-pdb
+          path: ./artifacts/pdb
+
       - name: Update Millennium Version
+        if: ${{ needs.prepare.outputs.version != '' }}
         run: |
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
@@ -364,18 +342,84 @@ jobs:
           win32_name="millennium-v${{ needs.prepare.outputs.version }}-windows-x86_64"
           win32_release_name="./artifacts/release/${win32_name}"
 
-          # setup windows release
           cd ./artifacts/windows && zip -r ../release/${win32_name}.zip . && cd ../..
           sha256sum ${win32_release_name}.zip > ${win32_release_name}.sha256
           sed -i 's#\./artifacts/release/##g' ${win32_release_name}.sha256
           du -sb ./artifacts/windows | awk '{print $1}' > ${win32_release_name}.installsize
 
-          # setup linux release
           tar -czvf ${linux_release_name}.tar.gz -C ./artifacts/linux .
           sha256sum ${linux_release_name}.tar.gz > ${linux_release_name}.sha256
           sed -i 's#\./artifacts/release/##g' ${linux_release_name}.sha256
           du -sb ./artifacts/linux | awk '{print $1}' > ${linux_release_name}.installsize
 
+          pdb_name="millennium-v${{ needs.prepare.outputs.version }}-pdb"
+          pdb_release_name="./artifacts/release/${pdb_name}"
+          cd ./artifacts/pdb && zip -r ../release/${pdb_name}.zip . && cd ../..
+          sha256sum ${pdb_release_name}.zip > ${pdb_release_name}.sha256
+          sed -i 's#\./artifacts/release/##g' ${pdb_release_name}.sha256
+
           cd scripts && npx semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+  update-pkgbuild:
+    needs: [prepare, release]
+    runs-on: ubuntu-latest
+    if: ${{ inputs.release_artifacts == 'yes' }}
+    outputs:
+      updated_sha: ${{ steps.push.outputs.updated_sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Update Package Version and Commit
+        run: |
+          TAG="v${{ needs.prepare.outputs.version }}"
+          CLEAN_TAG="${{ needs.prepare.outputs.version }}"
+          CLEAN_TAG="${CLEAN_TAG//-/_}"
+
+          COMMIT=$(gh api repos/${{ github.repository }}/git/refs/tags/$TAG --jq '.object.sha')
+          echo "Using tag: $TAG, commit: $COMMIT"
+
+          OLD_VER=$(grep '^pkgver=' ./packages/arch/PKGBUILD | cut -d= -f2)
+          sed -i "s/pkgver=.*/pkgver=$CLEAN_TAG/" ./packages/arch/PKGBUILD
+          [ "$OLD_VER" != "$CLEAN_TAG" ] && sed -i "s/pkgrel=.*/pkgrel=1/" ./packages/arch/PKGBUILD
+          sed -i "s|source=(\"git+\$url\.git.*\")|source=(\"git+\$url.git#commit=$COMMIT\")|" ./packages/arch/PKGBUILD
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit and push PKGBUILD changes
+        id: push
+        run: |
+          git config --local user.email "github-actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add ./packages/arch/PKGBUILD
+          git commit -m "Update PKGBUILD for release v${{ needs.prepare.outputs.version }}" || true
+          git push origin ${{ github.ref_name }}
+          echo "updated_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+  publish-aur:
+    needs: update-pkgbuild
+    runs-on: ubuntu-latest
+    if: ${{ inputs.release_artifacts == 'yes' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update-pkgbuild.outputs.updated_sha }}
+
+      - name: Publish AUR package
+        uses: KSXGitHub/github-actions-deploy-aur@master
+        with:
+          pkgname: millennium
+          pkgbuild: ./packages/arch/PKGBUILD
+          assets: ./packages/arch/millennium.install
+          commit_username: GitHub Actions
+          commit_email: github-actions@github.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: Update AUR package
+          ssh_keyscan_types: rsa,ecdsa,ed25519
