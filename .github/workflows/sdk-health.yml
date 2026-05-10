@@ -126,7 +126,17 @@ jobs:
         env:
           STEAM_USER: ${{ secrets.STEAM_USER }}
           STEAM_PASS: ${{ secrets.STEAM_PASS }}
-        run: xvfb-run -a steam -login "$STEAM_USER" "$STEAM_PASS" -shutdown
+        run: |
+          xvfb-run -a steam -login "$STEAM_USER" "$STEAM_PASS" -silent -nofriendsui -nochatui &
+          SPID=$!
+          for i in $(seq 1 120); do
+            if [ -d "$HOME/.steam/steam/ubuntu12_32" ] && [ -d "$HOME/.steam/steam/ubuntu12_64" ]; then
+              break
+            fi
+            sleep 1
+          done
+          kill $SPID 2>/dev/null || true
+          wait $SPID 2>/dev/null || true
 
       - name: Install Millennium (stable)
         run: bash scripts/install.sh --yes
@@ -174,7 +184,17 @@ jobs:
         env:
           STEAM_USER: ${{ secrets.STEAM_USER }}
           STEAM_PASS: ${{ secrets.STEAM_PASS }}
-        run: xvfb-run -a steam -login "$STEAM_USER" "$STEAM_PASS" -shutdown
+        run: |
+          xvfb-run -a steam -login "$STEAM_USER" "$STEAM_PASS" -silent -nofriendsui -nochatui &
+          SPID=$!
+          for i in $(seq 1 120); do
+            if [ -d "$HOME/.steam/steam/ubuntu12_32" ] && [ -d "$HOME/.steam/steam/ubuntu12_64" ]; then
+              break
+            fi
+            sleep 1
+          done
+          kill $SPID 2>/dev/null || true
+          wait $SPID 2>/dev/null || true
 
       - name: Install Millennium (beta)
         run: bash scripts/install.sh --yes --beta
