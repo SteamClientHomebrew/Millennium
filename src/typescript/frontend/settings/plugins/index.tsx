@@ -193,21 +193,6 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 	}
 
 	render() {
-		// if (pluginSelf.connectionFailed) {
-		// 	return (
-		// 		<Placeholder icon={<IconsModule.ExclamationPoint />} header={locale.errorFailedConnection} body={locale.errorFailedConnectionBody}>
-		// 			<DialogButton
-		// 				className={settingsClasses.SettingsDialogButton}
-		// 				onClick={() => {
-		// 					Utils.BrowseLocalFolder([pluginSelf.steamPath, 'ext', 'data', 'logs'].join('/'));
-		// 				}}
-		// 			>
-		// 				{locale.errorFailedConnectionButton}
-		// 			</DialogButton>
-		// 		</Placeholder>
-		// 	);
-		// }
-
 		/** Haven't received the plugins yet from the backend */
 		if (this.state.plugins === undefined) {
 			return null;
