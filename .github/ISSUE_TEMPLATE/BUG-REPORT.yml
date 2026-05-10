@@ -31,11 +31,10 @@ body:
         ### Linux users only
         If you're on Linux, please fill out the section below. Otherwise, skip it.
 
-        > [!IMPORTANT]
-        > NixOS Users
-        >
-        > SteamClientHomebrew does not maintain the NixOS package, all contributions are made by external contributors like you!
-        > If you'd like to discuss or report issues with other NixOS users, check out the [NixOS MegaThread](https://github.com/SteamClientHomebrew/Millennium/issues/551).
+        **NOTE:** NixOS Users
+
+        SteamClientHomebrew does not maintain the NixOS package, all contributions are made by external contributors like you!
+        If you'd like to discuss or report issues with other NixOS users, check out the [NixOS MegaThread](https://github.com/SteamClientHomebrew/Millennium/issues/551).
   - type: dropdown
     attributes:
       label: Linux Distribution
