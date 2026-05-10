@@ -28,13 +28,12 @@ body:
       value: |
         &nbsp;
 
-        **Linux users only**
+        ### Linux users only
 
         If you're on Linux, please fill out the section below. Otherwise, skip it.
 
-        **NixOS Users**
+        ### NixOS Users
 
-        <sup>test</sup>
         SteamClientHomebrew does not maintain the NixOS package, all contributions are made by external contributors like you!
         If you'd like to discuss or report issues with other NixOS users, check out the [NixOS MegaThread](https://github.com/SteamClientHomebrew/Millennium/issues/551).
   - type: dropdown
