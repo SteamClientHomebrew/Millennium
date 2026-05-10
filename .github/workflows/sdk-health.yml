@@ -127,7 +127,7 @@ jobs:
           STEAM_USER: ${{ secrets.STEAM_USER }}
           STEAM_PASS: ${{ secrets.STEAM_PASS }}
         run: |
-          xvfb-run -a steam -login "$STEAM_USER" "$STEAM_PASS" -silent -nofriendsui -nochatui &
+          xvfb-run -a dbus-run-session steam -login "$STEAM_USER" "$STEAM_PASS" -silent -nofriendsui -nochatui &
           SPID=$!
           for i in $(seq 1 120); do
             if [ -d "$HOME/.steam/steam/ubuntu12_32" ] && [ -d "$HOME/.steam/steam/ubuntu12_64" ]; then
@@ -185,7 +185,7 @@ jobs:
           STEAM_USER: ${{ secrets.STEAM_USER }}
           STEAM_PASS: ${{ secrets.STEAM_PASS }}
         run: |
-          xvfb-run -a steam -login "$STEAM_USER" "$STEAM_PASS" -silent -nofriendsui -nochatui &
+          xvfb-run -a dbus-run-session steam -login "$STEAM_USER" "$STEAM_PASS" -silent -nofriendsui -nochatui &
           SPID=$!
           for i in $(seq 1 120); do
             if [ -d "$HOME/.steam/steam/ubuntu12_32" ] && [ -d "$HOME/.steam/steam/ubuntu12_64" ]; then

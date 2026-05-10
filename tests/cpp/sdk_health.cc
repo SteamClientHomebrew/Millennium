@@ -170,10 +170,10 @@ static pid_t launch_steam()
         close(pipefd[1]);
 
         if (has_creds) {
-            const char* argv[] = { "xvfb-run", "-a", "steam", "-login", steam_user, steam_pass, "-dev", "-silent", "-nofriendsui", "-nochatui", nullptr };
+            const char* argv[] = { "xvfb-run", "-a", "dbus-run-session", "steam", "-login", steam_user, steam_pass, "-dev", "-silent", "-nofriendsui", "-nochatui", nullptr };
             execvp("xvfb-run", const_cast<char* const*>(argv));
         } else {
-            const char* argv[] = { "xvfb-run", "-a", "steam", "-dev", "-silent", "-nofriendsui", "-nochatui", nullptr };
+            const char* argv[] = { "xvfb-run", "-a", "dbus-run-session", "steam", "-dev", "-silent", "-nofriendsui", "-nochatui", nullptr };
             execvp("xvfb-run", const_cast<char* const*>(argv));
         }
         _exit(1);
