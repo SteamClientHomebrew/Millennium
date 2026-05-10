@@ -241,12 +241,12 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 						</div>
 
 						<div className="MillenniumLogs_Icons">
-							<IconButton name="Minus" onClick={() => this.setState({ logFontSize: logFontSize - 1 })} text={locale.logPanelDecreaseFontSize} />
-							<IconButton name="Add" onClick={() => this.setState({ logFontSize: logFontSize + 1 })} text={locale.logPanelIncreaseFontSize} />
+							<IconButton name="Minus" onClick={() => this.setState({ logFontSize: logFontSize - 1 })} tooltip={locale.logPanelDecreaseFontSize} />
+							<IconButton name="Add" onClick={() => this.setState({ logFontSize: logFontSize + 1 })} tooltip={locale.logPanelIncreaseFontSize} />
 							<IconButton
 								name={displayCopiedText ? 'Checkmark' : 'Copy'}
 								onClick={this.exportToClipBoard}
-								text={displayCopiedText ? locale.logPanelCopiedToClipboard : locale.logPanelCopyToClipboard}
+								tooltip={displayCopiedText ? locale.logPanelCopiedToClipboard : locale.logPanelCopyToClipboard}
 							/>
 						</div>
 					</div>

@@ -130,6 +130,7 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 				onUpdateClick={StartUpdate}
 				toolTipText={'Millennium to ' + millenniumUpdates?.newVersion?.tag_name}
 				disabled={pluginSelf?.millenniumUpdates?.updateInProgress}
+				downloadSize={millenniumUpdates?.platformRelease?.size}
 			/>
 		</>
 	);

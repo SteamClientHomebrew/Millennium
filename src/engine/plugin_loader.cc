@@ -272,11 +272,10 @@ void plugin_loader::setup_webkit_shims()
 std::string plugin_loader::cdp_generate_bootstrap_module(const std::vector<std::string>& modules)
 {
     const std::string preload_path = platform::get_millennium_preload_path();
-    const std::string token = GetAuthToken();
     const std::string ftp_path = m_network_hook_ctl->get_ftp_url() + preload_path;
     const std::string module_list = std::format(R"("{}")", join_strings(modules, R"(", ")"));
 
-    return std::format("import('{}').then(m => (new m.default).startClient('{}', '{}', [{}]))", ftp_path, MILLENNIUM_VERSION, token, module_list);
+    return std::format("import('{}').then(m => (new m.default).startClient('{}', [{}]))", ftp_path, MILLENNIUM_VERSION, module_list);
 }
 
 std::string plugin_loader::cdp_generate_shim_module()

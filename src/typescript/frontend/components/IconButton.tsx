@@ -25,11 +25,16 @@ interface IconButtonProps {
 	/**
 	 * Localization token for the tooltip.
 	 */
-	text?: string;
+	tooltip?: string;
+}
+
+
+interface IconButtonWithTextProps extends IconButtonProps {
+    text?: string;
 }
 
 export function IconButton(props: IconButtonProps) {
-	const { disabled, name, onClick, text } = props;
+	const { disabled, name, onClick, tooltip } = props;
 	const className = joinClassNames('MillenniumButton', 'MillenniumIconButton', settingsClasses.SettingsDialogButton, props.className ?? '');
 	const iconComp = IconsModule[name as keyof typeof IconsModule] ?? 'span';
 	const icon = createElement(iconComp as React.ElementType);
@@ -40,12 +45,36 @@ export function IconButton(props: IconButtonProps) {
 		</DialogButton>
 	);
 
-	if (!text) {
+	if (!tooltip) {
 		return <Button />;
 	}
 
 	return (
-		<DesktopTooltip toolTipContent={text}>
+		<DesktopTooltip toolTipContent={tooltip}>
+			<Button />
+		</DesktopTooltip>
+	);
+}
+
+export function IconButtonWithText(props: IconButtonWithTextProps) {
+	const { disabled, name, onClick, tooltip, text } = props;
+	const className = joinClassNames('MillenniumButton', 'MillenniumIconButton', 'MillenniumIconButtonWithText', settingsClasses.SettingsDialogButton, props.className ?? '');
+	const iconComp = IconsModule[name as keyof typeof IconsModule] ?? 'span';
+	const icon = createElement(iconComp as React.ElementType);
+
+	const Button = () => (
+		<DialogButton className={className} disabled={disabled} onClick={onClick} data-icon-name={name}>
+            {icon}
+			{text}
+		</DialogButton>
+	);
+
+	if (!tooltip) {
+		return <Button />;
+	}
+
+	return (
+		<DesktopTooltip toolTipContent={tooltip}>
 			<Button />
 		</DesktopTooltip>
 	);

@@ -87,6 +87,11 @@ export const fixtures: BackendFixtures<typeof backend> = {
             args: ["example"],
             response: undefined,
         },
+        reload: {
+            route: "Core_ReloadPlugin",
+            args: ["example"],
+            response: undefined,
+        },
         getBackendLogs: {
             route: "Core_GetPluginBackendLogs",
             args: [],
@@ -95,7 +100,14 @@ export const fixtures: BackendFixtures<typeof backend> = {
         getMetrics: {
             route: "Core_GetAllPluginMetrics",
             args: [],
-            response: [{ name: "example", rss_bytes: 4096, heap_bytes: 2048, cpu_percent: 0.5 }],
+            response: [
+                {
+                    name: "example",
+                    rss_bytes: 4096,
+                    heap_bytes: 2048,
+                    cpu_percent: 0.5,
+                },
+            ],
         },
     },
 

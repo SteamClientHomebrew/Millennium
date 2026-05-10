@@ -222,7 +222,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 					</DesktopTooltip>
 				)}
 
-				<IconButton name="KaratDown" onClick={(ev) => this.showCtxMenu(ev as React.MouseEvent<HTMLButtonElement>)} text={locale.strShowMenu} />
+				<IconButton name="KaratDown" onClick={(ev) => this.showCtxMenu(ev as React.MouseEvent<HTMLButtonElement>)} tooltip={locale.strShowMenu} />
 			</Field>
 		);
 	}

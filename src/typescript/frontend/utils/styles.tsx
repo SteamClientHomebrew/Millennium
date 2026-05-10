@@ -98,6 +98,11 @@ const styles = /* css */ `
 	}
 }
 
+html body .MillenniumButton.MillenniumIconButton.MillenniumIconButtonWithText {
+   	padding: 0 14px !important;
+	width: auto !important;
+}
+
 .MillenniumColorPicker {
 	--size: 34px;
 	background: transparent;

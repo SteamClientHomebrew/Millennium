@@ -56,6 +56,7 @@ export const backend = {
 		uninstall: ffi<[pluginName: string], boolean>('Core_UninstallPlugin'),
 		update: ffi<[id: string, name: string, commit: string], OpIdResponse>('Core_DownloadPluginUpdate'),
 		stop: ffi<[pluginName: string], void>('Core_KillPluginBackend'),
+		reload: ffi<[pluginName: string], void>('Core_ReloadPlugin'),
 		getBackendLogs: ffi<[], LogData[]>('Core_GetPluginBackendLogs'),
 		getMetrics: ffi<[], PluginMetrics[]>('Core_GetAllPluginMetrics'),
 	},

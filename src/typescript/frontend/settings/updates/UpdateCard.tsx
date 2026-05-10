@@ -33,7 +33,7 @@ import { settingsClasses } from '../../utils/classes';
 import { Component, createRef, ReactNode } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { locale } from '../../utils/localization-manager';
-import { IconButton } from '../../components/IconButton';
+import { IconButton, IconButtonWithText } from '../../components/IconButton';
 import { MillenniumIcons } from '../../components/Icons';
 
 interface UpdateProps {
@@ -53,6 +53,13 @@ interface UpdateCardProps {
 	toolTipText?: string;
 	onUpdateClick: () => void;
 	disabled?: boolean;
+	downloadSize?: number;
+}
+
+function formatDownloadSize(bytes: number): string {
+	if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+	if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+	return `${bytes} B`;
 }
 
 export interface UpdateItemType {
@@ -65,6 +72,7 @@ export interface UpdateItemType {
 
 interface UpdateCardState {
 	showingMore: boolean;
+	initialized: boolean;
 }
 
 export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
@@ -74,7 +82,8 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 	constructor(props: UpdateCardProps) {
 		super(props);
 		this.state = {
-			showingMore: false,
+			showingMore: true,
+			initialized: false,
 		};
 
 		this.descriptionRef = createRef();
@@ -84,7 +93,10 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 	}
 
 	componentDidMount() {
-		this.measureDescriptionHeight();
+		if (this.descriptionRef.current) {
+			this.descriptionHeight = this.descriptionRef.current.offsetHeight;
+			this.setState({ initialized: true });
+		}
 	}
 
 	componentDidUpdate(prevProps: UpdateCardProps, prevState: UpdateCardState) {
@@ -106,7 +118,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 	}
 
 	private showInteractables() {
-		const { isUpdating, statusText, onUpdateClick, update, toolTipText } = this.props;
+		const { isUpdating, statusText, onUpdateClick, update, toolTipText, downloadSize } = this.props;
 
 		if (isUpdating) {
 			return (
@@ -117,7 +129,8 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 			);
 		}
 
-		return <IconButton name="Download" onClick={onUpdateClick} disabled={this.props.disabled} text={`Update ${toolTipText || update.name}`} />;
+		const buttonText = downloadSize && downloadSize > 0 ? `Download (${formatDownloadSize(downloadSize)})` : 'Download';
+		return <IconButtonWithText name="Download" text={buttonText} onClick={onUpdateClick} disabled={this.props.disabled} tooltip={`Update ${toolTipText || update.name}`} />;
 	}
 
 	private makeAnchorExternalLink({ children, ...props }: { children: any; [key: string]: any }) {
@@ -130,9 +143,12 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 
 	private renderDescription() {
 		const { update } = this.props;
+		const { initialized } = this.state;
+
+		const style: React.CSSProperties = initialized ? { height: this.descriptionHeight } : { height: 'auto', transition: 'none' };
 
 		return (
-			<div className="MillenniumUpdates_Description" style={{ height: this.descriptionHeight }}>
+			<div className="MillenniumUpdates_Description" style={style}>
 				<div ref={this.descriptionRef}>
 					<div>
 						<b>{locale.updatePanelReleasedTag}</b> {update?.date}
@@ -167,7 +183,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 					onClick={this.handleToggle}
 					className="MillenniumUpdates_ExpandButton"
 					disabled={this.props.disabled}
-					text={showingMore ? locale.strCollapse : locale.strExpand}
+					tooltip={showingMore ? locale.strCollapse : locale.strExpand}
 				/>
 			</>
 		);

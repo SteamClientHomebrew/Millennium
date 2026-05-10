@@ -38,7 +38,6 @@ import { PluginComponent, PluginMetrics } from '../../types';
 import { Utils } from '../../utils';
 import { backend } from '../../utils/ffi';
 import { formatString, locale } from '../../utils/localization-manager';
-import { MillenniumIcons } from '../../components/Icons';
 import { showPluginCrashModal } from '../../components/PluginCrashModal';
 import { FiCpu } from 'react-icons/fi';
 import { FaMemory } from 'react-icons/fa';
@@ -79,8 +78,8 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 	componentDidUpdate(prevProps: PluginComponentProps) {
 		const prev = prevProps.metrics;
 		const curr = this.props.metrics;
-		if (curr && (!prev || prev.rss_bytes !== curr.rss_bytes || prev.cpu_percent !== curr.cpu_percent)) {
-			this.setState((s) => ({ flashKey: s.flashKey + 1 }));
+		if (curr && prev !== curr) {
+		    this.setState((s) => ({ flashKey: s.flashKey + 1 }));
 		}
 	}
 
@@ -154,7 +153,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 					{plugin.data.common_name}
 				</MenuItem>
 				<Separator />
-				<MenuItem onSelected={() => {}}>{locale.strReload}</MenuItem>
+				<MenuItem onSelected={() => backend.plugins.reload(plugin.data.name)} disabled={!plugin.enabled || this.props.isLegacy}>{locale.strReload}</MenuItem>
 				{config()}
 				<MenuItem onSelected={this.uninstallPlugin.bind(this)}>{locale.uninstall}</MenuItem>
 				<MenuItem onSelected={Utils.BrowseLocalFolder.bind(null, plugin.path)}>{locale.optionBrowseLocalFiles}</MenuItem>
@@ -175,18 +174,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 					</DesktopTooltip>
 				),
 			};
-		}
-
-		if (plugin.data.__private_browser_extension) {
-			return {
-				type: TooltipType.None,
-				content: (
-					<DesktopTooltip toolTipContent={locale.pluginChromeExtension} direction="top">
-						<MillenniumIcons.ChromeExtension />
-					</DesktopTooltip>
-				),
-			};
-		}
+        }
 
 		if (plugin.status === 'crashed' && plugin.crash) {
 			const crash = plugin.crash;
@@ -247,11 +235,11 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 						{showMetrics && (
 							<div className="MillenniumPlugins_Metrics" key={flashKey}>
 								<span>
-									<FiCpu />
+									<FaMemory />
 									{formatBytes(metrics.heap_bytes)}
 								</span>
 								<span>
-									<FaMemory />
+									<FiCpu />
 									{metrics.cpu_percent.toFixed(1)}% CPU
 								</span>
 							</div>
@@ -274,7 +262,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 					value={this.props.isLegacy ? false : isEnabled}
 					onChange={() => onSelectionChange(index)}
 				/>
-				<IconButton name="KaratDown" onClick={(ev) => this.showCtxMenu(ev as React.MouseEvent<HTMLButtonElement>)} text={locale.strShowMenu} />
+				<IconButton name="KaratDown" onClick={(ev) => this.showCtxMenu(ev as React.MouseEvent<HTMLButtonElement>)} tooltip={locale.strShowMenu} />
 			</Field>
 		);
 	}
