@@ -33,6 +33,7 @@ let
     OPENSSL_CONF = "/dev/null";
     STEAM_RUNTIME_LOGGER = "0";
     MILLENNIUM_RUNTIME_PATH = "${millennium}/lib/libmillennium_x86.so";
+    LIBPYTHON_RUNTIME_BIN_PATH = "${pkgsi686Linux.python311}/bin/python"; 
   };
 
   millenniumProfile = ''
