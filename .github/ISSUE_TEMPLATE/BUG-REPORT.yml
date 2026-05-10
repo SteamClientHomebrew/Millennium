@@ -24,8 +24,23 @@ body:
     required: true
 - type: dropdown
   attributes:
+    label: Install Method
+    description: How did you install Millennium?
+    options:
+      - Install Script (curl -fsSL "https://steambrew.app/install.sh" | bash)
+      - Arch User Repository (AUR)
+      - Other (write in issue description)
+  validations:
+    required: true
+- type: markdown
+  attributes:
+    value: |
+      ### Linux users only
+      If you're on Linux, please fill out the section below. Otherwise, skip it.
+- type: dropdown
+  attributes:
     label: Linux Distribution
-    description: If you're on Linux, which distribution are you using? Select "Not applicable" otherwise.
+    description: Which distribution are you using?
     options:
       - Not applicable
       - Alpine
@@ -65,14 +80,12 @@ body:
 - type: checkboxes
   attributes:
     label: Linux Confirmations
-    description: If you're on Linux, please confirm the following. Otherwise, skip this section.
     options:
-    - label: I am not a NixOS user.
-      required: false
+    - label: I am not a NixOS user, or this bug is reproducible outside NixOS.
 - type: markdown
   attributes:
     value: |
-      SteamClientHomebrew does not maintain the NixOS package, all contributions are made by external contributors like you! If you'd like to discuss or report issues to other NixOS users, checkout the [NixOS MegaThread](https://github.com/SteamClientHomebrew/Millennium/issues/551)
+      SteamClientHomebrew does not maintain the NixOS package, all contributions are made by external contributors like you! If you'd like to discuss or report issues with other NixOS users, check out the [NixOS MegaThread](https://github.com/SteamClientHomebrew/Millennium/issues/551).
 - type: textarea
   attributes:
     label: Describe the Bug
