@@ -35,7 +35,6 @@ body:
       label: (if-applicable) Linux Distribution
       description: Which distribution are you using?
       options:
-        - Not applicable
         - Alpine
         - Arch Linux
         - Artix Linux
@@ -74,7 +73,6 @@ body:
       label: (if-applicable) Linux Install Method
       description: How did you install Millennium?
       options:
-        - Not applicable
         - Install Script (curl -fsSL "https://steambrew.app/install.sh" | bash)
         - Arch User Repository (AUR)
         - Other (write in issue description)
