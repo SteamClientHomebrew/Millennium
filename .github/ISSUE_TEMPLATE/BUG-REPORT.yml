@@ -23,22 +23,16 @@ body:
         - Linux
     validations:
       required: true
-  - type: markdown
+  - type: checkboxes
     attributes:
-      value: |
-        &nbsp;
-
-        ### Linux users only
-
-        If you're on Linux, please fill out the section below. Otherwise, skip it.
-
-        ### NixOS Users
-
-        SteamClientHomebrew does not maintain the NixOS package, all contributions are made by external contributors like you!
-        If you'd like to discuss or report issues with other NixOS users, check out the [NixOS MegaThread](https://github.com/SteamClientHomebrew/Millennium/issues/551).
+      label: (if-applicable) Linux Distribution Check
+      description: "verify the following conditions:"
+      options:
+        - label: I am not a NixOS user. SteamClientHomebrew does not maintain the NixOS package, all contributions are made by external contributors like you! If you'd like to discuss or report issues with other NixOS users, check out the [NixOS MegaThread](https://github.com/SteamClientHomebrew/Millennium/issues/551).
+          required: true
   - type: dropdown
     attributes:
-      label: Linux Distribution
+      label: (if-applicable) Linux Distribution
       description: Which distribution are you using?
       options:
         - Not applicable
@@ -77,7 +71,7 @@ body:
       required: false
   - type: dropdown
     attributes:
-      label: Linux Install Method
+      label: (if-applicable) Linux Install Method
       description: How did you install Millennium?
       options:
         - Not applicable
