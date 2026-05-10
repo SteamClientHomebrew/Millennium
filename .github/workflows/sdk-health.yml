@@ -122,6 +122,9 @@ jobs:
           echo "steam steam/license note ''"         | sudo debconf-set-selections
           sudo apt-get install -y xvfb steam
 
+      - name: Stub zenity
+        run: printf '#!/bin/sh\nexit 0\n' | sudo tee /usr/local/bin/zenity && sudo chmod +x /usr/local/bin/zenity
+
       - name: Initialize Steam
         env:
           STEAM_USER: ${{ secrets.STEAM_USER }}
@@ -179,6 +182,9 @@ jobs:
           echo "steam steam/question select I AGREE" | sudo debconf-set-selections
           echo "steam steam/license note ''"         | sudo debconf-set-selections
           sudo apt-get install -y xvfb steam
+
+      - name: Stub zenity
+        run: printf '#!/bin/sh\nexit 0\n' | sudo tee /usr/local/bin/zenity && sudo chmod +x /usr/local/bin/zenity
 
       - name: Initialize Steam
         env:
