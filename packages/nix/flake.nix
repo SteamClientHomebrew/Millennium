@@ -4,16 +4,16 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
-    millennium-src.url = "github:SteamClientHomebrew/Millennium/1bc62c94a06f25f7e8d7e269f11cd968cf576bff?shallow=true";
+    millennium-src.url = "github:SteamClientHomebrew/Millennium/1bc62c94a06f25f7e8d7e269f11cd968cf576bff";
     millennium-src.flake = false;
 
-    zlib-src.url = "github:zlib-ng/zlib-ng/2.2.5?shallow=true";
-    luajit-src.url = "github:SteamClientHomebrew/LuaJIT/v2.1?shallow=true";
-    websocketpp-src.url = "github:zaphoyd/websocketpp/0.8.2?shallow=true";
-    json-src.url = "github:nlohmann/json/v3.12.0?shallow=true";
-    minizip-src.url = "github:zlib-ng/minizip-ng/4.0.10?shallow=true";
-    curl-src.url = "github:curl/curl/curl-8_13_0?shallow=true";
-    asio-src.url = "github:chriskohlhoff/asio/asio-1-30-0?shallow=true";
+    zlib-src.url = "github:zlib-ng/zlib-ng/2.2.5";
+    luajit-src.url = "github:SteamClientHomebrew/LuaJIT/v2.1";
+    websocketpp-src.url = "github:zaphoyd/websocketpp/0.8.2";
+    json-src.url = "github:nlohmann/json/v3.12.0";
+    minizip-src.url = "github:zlib-ng/minizip-ng/4.0.10";
+    curl-src.url = "github:curl/curl/curl-8_13_0";
+    asio-src.url = "github:chriskohlhoff/asio/asio-1-30-0";
 
     abseil-src.url = "github:abseil/abseil-cpp/20240722.0";
     re2-src.url = "github:google/re2/2025-11-05";
