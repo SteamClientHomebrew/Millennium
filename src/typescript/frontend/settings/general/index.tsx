@@ -37,6 +37,7 @@ import { useMillenniumState, useUpdateConfig } from '../../utils/config-provider
 import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { AppConfig } from '../../utils/AppConfig';
 import { deferredSettingLabelClasses } from '../../utils/classes';
+import { refetchMillenniumUpdates } from '../updates/useUpdateContext';
 
 export const GeneralViewModal: React.FC = () => {
 	const configOrNull = useMillenniumState();
@@ -118,7 +119,10 @@ export const GeneralViewModal: React.FC = () => {
 					<Dropdown
 						rgOptions={millenniumUpdateChannel}
 						selectedOption={millenniumUpdateChannel.findIndex((opt) => opt.data === config.general.millenniumUpdateChannel)}
-						onChange={(e) => handleChange('millenniumUpdateChannel', e.data)}
+						onChange={(e) => {
+							handleChange('millenniumUpdateChannel', e.data);
+							refetchMillenniumUpdates(e.data);
+						}}
 						contextMenuPositionOptions={{ bMatchWidth: false }}
 						strDefaultLabel={millenniumUpdateChannel.find((opt) => opt.data === config.general.millenniumUpdateChannel)?.label ?? ''}
 					/>

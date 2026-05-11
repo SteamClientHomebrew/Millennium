@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+#ifdef __linux__
 #include <fcntl.h>
 #include <nlohmann/json.hpp>
 #include <poll.h>
@@ -375,3 +376,11 @@ int main(int argc, char* argv[])
     cleanup();
     return 1;
 }
+#elif _WIN32
+#include <print>
+int main(int argc, char* argv[])
+{
+    std::println("Windows not implemented!");
+    return 0;
+}
+#endif

@@ -155,7 +155,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 					</div>
 					<div>
 						<b>{locale.updatePanelReleasePatchNotes}</b>&nbsp;
-						<Markdown options={{ overrides: { a: { component: this.makeAnchorExternalLink } } }}>{update?.message}</Markdown>
+						<Markdown options={{ overrides: { a: { component: this.makeAnchorExternalLink } } }}>{update?.message.replace(/#[\s\S]*?\n\n\n/, '')}</Markdown>
 					</div>
 				</div>
 			</div>
@@ -168,8 +168,8 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 
 		if (disabled) {
 			return (
-				<DialogButton className="MillenniumButton" disabled={true}>
-					<IconsModule.Checkmark />
+                <DialogButton className={joinClassNames("MillenniumButton", settingsClasses.SettingsDialogButton)} disabled={true}>
+					<IconsModule.Clock />
 					{locale.updateCompletePendingRestart}
 				</DialogButton>
 			);

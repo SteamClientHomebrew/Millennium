@@ -26,7 +26,7 @@ set(CURL_DISABLE_POP3               ON  CACHE BOOL     "Disable POP3" FORCE)
 set(CURL_DISABLE_IMAP               ON  CACHE BOOL     "Disable IMAP" FORCE)
 set(CURL_DISABLE_SMTP               ON  CACHE BOOL     "Disable SMTP" FORCE)
 set(CURL_DISABLE_GOPHER             ON  CACHE BOOL     "Disable Gopher" FORCE)
-set(CURL_USE_LIBPSL 		            OFF CACHE BOOL     "Disable libpsl" FORCE)
+set(CURL_USE_LIBPSL 		        OFF CACHE BOOL     "Disable libpsl" FORCE)
 set(MZ_BZIP2                        OFF CACHE BOOL     "Disable bzip2 support in minizip-ng" FORCE)
 set(MZ_FETCH_LIBS                   OFF CACHE BOOL     "Disable fetching third-party libs in minizip-ng" FORCE)
 set(MZ_ZLIB                         ON  CACHE BOOL     "Enable zlib support in minizip-ng" FORCE)
@@ -34,7 +34,7 @@ set(MZ_ICONV                        OFF CACHE BOOL     "Disable iconv in minizip
 set(ZLIB_COMPAT                     ON  CACHE BOOL     "Enable zlib compatibility mode in zlib-ng" FORCE)
 set(ZLIB_ALIASES                    ON  CACHE BOOL     "Enable zlib alias symbols in zlib-ng" FORCE)
 set(ZLIB_ENABLE_TESTS               OFF CACHE BOOL     "Disable building tests in zlib-ng" FORCE)
-set(ZLIBNG_ENABLE_TESTS 	          OFF CACHE BOOL     "Disable building tests in zlib-ng" FORCE)
+set(ZLIBNG_ENABLE_TESTS 	        OFF CACHE BOOL     "Disable building tests in zlib-ng" FORCE)
 set(RE2_BUILD_TESTING               OFF CACHE BOOL     "Disable building tests in re2" FORCE)
 
 if(WIN32)
@@ -157,9 +157,18 @@ include_directories(SYSTEM
 
 millennium_process_package("${luajit_SOURCE_DIR}")
 millennium_process_package("${curl_SOURCE_DIR}")
+
 if(EXISTS "${luajit_SOURCE_DIR}/LuaJIT.cmake")
   file(READ "${luajit_SOURCE_DIR}/LuaJIT.cmake" _luajit_content)
   string(REPLACE
+    [[COMMAND git show -s --format=${GIT_FORMAT} > ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt]]
+    [[COMMAND ${CMAKE_COMMAND} -E copy ${LUAJIT_DIR}/.relver ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt]]
+    _luajit_content "${_luajit_content}"
+  )
+  file(WRITE "${luajit_SOURCE_DIR}/LuaJIT.cmake" "${_luajit_content}")
+  unset(_luajit_content)
+endif()
+
 millennium_process_package("${nlohmann_json_SOURCE_DIR}")
 millennium_process_package("${minizip_ng_SOURCE_DIR}")
 millennium_process_package("${re2_SOURCE_DIR}")

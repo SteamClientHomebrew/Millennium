@@ -32,7 +32,7 @@ import React, { createContext, useContext } from 'react';
 import { backend } from '../../utils/ffi';
 import { pluginSelf } from '@steambrew/client';
 import { UpdateItemType } from './UpdateCard';
-import { PluginUpdateInfo } from '../../types';
+import { MillenniumUpdateChannel, PluginUpdateInfo } from '../../types';
 
 type UpdateContextProviderProps = {
 	children: React.ReactNode;
@@ -121,6 +121,16 @@ const opSetThemeProgress = (key: string, progress: InstallerProgress | null) => 
 const opSetPluginProgress = (key: string, progress: InstallerProgress | null) => {
 	_opState.pluginProgress = { ..._opState.pluginProgress, [key]: progress };
 	_notifyOpChange();
+};
+
+export const refetchMillenniumUpdates = async (channel: MillenniumUpdateChannel): Promise<void> => {
+	try {
+		const updates = await backend.updater.checkMillenniumUpdate(channel);
+		pluginSelf.millenniumUpdates = updates;
+		_syncToComponent?.();
+	} catch {
+		/* swallow — channel change shouldn't surface an update-check failure */
+	}
 };
 
 /**

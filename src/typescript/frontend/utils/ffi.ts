@@ -32,6 +32,8 @@ import { ffi } from '@steambrew/client';
 import {
 	BackendOpResult,
 	InstallStartResponse,
+	MillenniumUpdateChannel,
+	MillenniumUpdates,
 	OpIdResponse,
 	PluginCrashInfo,
 	PluginComponent,
@@ -102,6 +104,7 @@ export const backend = {
 
 	updater: {
 		getUpdates: ffi<[force: boolean], UpdatesResponse>('Core_GetUpdates'),
+		checkMillenniumUpdate: ffi<[channel: MillenniumUpdateChannel], MillenniumUpdates>('Core_CheckMillenniumUpdate'),
 
 		updateMillennium: ffi<[downloadUrl: string, downloadSize: number, background: boolean], void>('Core_UpdateMillennium'),
 		hasPendingMillenniumUpdateRestart: ffi<[], boolean>('Core_HasPendingMillenniumUpdateRestart'),

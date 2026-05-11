@@ -55,7 +55,13 @@
  * This is VERY helpful when debugging this shit ass updater
  */
 
-// #define UPDATER_DEBUG_MODE
+#define UPDATER_DEBUG_MODE
+
+#ifndef _DEBUG
+#ifdef UPDATER_DEBUG_MODE
+#error "UPDATER_DEBUG_MODE cannot be set in release mode"
+#endif
+#endif
 
 #ifdef UPDATER_DEBUG_MODE
 #ifndef _DEBUG
@@ -89,9 +95,7 @@ void millennium_updater::check_for_updates(const std::string& channel_override)
 #endif
 
     const bool checkForUpdates = CONFIG.get({ "general", "checkForMillenniumUpdates" }, true).get<bool>();
-    std::string channel = channel_override.empty()
-        ? CONFIG.get({ "general", "millenniumUpdateChannel" }, "stable").get<std::string>()
-        : channel_override;
+    std::string channel = channel_override.empty() ? CONFIG.get({ "general", "millenniumUpdateChannel" }, "stable").get<std::string>() : channel_override;
 
     if (!checkForUpdates) {
         logger.warn("User has disabled update checking for Millennium.");

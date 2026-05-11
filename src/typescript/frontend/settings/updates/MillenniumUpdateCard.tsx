@@ -96,12 +96,7 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 	};
 
 	function VersionInformation() {
-		return [
-			'Millennium',
-			<div className="MillenniumItem_Version">
-				{pluginSelf.version} {'->'} {millenniumUpdates?.newVersion?.tag_name}
-			</div>,
-		];
+        return "Millennium@" + millenniumUpdates?.newVersion?.tag_name;
 	}
 
 	function StartUpdate() {
