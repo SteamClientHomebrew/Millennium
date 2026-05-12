@@ -10,6 +10,10 @@
   millennium-frontend,
   millennium-32,
   millennium-64,
+  pkgsi686Linux,
+  cacert,
+  millennium-python ? pkgsi686Linux.python311,
+  ...
 }:
 stdenv.mkDerivation {
   pname = "millennium";
