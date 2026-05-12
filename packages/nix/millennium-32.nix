@@ -69,11 +69,8 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
         deps = [
           "zlib"
           "luajit"
-          "minhook"
-          "mini"
           "websocketpp"
           "json"
-          "libgit2"
           "minizip"
           "curl"
           "asio"
