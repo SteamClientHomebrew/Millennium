@@ -35,6 +35,7 @@ import { SteamChina } from './SteamChina';
 import { Streaming } from './Streaming';
 import { System } from './system';
 import { UI } from './UI';
+import { URL } from './URL';
 import { Updates } from './Updates';
 import { User } from './User';
 import { WebChat } from './WebChat';
