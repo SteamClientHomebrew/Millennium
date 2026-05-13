@@ -34,7 +34,6 @@
 #include <poll.h>
 #include <signal.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/un.h>
 #include <sys/wait.h>
@@ -42,10 +41,12 @@
 
 #include <chrono>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <optional>
+#include <print>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -124,12 +125,12 @@ static std::optional<json> mep_request(int fd, const std::string& method, const 
 static void kill_existing_steam()
 {
     if (system("pkill -x steam > /dev/null 2>&1") == 0) {
-        std::cout << "killed existing Steam process, waiting for it to exit ...\n";
+        std::println("killed existing Steam process, waiting for it to exit ...");
         sleep(2);
     }
 }
 
-static void stream_prefixed(int fd, const char* prefix)
+static void stream_prefixed(int fd, std::string_view prefix)
 {
     char buf[4096];
     std::string line;
@@ -138,20 +139,20 @@ static void stream_prefixed(int fd, const char* prefix)
         if (n <= 0) break;
         for (ssize_t i = 0; i < n; ++i) {
             if (buf[i] == '\n') {
-                std::cout << prefix << line << "\n";
+                std::println("{}{}", prefix, line);
                 line.clear();
             } else {
                 line += buf[i];
             }
         }
     }
-    if (!line.empty()) std::cout << prefix << line << "\n";
+    if (!line.empty()) std::println("{}{}", prefix, line);
     close(fd);
 }
 
 static pid_t launch_steam()
 {
-    std::cout << "launching steam...\n";
+    std::println("launching steam...");
 
     int pipefd[2];
     if (pipe(pipefd) < 0) {
@@ -170,13 +171,10 @@ static pid_t launch_steam()
         dup2(pipefd[1], STDERR_FILENO);
         close(pipefd[1]);
 
-        if (has_creds) {
-            const char* argv[] = { "xvfb-run", "-a", "dbus-run-session", "steam", "-login", steam_user, steam_pass, "-dev", "-silent", "-nofriendsui", "-nochatui", nullptr };
-            execvp("xvfb-run", const_cast<char* const*>(argv));
-        } else {
-            const char* argv[] = { "xvfb-run", "-a", "dbus-run-session", "steam", "-dev", "-silent", "-nofriendsui", "-nochatui", nullptr };
-            execvp("xvfb-run", const_cast<char* const*>(argv));
-        }
+        std::vector<const char*> args = { "xvfb-run", "-a", "dbus-run-session", "steam" };
+        if (has_creds) args.insert(args.end(), { "-login", steam_user, steam_pass });
+        args.insert(args.end(), { "-dev", "-silent", "-nofriendsui", "-nochatui", nullptr });
+        execvp("xvfb-run", const_cast<char* const*>(args.data()));
         _exit(1);
     }
 
@@ -189,8 +187,7 @@ static bool wait_for_socket(const std::string& path, int timeout_secs)
 {
     auto deadline = steady::now() + std::chrono::seconds(timeout_secs);
     while (steady::now() < deadline) {
-        struct stat st;
-        if (stat(path.c_str(), &st) == 0) return true;
+        if (std::filesystem::exists(path)) return true;
         usleep(500'000);
     }
     return false;
@@ -200,11 +197,11 @@ static int check_millennium_api(int fd, tp deadline)
 {
     auto resp = mep_request(fd, "millennium.api_health", nullptr, deadline);
     if (!resp) {
-        std::cerr << "FAIL: millennium.api_health timed out or connection dropped\n";
+        std::println(stderr, "FAIL: millennium.api_health timed out or connection dropped");
         return 1;
     }
     if (!(*resp)["error"].is_null()) {
-        std::cerr << "FAIL: millennium.api_health error: " << (*resp)["error"] << "\n";
+        std::println(stderr, "FAIL: millennium.api_health error: {}", (*resp)["error"].dump());
         return 1;
     }
     const auto& result = (*resp)["result"];
@@ -212,13 +209,12 @@ static int check_millennium_api(int fd, tp deadline)
     const auto& missing = result["missing"];
 
     if (!missing.empty()) {
-        std::cerr << "FAIL: " << missing.size() << "/" << total << " MILLENNIUM_API exports are null/empty:\n";
-        for (const auto& key : missing) {
-            std::cerr << "  - " << key << "\n";
-        }
+        std::println(stderr, "FAIL: {}/{} MILLENNIUM_API exports are null/empty:", missing.size(), total);
+        for (const auto& key : missing)
+            std::println(stderr, "  - {}", key.get<std::string>());
         return 1;
     }
-    std::cout << "OK: all " << total << " SDK component hooks are registered\n";
+    std::println("OK: all {} SDK component hooks are registered", total);
     return 0;
 }
 
@@ -280,14 +276,14 @@ int main(int argc, char* argv[])
         steam_pid = launch_steam();
     }
 
-    std::cout << "waiting to connect to MEP...";
+    std::print("waiting to connect to MEP...");
     if (!wait_for_socket(mep_socket, 30)) {
-        std::cerr << "FAIL: MEP socket never appeared\n";
+        std::println(stderr, "FAIL: MEP socket never appeared");
         cleanup();
         return 1;
     }
-    std::cout << " OK\n";
-    std::cout << "connecting to MEP...";
+    std::println(" OK");
+    std::print("connecting to MEP...");
     sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     {
         struct sockaddr_un addr{};
@@ -298,19 +294,19 @@ int main(int argc, char* argv[])
         while (true) {
             if (connect(sock_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) == 0) break;
             if (steady::now() >= connect_deadline) {
-                std::cerr << "FAIL: MEP socket exists but nothing is listening\n";
+                std::println(stderr, "FAIL: MEP socket exists but nothing is listening");
                 cleanup();
                 return 1;
             }
             usleep(250'000);
         }
     }
-    std::cout << " OK\n";
+    std::println(" OK");
     auto race_deadline = steady::now() + std::chrono::milliseconds(static_cast<int64_t>(timeout_sec * 1000.0));
 
     auto exc_resp = mep_request(sock_fd, "runtime.exceptions", nullptr, race_deadline);
     if (!exc_resp || !(*exc_resp)["error"].is_null()) {
-        std::cerr << "FAIL: runtime.exceptions subscribe error\n";
+        std::println(stderr, "FAIL: runtime.exceptions subscribe error");
         cleanup();
         return 1;
     }
@@ -318,17 +314,17 @@ int main(int argc, char* argv[])
 
     auto ready_resp = mep_request(sock_fd, "sdk.ready", nullptr, race_deadline);
     if (!ready_resp || !(*ready_resp)["error"].is_null()) {
-        std::cerr << "FAIL: sdk.ready subscribe error\n";
+        std::println(stderr, "FAIL: sdk.ready subscribe error");
         cleanup();
         return 1;
     }
 
     auto on_sdk_ready = [&](const json& data) -> int
     {
-        const std::string sdk_ver = data.value("sdk_version", std::string{ "unknown" });
-        const std::string mil_ver = data.value("millennium_version", std::string{ "unknown" });
-        std::cout << "sdk version:        " << sdk_ver << "\n";
-        std::cout << "millennium version: " << mil_ver << "\n";
+        const std::string sdk_ver = data.value("sdk_version", "unknown");
+        const std::string mil_ver = data.value("millennium_version", "unknown");
+        std::println("sdk version:        {}", sdk_ver);
+        std::println("millennium version: {}", mil_ver);
         int rc = check_millennium_api(sock_fd, race_deadline);
         cleanup();
         return rc;
@@ -337,34 +333,34 @@ int main(int argc, char* argv[])
     if (!(*ready_resp)["result"]["ready"].is_null()) return on_sdk_ready((*ready_resp)["result"]["ready"]);
 
     const std::string ready_sub_id = (*ready_resp)["result"]["subscription_id"].get<std::string>();
-    std::cout << "subscribed exceptions=" << exc_sub_id << "#ready=" << ready_sub_id << ". waiting ...\n";
+    std::println("subscribed exceptions={}#ready={}. waiting ...", exc_sub_id, ready_sub_id);
 
     while (ms_left(race_deadline) > 0) {
         auto event = recv_frame(sock_fd, race_deadline);
         if (!event) break;
 
-        if ((*event).value("type", std::string{}) != "event") continue;
+        auto& ev = *event;
+        if (ev.value("type", "") != "event") continue;
 
-        const std::string sub_id = (*event).value("subscription_id", std::string{});
+        const std::string sub_id = ev.value("subscription_id", "");
 
-        if (sub_id == ready_sub_id) return on_sdk_ready((*event)["data"]);
+        if (sub_id == ready_sub_id) return on_sdk_ready(ev["data"]);
 
         if (sub_id == exc_sub_id) {
-            const auto& details = (*event)["data"]["exceptionDetails"];
-            const std::string text = details.value("text", "unknown error");
-            const std::string url = details.value("url", std::string{});
+            const auto& details = ev["data"]["exceptionDetails"];
+            const std::string url = details.value("url", "");
             const auto line = details.value("lineNumber", 0);
             const auto col = details.value("columnNumber", 0);
-            const std::string desc = details["exception"].value("description", std::string{});
-            const std::string plugin = (*event).value("plugin", std::string{ "unknown" });
+            const std::string desc = details["exception"].value("description", "");
+            const std::string plugin = ev.value("plugin", "unknown");
 
-            std::cerr << "FAIL: uncaught JS exception in '" << plugin << "' at " << url << ":" << line << ":" << col << "\n";
-            if (!desc.empty()) std::cerr << "  " << desc << "\n";
+            std::println(stderr, "FAIL: uncaught JS exception in '{}' at {}:{}:{}", plugin, url, line, col);
+            if (!desc.empty()) std::println(stderr, "  {}", desc);
 
             std::ofstream dump(dump_file);
             if (dump) {
-                dump << (*event)["data"].dump(4) << "\n";
-                std::cerr << "  full details written to " << dump_file << "\n";
+                dump << ev["data"].dump(4) << "\n";
+                std::println(stderr, "  full details written to {}", dump_file);
             }
 
             cleanup();
@@ -372,7 +368,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::cerr << "FAIL: timed out after " << timeout_sec << "s waiting for sdk.ready\n";
+    std::println(stderr, "FAIL: timed out after {}s waiting for sdk.ready", timeout_sec);
     cleanup();
     return 1;
 }

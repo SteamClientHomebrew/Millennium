@@ -28,6 +28,7 @@
  * SOFTWARE.
  */
 
+import React from 'react';
 import { EUIMode, Millennium, pluginSelf, routerHook } from '@steambrew/client';
 import { WelcomeModalComponent } from './components/WelcomeModal';
 import { onWindowCreatedCallback, patchMissedDocuments } from './patcher';
@@ -153,46 +154,40 @@ async function initializeMillennium(settings: SettingsProps) {
 	}
 }
 
+const GlobalMillenniumDesktopUI: React.FC = () => {
+	return (
+		<DesktopMenuProvider>
+			<MillenniumDesktopSidebar />
+		</DesktopMenuProvider>
+	);
+};
+
+const GlobalMillenniumQuickCssEditor: React.FC = () => {
+	const { isMillenniumOpen } = useQuickCssState();
+	if (!isMillenniumOpen) {
+		return null;
+	}
+
+	return <MillenniumQuickCssEditor />;
+};
+
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
+	Millennium.AddWindowCreateHook?.(onWindowCreatedCallback);
+	routerHook.addRoute('/millennium/settings', MillenniumSettings, { exact: false });
+
+	// add global component hooks
+	routerHook.addGlobalComponent('MillenniumDesktopUI', GlobalMillenniumDesktopUI, EUIMode.Desktop);
+	routerHook.addGlobalComponent('MillenniumWelcomeModal', WelcomeModalComponent, EUIMode.Desktop);
+	routerHook.addGlobalComponent('MillenniumQuickCssEditor', GlobalMillenniumQuickCssEditor, EUIMode.Desktop);
+
+	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);
+
 	try {
 		await initializeMillennium(await backend.config.getInitService());
 	} catch (error) {
 		Logger.Error('Millennium frontend initialization failed, continuing with route registration.', error);
 	}
-	Millennium.AddWindowCreateHook?.(onWindowCreatedCallback);
-
-	routerHook.addRoute('/millennium/settings', () => <MillenniumSettings />, { exact: false });
-
-	routerHook.addGlobalComponent(
-		'MillenniumDesktopUI',
-		() => (
-			<DesktopMenuProvider>
-				<MillenniumDesktopSidebar />
-			</DesktopMenuProvider>
-		),
-		EUIMode.Desktop,
-	);
-
-	/** Render welcome modal for new users */
-	routerHook.addGlobalComponent('MillenniumWelcomeModal', () => <WelcomeModalComponent />, EUIMode.Desktop);
-
-	/** Render Quick CSS Editor */
-	routerHook.addGlobalComponent(
-		'MillenniumQuickCssEditor',
-		() => {
-			const { isMillenniumOpen } = useQuickCssState();
-			if (!isMillenniumOpen) {
-				return null;
-			}
-
-			return <MillenniumQuickCssEditor />;
-		},
-		EUIMode.Desktop,
-	);
-
-	// @ts-ignore
-	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);
 
 	// If the user was in Millennium Settings when a JS context restart happened,
 	// navigate back to settings and restore the original start_page.
