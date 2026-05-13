@@ -32,12 +32,12 @@
 #include <windows.h>
 #else
 #include <dlfcn.h>
+#include "millennium/environment.h"
 #endif
 
 #include "millennium/filesystem.h"
 #include "millennium/logger.h"
 #include "millennium/auth.h"
-#include "millennium/environment.h"
 
 #include <format>
 #include <fstream>
