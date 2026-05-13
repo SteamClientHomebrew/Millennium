@@ -31,8 +31,6 @@
 #include "millennium/cdp_connector.h"
 #include "millennium/logger.h"
 
-#include <format>
-
 #ifdef _WIN32
 #include <windows.h>
 #include <mutex>
