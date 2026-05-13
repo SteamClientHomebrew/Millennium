@@ -31,7 +31,7 @@
 import React from 'react';
 import { EUIMode, Millennium, pluginSelf, routerHook } from '@steambrew/client';
 import { WelcomeModalComponent } from './components/WelcomeModal';
-import { onWindowCreatedCallback, patchMissedDocuments } from './patcher';
+import { onWindowCreatedCallback, patchMissedDocuments, signalConfigReady } from './patcher';
 import { DispatchSystemColors } from './patcher/SystemColors';
 import { ParseLocalTheme } from './patcher/ThemeParser';
 import { DispatchGlobalColors } from './patcher/v1/GlobalColors';
@@ -187,6 +187,8 @@ export default async function PluginMain() {
 		await initializeMillennium(await backend.config.getInitService());
 	} catch (error) {
 		Logger.Error('Millennium frontend initialization failed, continuing with route registration.', error);
+	} finally {
+		signalConfigReady();
 	}
 
 	// If the user was in Millennium Settings when a JS context restart happened,
