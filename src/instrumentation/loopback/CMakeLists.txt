@@ -72,11 +72,15 @@ if(APPLE)
     target_link_libraries(hhx64 "-framework AppKit" "-framework QuartzCore")
 endif()
 
-include(FetchContent)
-FetchContent_GetProperties(re2)
-add_subdirectory("${re2_SOURCE_DIR}" "${re2_BINARY_DIR}")
-
-target_link_libraries(hhx64 re2)
+if(MILLENNIUM_NIX_64BIT)
+    find_package(re2 REQUIRED)
+    target_link_libraries(hhx64 re2::re2)
+else()
+    include(FetchContent)
+    FetchContent_GetProperties(re2)
+    add_subdirectory("${re2_SOURCE_DIR}" "${re2_BINARY_DIR}")
+    target_link_libraries(hhx64 re2)
+endif()
 set_target_properties(hhx64 PROPERTIES
     PREFIX ""
     OUTPUT_NAME "${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"

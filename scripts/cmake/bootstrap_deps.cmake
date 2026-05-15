@@ -77,14 +77,52 @@ message("")
 message(STATUS "[MLNM] Configuring dependencies...")
 
 if(DISTRO_NIX)
-    set(FETCHCONTENT_FULLY_DISCONNECTED ON)
+    find_package(ZLIB       REQUIRED)
+    find_package(CURL       REQUIRED)
+    find_package(minizip-ng REQUIRED)
 
-    FetchContent_Declare(zlib           SOURCE_DIR "${MILLENNIUM_BASE}/deps/zlib"                                 )
-    FetchContent_Declare(luajit         SOURCE_DIR "${MILLENNIUM_BASE}/deps/luajit"         SOURCE_SUBDIR fakedir )
-    FetchContent_Declare(nlohmann_json  SOURCE_DIR "${MILLENNIUM_BASE}/deps/json"           SOURCE_SUBDIR fakedir )
-    FetchContent_Declare(minizip_ng     SOURCE_DIR "${MILLENNIUM_BASE}/deps/minizip"        SOURCE_SUBDIR fakedir )
-    FetchContent_Declare(curl           SOURCE_DIR "${MILLENNIUM_BASE}/deps/curl"           SOURCE_SUBDIR fakedir )
-    FetchContent_Declare(re2            SOURCE_DIR "${MILLENNIUM_BASE}/deps/re2"            SOURCE_SUBDIR fakedir )
+    find_path(NLOHMANN_JSON_INCLUDE_DIR "nlohmann/json.hpp" REQUIRED)
+    add_library(nlohmann_json INTERFACE)
+    target_include_directories(nlohmann_json INTERFACE "${NLOHMANN_JSON_INCLUDE_DIR}")
+
+    add_library(libcurl ALIAS CURL::libcurl)
+    add_library(minizip ALIAS MINIZIP::minizip-ng)
+
+    FetchContent_Declare(luajit SOURCE_DIR "${MILLENNIUM_BASE}/deps/luajit" SOURCE_SUBDIR fakedir)
+    FetchContent_MakeAvailable(luajit)
+
+    set(LUA_INCLUDE_DIR  luajit::header)
+    set(LUA_INCLUDE_DIRS luajit::header)
+    set(LUA_LIBRARY      luajit::lib   )
+    set(LUA_LIBRARIES    luajit::lib   )
+
+    include_directories(SYSTEM
+        "${luajit_BINARY_DIR}"
+        "${luajit_SOURCE_DIR}/src"
+    )
+
+    millennium_process_package("${luajit_SOURCE_DIR}")
+
+    if(EXISTS "${luajit_SOURCE_DIR}/LuaJIT.cmake")
+        file(READ "${luajit_SOURCE_DIR}/LuaJIT.cmake" _luajit_content)
+        string(REPLACE
+            [[COMMAND git show -s --format=${GIT_FORMAT} > ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt]]
+            [[COMMAND ${CMAKE_COMMAND} -E copy ${LUAJIT_DIR}/.relver ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt]]
+            _luajit_content "${_luajit_content}"
+        )
+        file(WRITE "${luajit_SOURCE_DIR}/LuaJIT.cmake" "${_luajit_content}")
+        unset(_luajit_content)
+    endif()
+
+    set(_saved_c_flags   "${CMAKE_C_FLAGS}")
+    set(_saved_cxx_flags "${CMAKE_CXX_FLAGS}")
+    string(APPEND CMAKE_C_FLAGS   " -w")
+    string(APPEND CMAKE_CXX_FLAGS " -w")
+
+    add_subdirectory("${luajit_SOURCE_DIR}" "${luajit_BINARY_DIR}")
+
+    set(CMAKE_C_FLAGS   "${_saved_c_flags}")
+    set(CMAKE_CXX_FLAGS "${_saved_cxx_flags}")
 else()
     set(THIRDPARTY_DIR "${MILLENNIUM_BASE}/thirdparty")
     FetchContent_Declare(zlib          URL "file://${THIRDPARTY_DIR}/zlib-2.2.5.tar.gz"           DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
@@ -93,117 +131,114 @@ else()
     FetchContent_Declare(minizip_ng    URL "file://${THIRDPARTY_DIR}/minizip_ng-4.0.10.tar.gz"     DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
     FetchContent_Declare(curl          URL "file://${THIRDPARTY_DIR}/curl-8_13_0.tar.gz"           DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
     FetchContent_Declare(re2           GIT_REPOSITORY https://github.com/google/re2 GIT_TAG 2022-04-01 SOURCE_SUBDIR fakedir)
-endif()
 
-set(DEPENDENCIES zlib luajit nlohmann_json minizip_ng curl re2)
+    set(DEPENDENCIES zlib luajit nlohmann_json minizip_ng curl re2)
 
-set(_saved_msg_level "${CMAKE_MESSAGE_LOG_LEVEL}")
-set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
-
-foreach(dep ${DEPENDENCIES})
-    string(TIMESTAMP start_time "%s")
-    FetchContent_MakeAvailable(${dep})
-    string(TIMESTAMP end_time "%s")
-    math(EXPR duration "${end_time} - ${start_time}")
-
-    set(CMAKE_MESSAGE_LOG_LEVEL "${_saved_msg_level}")
+    set(_saved_msg_level "${CMAKE_MESSAGE_LOG_LEVEL}")
     set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
-endforeach()
 
-if(MSVC)
-    if(EXISTS "${curl_SOURCE_DIR}/CMake/PickyWarnings.cmake")
-        file(READ "${curl_SOURCE_DIR}/CMake/PickyWarnings.cmake" _pw_content)
+    foreach(dep ${DEPENDENCIES})
+        string(TIMESTAMP start_time "%s")
+        FetchContent_MakeAvailable(${dep})
+        string(TIMESTAMP end_time "%s")
+        math(EXPR duration "${end_time} - ${start_time}")
+
+        set(CMAKE_MESSAGE_LOG_LEVEL "${_saved_msg_level}")
+        set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
+    endforeach()
+
+    if(MSVC)
+        if(EXISTS "${curl_SOURCE_DIR}/CMake/PickyWarnings.cmake")
+            file(READ "${curl_SOURCE_DIR}/CMake/PickyWarnings.cmake" _pw_content)
+            string(REPLACE
+                "  list(APPEND _picky \"-W4\")"
+                "  if(PICKY_COMPILER)\n    list(APPEND _picky \"-W4\")\n  endif()"
+                _pw_content "${_pw_content}"
+            )
+            file(WRITE "${curl_SOURCE_DIR}/CMake/PickyWarnings.cmake" "${_pw_content}")
+            unset(_pw_content)
+        endif()
+        set(PICKY_COMPILER OFF CACHE BOOL "" FORCE)
+
+        if(EXISTS "${minizip_ng_SOURCE_DIR}/CMakeLists.txt")
+            file(READ "${minizip_ng_SOURCE_DIR}/CMakeLists.txt" _mz_content)
+            string(REPLACE "add_compile_options($<$<CONFIG:Debug>:/W3>)" "" _mz_content "${_mz_content}")
+            file(WRITE "${minizip_ng_SOURCE_DIR}/CMakeLists.txt" "${_mz_content}")
+            unset(_mz_content)
+        endif()
+    endif()
+
+    if(EXISTS "${curl_SOURCE_DIR}/CMakeLists.txt")
+        file(READ "${curl_SOURCE_DIR}/CMakeLists.txt" _curl_content)
         string(REPLACE
-            "  list(APPEND _picky \"-W4\")"
-            "  if(PICKY_COMPILER)\n    list(APPEND _picky \"-W4\")\n  endif()"
-            _pw_content "${_pw_content}"
+            "message(WARNING \"Perl not found. Will not build manuals.\")"
+            "# patched out by Millennium bootstrap_deps.cmake — manuals not shipped"
+            _curl_content "${_curl_content}"
         )
-        file(WRITE "${curl_SOURCE_DIR}/CMake/PickyWarnings.cmake" "${_pw_content}")
-        unset(_pw_content)
+        file(WRITE "${curl_SOURCE_DIR}/CMakeLists.txt" "${_curl_content}")
+        unset(_curl_content)
     endif()
-    set(PICKY_COMPILER OFF CACHE BOOL "" FORCE)
 
-    # Patch minizip-ng to not add /W3 in Debug builds; same D9025 root cause.
-    if(EXISTS "${minizip_ng_SOURCE_DIR}/CMakeLists.txt")
-        file(READ "${minizip_ng_SOURCE_DIR}/CMakeLists.txt" _mz_content)
-        string(REPLACE "add_compile_options($<$<CONFIG:Debug>:/W3>)" "" _mz_content "${_mz_content}")
-        file(WRITE "${minizip_ng_SOURCE_DIR}/CMakeLists.txt" "${_mz_content}")
-        unset(_mz_content)
+    set(LUA_INCLUDE_DIR  luajit::header)
+    set(LUA_INCLUDE_DIRS luajit::header)
+    set(LUA_LIBRARY      luajit::lib   )
+    set(LUA_LIBRARIES    luajit::lib   )
+
+    include_directories(SYSTEM
+        "${minizip_ng_SOURCE_DIR}"
+        "${luajit_BINARY_DIR}"
+        "${luajit_SOURCE_DIR}/src"
+        "${CMAKE_SOURCE_DIR}/../hhx64/include"
+    )
+
+    millennium_process_package("${luajit_SOURCE_DIR}")
+    millennium_process_package("${curl_SOURCE_DIR}")
+
+    if(EXISTS "${luajit_SOURCE_DIR}/LuaJIT.cmake")
+        file(READ "${luajit_SOURCE_DIR}/LuaJIT.cmake" _luajit_content)
+        string(REPLACE
+            [[COMMAND git show -s --format=${GIT_FORMAT} > ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt]]
+            [[COMMAND ${CMAKE_COMMAND} -E copy ${LUAJIT_DIR}/.relver ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt]]
+            _luajit_content "${_luajit_content}"
+        )
+        file(WRITE "${luajit_SOURCE_DIR}/LuaJIT.cmake" "${_luajit_content}")
+        unset(_luajit_content)
     endif()
-endif()
 
-if(EXISTS "${curl_SOURCE_DIR}/CMakeLists.txt")
-    file(READ "${curl_SOURCE_DIR}/CMakeLists.txt" _curl_content)
-    string(REPLACE
-    "message(WARNING \"Perl not found. Will not build manuals.\")"
-    "# patched out by Millennium bootstrap_deps.cmake — manuals not shipped"
-    _curl_content "${_curl_content}"
-  )
-    file(WRITE "${curl_SOURCE_DIR}/CMakeLists.txt" "${_curl_content}")
-    unset(_curl_content)
-endif()
+    millennium_process_package("${nlohmann_json_SOURCE_DIR}")
+    millennium_process_package("${minizip_ng_SOURCE_DIR}")
+    millennium_process_package("${re2_SOURCE_DIR}")
 
-set(LUA_INCLUDE_DIR  luajit::header)
-set(LUA_INCLUDE_DIRS luajit::header)
-set(LUA_LIBRARY      luajit::lib   )
-set(LUA_LIBRARIES    luajit::lib   )
-
-include_directories(SYSTEM
-    "${minizip_ng_SOURCE_DIR}"
-    "${luajit_BINARY_DIR}"
-    "${luajit_SOURCE_DIR}/src"
-    "${CMAKE_SOURCE_DIR}/../hhx64/include"
-)
-
-millennium_process_package("${luajit_SOURCE_DIR}")
-millennium_process_package("${curl_SOURCE_DIR}")
-
-if(EXISTS "${luajit_SOURCE_DIR}/LuaJIT.cmake")
-  file(READ "${luajit_SOURCE_DIR}/LuaJIT.cmake" _luajit_content)
-  string(REPLACE
-    [[COMMAND git show -s --format=${GIT_FORMAT} > ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt]]
-    [[COMMAND ${CMAKE_COMMAND} -E copy ${LUAJIT_DIR}/.relver ${CMAKE_CURRENT_BINARY_DIR}/luajit_relver.txt]]
-    _luajit_content "${_luajit_content}"
-  )
-  file(WRITE "${luajit_SOURCE_DIR}/LuaJIT.cmake" "${_luajit_content}")
-  unset(_luajit_content)
-endif()
-
-millennium_process_package("${nlohmann_json_SOURCE_DIR}")
-millennium_process_package("${minizip_ng_SOURCE_DIR}")
-millennium_process_package("${re2_SOURCE_DIR}")
-
-
-set(ZLIB_ROOT "${zlib_BINARY_DIR}")
-set(ZLIB_FOUND TRUE)
-if(WIN32)
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(ZLIB_LIBRARY "${zlib_BINARY_DIR}/zlibstaticd${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    else()
-        set(ZLIB_LIBRARY "${zlib_BINARY_DIR}/zlibstatic${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    set(ZLIB_ROOT "${zlib_BINARY_DIR}")
+    set(ZLIB_FOUND TRUE)
+    if(WIN32)
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(ZLIB_LIBRARY "${zlib_BINARY_DIR}/zlibstaticd${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        else()
+            set(ZLIB_LIBRARY "${zlib_BINARY_DIR}/zlibstatic${CMAKE_STATIC_LIBRARY_SUFFIX}")
+        endif()
+    elseif(UNIX)
+        set(ZLIB_LIBRARY "${zlib_BINARY_DIR}/libz${CMAKE_STATIC_LIBRARY_SUFFIX}")
     endif()
-elseif(UNIX)
-    set(ZLIB_LIBRARY "${zlib_BINARY_DIR}/libz${CMAKE_STATIC_LIBRARY_SUFFIX}")
+
+    set(ZLIB_LIBRARIES "${ZLIB_LIBRARY}")
+    set(ZLIB_INCLUDE_DIRS "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}")
+    set(ZLIB_INCLUDE_DIR "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}")
+
+    set(_saved_c_flags   "${CMAKE_C_FLAGS}")
+    set(_saved_cxx_flags "${CMAKE_CXX_FLAGS}")
+    string(APPEND CMAKE_C_FLAGS   " -w")
+    string(APPEND CMAKE_CXX_FLAGS " -w")
+
+    add_subdirectory("${luajit_SOURCE_DIR}"        "${luajit_BINARY_DIR}"       )
+    add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"         )
+    add_subdirectory("${nlohmann_json_SOURCE_DIR}" "${nlohmann_json_BINARY_DIR}")
+    add_subdirectory("${minizip_ng_SOURCE_DIR}"    "${minizip_ng_BINARY_DIR}"   )
+
+    set(CMAKE_C_FLAGS   "${_saved_c_flags}")
+    set(CMAKE_CXX_FLAGS "${_saved_cxx_flags}")
+    set(CMAKE_MESSAGE_LOG_LEVEL "${_saved_msg_level}")
+
+    add_dependencies(luajit zlib)
+    add_dependencies(minizip zlib)
 endif()
-
-set(ZLIB_LIBRARIES "${ZLIB_LIBRARY}")
-set(ZLIB_INCLUDE_DIRS "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}")
-set(ZLIB_INCLUDE_DIR "${zlib_SOURCE_DIR};${zlib_BINARY_DIR}")
-
-# Suppress warnings and noisy status messages from third-party dependencies
-set(_saved_c_flags   "${CMAKE_C_FLAGS}")
-set(_saved_cxx_flags "${CMAKE_CXX_FLAGS}")
-string(APPEND CMAKE_C_FLAGS   " -w")
-string(APPEND CMAKE_CXX_FLAGS " -w")
-
-add_subdirectory("${luajit_SOURCE_DIR}"        "${luajit_BINARY_DIR}"       )
-add_subdirectory("${curl_SOURCE_DIR}"          "${curl_BINARY_DIR}"         )
-add_subdirectory("${nlohmann_json_SOURCE_DIR}" "${nlohmann_json_BINARY_DIR}")
-add_subdirectory("${minizip_ng_SOURCE_DIR}"    "${minizip_ng_BINARY_DIR}"   )
-
-set(CMAKE_C_FLAGS   "${_saved_c_flags}")
-set(CMAKE_CXX_FLAGS "${_saved_cxx_flags}")
-set(CMAKE_MESSAGE_LOG_LEVEL "${_saved_msg_level}")
-
-add_dependencies(luajit zlib)
-add_dependencies(minizip zlib)

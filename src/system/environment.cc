@@ -39,9 +39,9 @@
 #include "millennium/auth.h"
 
 #include <format>
+#include <print>
 #include <stdlib.h>
 #include <string>
-#include <iostream>
 #if defined(__linux__) || defined(__APPLE__)
 #include <unistd.h>
 #endif
@@ -190,12 +190,11 @@ void platform::environment::setup()
     const std::string dataDir = get("XDG_DATA_HOME", std::format("{}/.local/share", homeDir));
     const std::string stateDir = get("XDG_STATE_HOME", std::format("{}/.local/state", homeDir));
 
-    const std::string customLdPreload = get("MILLENNIUM_RUNTIME_PATH");
+    const std::string customLdPreload = get("MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so");
 
     std::map<std::string, std::string> environment_unix = {
         { "OPENSSL_CONF", "/dev/null" },
-        { "MILLENNIUM_RUNTIME_PATH", customLdPreload != "" ? customLdPreload : "/usr/lib/millennium/libmillennium_x86.so" },
-
+        { "MILLENNIUM_RUNTIME_PATH", customLdPreload },
         { "MILLENNIUM__STEAM_EXE_PATH", std::format("{}/.steam/steam/ubuntu12_32/steam", homeDir) },
         { "MILLENNIUM__PLUGINS_PATH", std::format("{}/millennium/plugins", dataDir) },
         { "MILLENNIUM__CONFIG_PATH", std::format("{}/millennium", configDir) },
@@ -225,21 +224,11 @@ void platform::environment::setup()
     environment.insert(environment_macos.begin(), environment_macos.end());
 #endif
 
-#ifdef __linux__
-    const bool shouldLog = get("MLOG_ENV") == "1" || get("MLOG_ENV") == "true";
-#elif defined(__APPLE__)
-    const bool shouldLog = get("MLOG_ENV") == "1" || get("MLOG_ENV") == "true";
-#elif defined(_WIN32)
-    const bool shouldLog = false;
-#endif
+    const bool shouldLog = !get("MLOG_ENV").empty();
     envVariables = environment;
 
     for (const auto& [key, value] : environment) {
-#if defined(__linux__) || defined(__APPLE__) || defined(_WIN32)
-#define RED "\033[31m"
-#define RESET "\033[0m"
-        if (shouldLog) std::cout << std::format("{}={}", key, value) << std::endl;
-#endif
+        if (shouldLog) std::println("{}={}", key, value);
         set(key, value);
     }
 }

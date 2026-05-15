@@ -24,10 +24,10 @@ add_compile_definitions(
     "CURL_STATICLIB"
     $<$<BOOL:${WIN32}>:WIN32_LEAN_AND_MEAN>
     $<$<BOOL:${WIN32}>:NOMINMAX>
-    $<$<CONFIG:Debug>:__HOOK_HELPER_OUTPUT_ABSPATH__="$<TARGET_FILE:hhx64>">
+    $<$<AND:$<CONFIG:Debug>,$<NOT:$<BOOL:${DISTRO_NIX}>>>:__HOOK_HELPER_OUTPUT_ABSPATH__="$<TARGET_FILE:hhx64>">
     $<$<CONFIG:Debug>:__LUA_HOST_OUTPUT_ABSPATH__="$<TARGET_FILE:${MILLENNIUM_RTB_NAME}>">
     $<$<CONFIG:Debug>:__DBG_MILLENNIUM_OUTPUT_DIR__="$<TARGET_FILE_DIR:Millennium>">
-    $<$<AND:$<CONFIG:Debug>,$<PLATFORM_ID:Linux>>:__PVS64_OUTPUT_ABSPATH__="$<TARGET_FILE:libmillennium_pvs64>">
+    $<$<AND:$<CONFIG:Debug>,$<PLATFORM_ID:Linux>,$<NOT:$<BOOL:${DISTRO_NIX}>>>:__PVS64_OUTPUT_ABSPATH__="$<TARGET_FILE:libmillennium_pvs64>">
 )
 
 include_directories(
@@ -117,7 +117,7 @@ endif()
 
 if(WIN32)
     add_subdirectory(bootstrap/win32)
-elseif(UNIX AND NOT APPLE AND NOT NIX_BUILD)
+elseif(UNIX AND NOT APPLE)
     add_subdirectory(bootstrap/linux)
 elseif(UNIX AND APPLE)
     add_subdirectory(bootstrap/macos)
@@ -231,7 +231,7 @@ if(WIN32)
     set_target_properties(Millennium PROPERTIES NO_EXPORT TRUE)
 elseif(UNIX AND NOT APPLE)
     set_target_properties(Millennium PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-    target_compile_options(Millennium PRIVATE -m32 -Wall -Wextra -Wpedantic -Werror)
+    target_compile_options(Millennium PRIVATE -m32 -Wall -Wextra -Wpedantic -Werror -Wno-c++26-extensions)
 endif()
 
 target_link_libraries(Millennium libcurl minizip nlohmann_json)

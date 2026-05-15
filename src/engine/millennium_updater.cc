@@ -55,7 +55,7 @@
  * This is VERY helpful when debugging this shit ass updater
  */
 
-#define UPDATER_DEBUG_MODE
+// #define UPDATER_DEBUG_MODE
 
 #ifndef _DEBUG
 #ifdef UPDATER_DEBUG_MODE
