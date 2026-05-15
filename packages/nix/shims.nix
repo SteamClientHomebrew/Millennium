@@ -1,8 +1,7 @@
 {
-  nodejs_20,
-  pnpm_9,
-  fetchPnpmDeps,
-  pnpmConfigHook,
+  bun,
+  cacert,
+  nodejs,
 
   lib,
   stdenv,
@@ -10,32 +9,57 @@
   millennium-src,
   ...
 }:
-stdenv.mkDerivation (finalAttrs: {
+let
+  bunDeps = stdenv.mkDerivation {
+    pname = "millennium-shims-bun-deps";
+    version = "2.36.0";
+
+    src = millennium-src;
+
+    nativeBuildInputs = [ bun cacert ];
+
+    buildPhase = ''
+      export HOME=$TMPDIR
+      bun install --cwd src/typescript --frozen-lockfile
+    '';
+
+    installPhase = ''
+      cp -rL --no-preserve=mode $HOME/.bun/. $out
+    '';
+
+    outputHashMode = "recursive";
+    outputHashAlgo = "sha256";
+    outputHash = "sha256-ErSfKormY1L+f8rSvJwn1cozsDC+SlWCb7IHGIC82pk=";
+  };
+in
+stdenv.mkDerivation {
   pname = "millennium-shims";
   version = "2.36.0";
 
   src = millennium-src;
 
-  nativeBuildInputs = [
-    nodejs_20
-    pnpm_9
-    pnpmConfigHook
-  ];
-
-  pnpmRoot = "src/typescript";
-
-  pnpmDeps = fetchPnpmDeps {
-    inherit (finalAttrs) version pname;
-    pnpm = pnpm_9;
-    src = "${finalAttrs.src}/src/typescript";
-    fetcherVersion = 3;
-    hash = "sha256-H7k+nkNCb4yuaXcZVmfMI0sqgdYgTO3C2MlXPpYX0x0=";
-  };
+  nativeBuildInputs = [ bun nodejs ];
 
   buildPhase = ''
     runHook preBuild
 
-    pnpm --dir src/typescript run build
+    export HOME=$(mktemp -d)
+    cp -r ${bunDeps} $HOME/.bun
+    chmod -R u+w $HOME/.bun
+    bun install --cwd src/typescript --frozen-lockfile
+    patchShebangs src/typescript
+
+    # Disable bun auto-install to prevent network access in later build steps
+    cat >> src/typescript/bunfig.toml <<'EOF'
+[install]
+auto = "disable"
+EOF
+
+    tsc_js=$(find "$PWD/src/typescript/node_modules/.bun" -name "tsc.js" -path "*/typescript/lib/tsc.js" | head -1)
+    rollup_bin=$(find "$PWD/src/typescript/node_modules/.bun" -name "rollup" -path "*/rollup/dist/bin/rollup" | head -1)
+    (cd src/typescript/sdk/packages/client && node "$tsc_js" -b)
+    (cd src/typescript/sdk/packages/cdp-isolated-ctx && node "$rollup_bin" -c)
+    (cd src/typescript/sdk/packages/loader && node "$rollup_bin" -c)
 
     runHook postBuild
   '';
@@ -44,7 +68,8 @@ stdenv.mkDerivation (finalAttrs: {
     runHook preInstall
 
     mkdir -p $out/share/millennium/shims
-    cp -r src/sdk/packages/loader/build/* $out/share/millennium/shims/
+    cp -r src/typescript/sdk/packages/loader/build/* $out/share/millennium/shims/
+    cp src/typescript/sdk/packages/cdp-isolated-ctx/build/cdp-isolated-ctx.js $out/share/millennium/shims/
 
     runHook postInstall
   '';
@@ -62,4 +87,4 @@ stdenv.mkDerivation (finalAttrs: {
       "x86_64-linux"
     ];
   };
-})
+}

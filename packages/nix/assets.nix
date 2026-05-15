@@ -15,7 +15,6 @@ stdenv.mkDerivation (finalAttrs: {
     runHook preInstall
 
     mkdir -p $out/share/millennium/assets/
-    cp -r src/pipx $out/share/millennium/assets/pipx
 
     runHook postInstall
   '';

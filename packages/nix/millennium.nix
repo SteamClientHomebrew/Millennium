@@ -1,8 +1,7 @@
 {
   lib,
+  pkgs,
   stdenv,
-  callPackage,
-  fetchFromGitHub,
 
   inputs,
   millennium-shims,
@@ -10,6 +9,7 @@
   millennium-frontend,
   millennium-32,
   millennium-64,
+  millennium-python ? pkgs.pkgsi686Linux.python311,
 }:
 stdenv.mkDerivation {
   pname = "millennium";
@@ -21,11 +21,11 @@ stdenv.mkDerivation {
   ];
 
   buildInputs = [
-    pkgsi686Linux.gtk3
-    pkgsi686Linux.libpsl
-    pkgsi686Linux.openssl
-    pkgsi686Linux.libxtst
-    cacert
+    pkgs.pkgsi686Linux.gtk3
+    pkgs.pkgsi686Linux.libpsl
+    pkgs.pkgsi686Linux.openssl
+    pkgs.pkgsi686Linux.libxtst
+    pkgs.cacert
     millennium-python
   ];
 
@@ -39,8 +39,8 @@ stdenv.mkDerivation {
     "-DNIX_FRONTEND=${millennium-frontend}/share/frontend"
     "-DNIX_SHIMS=${millennium-shims}/share/millennium/shims"
     "-DNIX_PYTHON=${millennium-python}"
-    "-DCURL_CA_BUNDLE=${cacert}/etc/ssl/certs/ca-bundle.crt"
-    "-DCURL_CA_PATH=${cacert}/etc/ssl/certs"
+    "-DCURL_CA_BUNDLE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+    "-DCURL_CA_PATH=${pkgs.cacert}/etc/ssl/certs"
     "--preset=linux-release"
   ];
 
@@ -100,6 +100,9 @@ stdenv.mkDerivation {
 
     echo "[Nix Millennium] Merging 64-bit libraries..."
     cp -v ${millennium-64}/lib/*.so $out/lib/
+
+    echo "[Nix Millennium] Copying pvs64 helper..."
+    cp -v ${millennium-64}/lib/libmillennium_pvs64 $out/lib/
   '';
 
   passthru = {

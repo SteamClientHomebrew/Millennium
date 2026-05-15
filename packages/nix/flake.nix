@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
-    millennium-src.url = "github:SteamClientHomebrew/Millennium/1bc62c94a06f25f7e8d7e269f11cd968cf576bff";
+    millennium-src.url = "github:SteamClientHomebrew/Millennium";
     millennium-src.flake = false;
 
     zlib-src.url = "github:zlib-ng/zlib-ng/2.2.5";
@@ -14,9 +14,12 @@
     minizip-src.url = "github:zlib-ng/minizip-ng/4.0.10";
     curl-src.url = "github:curl/curl/curl-8_13_0";
     asio-src.url = "github:chriskohlhoff/asio/asio-1-30-0";
-
+    minhook-src.url = "github:TsudaKageyu/minhook/v1.3.4";
+    mini-src.url = "github:metayeti/mINI/0.9.18";
+    libgit2-src.url = "github:libgit2/libgit2/v1.9.1";
     abseil-src.url = "github:abseil/abseil-cpp/20240722.0";
     re2-src.url = "github:google/re2/2025-11-05";
+    snare-src.url = "github:shdwmtr/libsnare.h";
 
     zlib-src.flake = false;
     luajit-src.flake = false;
@@ -25,9 +28,12 @@
     minizip-src.flake = false;
     curl-src.flake = false;
     asio-src.flake = false;
-
+    minhook-src.flake = false;
+    mini-src.flake = false;
+    libgit2-src.flake = false;
     abseil-src.flake = false;
     re2-src.flake = false;
+    snare-src.flake = false;
   };
 
   outputs =

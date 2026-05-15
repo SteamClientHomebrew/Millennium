@@ -105,17 +105,16 @@
     "millennium-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1777483535,
-        "narHash": "sha256-eqbNqc+5PibHLI8xgOrizXOVLcpE52MhmUR4o40S3PY=",
+        "lastModified": 1778645687,
+        "narHash": "sha256-PPdpCg/mv2+NwmYwzwIlMdrA8UD5VgG8glLrFb4/OcA=",
         "owner": "SteamClientHomebrew",
         "repo": "Millennium",
-        "rev": "defffd7b6f0cf4d5e53f5a892819966801475704",
+        "rev": "0e209621f181b5b26a0940414c2830710efd37ff",
         "type": "github"
       },
       "original": {
         "owner": "SteamClientHomebrew",
         "repo": "Millennium",
-        "rev": "defffd7b6f0cf4d5e53f5a892819966801475704",
         "type": "github"
       }
     },
@@ -172,11 +171,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1770115704,
-        "narHash": "sha256-KHFT9UWOF2yRPlAnSXQJh6uVcgNcWlFqqiAZ7OVlHNc=",
+        "lastModified": 1778443072,
+        "narHash": "sha256-zi7/fsqM/kFdNuED//4WOCUtezGtKKqRNORjMvfwjnA=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "e6eae2ee2110f3d31110d5c222cd395303343b08",
+        "rev": "da5ad661ba4e5ef59ba743f0d112cbc30e474f32",
         "type": "github"
       },
       "original": {
@@ -217,8 +216,25 @@
         "minizip-src": "minizip-src",
         "nixpkgs": "nixpkgs",
         "re2-src": "re2-src",
+        "snare-src": "snare-src",
         "websocketpp-src": "websocketpp-src",
         "zlib-src": "zlib-src"
+      }
+    },
+    "snare-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1774885337,
+        "narHash": "sha256-apxu7UrrLO5ymCXEIH11kcHW8barCk3W/+zZaEwzCTw=",
+        "owner": "shdwmtr",
+        "repo": "libsnare.h",
+        "rev": "d356aca3742d5b05c00efe4c43cc990e12ab794c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "shdwmtr",
+        "repo": "libsnare.h",
+        "type": "github"
       }
     },
     "websocketpp-src": {

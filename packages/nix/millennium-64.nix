@@ -4,6 +4,7 @@
   pkg-config,
   git,
   cacert,
+  python3,
 
   lib,
   stdenv,
@@ -25,6 +26,7 @@ stdenv.mkDerivation (finalAttrs: {
     ninja
     pkg-config
     git
+    python3
   ];
 
   buildInputs = [
@@ -39,6 +41,8 @@ stdenv.mkDerivation (finalAttrs: {
     "-DGITHUB_ACTION_BUILD=ON"
     "-DDISTRO_NIX=ON"
     "-DFETCHCONTENT_FULLY_DISCONNECTED=ON"
+    "-DMILLENNIUM_BUILD_TESTS=OFF"
+    "-DFETCHCONTENT_SOURCE_DIR_SNARE=${inputs.snare-src}"
   ];
 
   postPatch = ''
@@ -73,11 +77,38 @@ stdenv.mkDerivation (finalAttrs: {
 
     echo "[Nix] Patching CMakeLists to IGNORE 32-bit source..."
     sed -i '/add_subdirectory.*src)/s/^/#/' CMakeLists.txt
+
+    echo "[Nix] Writing cmake fragment for abseil + re2 (normally from bootstrap_deps.cmake via src/)..."
+    # Patch re2 to skip install(EXPORT) which fails because absl targets aren't installed
+    python3 - deps/re2/CMakeLists.txt <<'PEOF'
+import sys, re
+with open(sys.argv[1]) as f:
+    content = f.read()
+content = re.sub(r'install\(EXPORT.*?\)', "", content, flags=re.DOTALL)
+with open(sys.argv[1], 'w') as f:
+    f.write(content)
+PEOF
+
+    cat > nix_64bit_deps.cmake <<'NIXEOF'
+set(ABSL_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+set(RE2_BUILD_TESTING  OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(absl SOURCE_DIR "''${MILLENNIUM_BASE}/deps/abseil" OVERRIDE_FIND_PACKAGE)
+FetchContent_MakeAvailable(absl)
+FetchContent_Declare(re2 SOURCE_DIR "''${MILLENNIUM_BASE}/deps/re2" SOURCE_SUBDIR fakedir)
+FetchContent_MakeAvailable(re2)
+NIXEOF
+    sed -i '/FetchContent_MakeAvailable(snare)/a include(''${CMAKE_SOURCE_DIR}/nix_64bit_deps.cmake)' CMakeLists.txt
   '';
 
   buildPhase = ''
     runHook preBuild
     cmake --build .
+
+    # pvs64 is a pure-stdlib 64-bit helper; compile it here since the 32-bit build cannot emit -m64
+    g++ -m64 -std=c++17 -O2 -Wall -Wextra \
+      ../src/bootstrap/linux/millennium_pvs64.cc \
+      -o libmillennium_pvs64
+
     runHook postBuild
   '';
 
@@ -85,7 +116,9 @@ stdenv.mkDerivation (finalAttrs: {
     runHook preInstall
 
     mkdir -p $out/lib/
-    install -Dm755 src/hhx64/libmillennium_hhx64.so $out/lib/libmillennium_hhx64.so
+    so=$(find . -name "libmillennium_hhx64.so" | head -1)
+    install -Dm755 "$so" $out/lib/libmillennium_hhx64.so
+    install -Dm755 libmillennium_pvs64 $out/lib/libmillennium_pvs64
 
     runHook postInstall
   '';

@@ -44,12 +44,15 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
   cmakeFlags = [
     "-DGITHUB_ACTION_BUILD=ON"
     "-DDISTRO_NIX=ON"
+    "-DFETCHCONTENT_FULLY_DISCONNECTED=ON"
+    "-DMILLENNIUM_BUILD_TESTS=OFF"
     "-DNIX_FRONTEND=${millennium-frontend}/share/frontend"
     "-DNIX_SHIMS=${millennium-shims}/share/millennium/shims"
     "-DNIX_PYTHON=${millennium-python}"
     "-DNIX_PYTHON_LIB=${millennium-python}/lib/libpython${millennium-python.pythonVersion}.so"
     "-DCURL_CA_BUNDLE=${cacert}/etc/ssl/certs/ca-bundle.crt"
     "-DCURL_CA_PATH=${cacert}/etc/ssl/certs"
+    "-DFETCHCONTENT_SOURCE_DIR_SNARE=${inputs.snare-src}"
   ];
 
   postPatch = ''
@@ -77,6 +80,7 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
           "minizip"
           "curl"
           "asio"
+          "re2"
         ];
       in
       lib.concatStrings (map (dep: "prepare_dep ${dep} \"${inputs."${dep}-src"}\"\n") deps)
@@ -104,8 +108,22 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
     echo "[Nix] Patching root CMakeLists to IGNORE 64-bit source..."
     sed -i '/add_subdirectory.*src\/hhx64)/s/^/#/' CMakeLists.txt
 
+    echo "[Nix] Patching root CMakeLists to SKIP loopback (hhx64 is built in millennium-64)..."
+    sed -i '/add_subdirectory.*loopback)/s/^/#/' CMakeLists.txt
+
     echo "[Nix] Patching src/CMakeLists.txt to replace dynamic target reference..."
     sed -i 's|\$<TARGET_FILE:hhx64>|libmillennium_hhx64.so|g' src/CMakeLists.txt
+
+    echo "[Nix] Fixing accidental UPDATER_DEBUG_MODE define left in source..."
+    sed -i 's|^#define UPDATER_DEBUG_MODE|// #define UPDATER_DEBUG_MODE|' src/engine/millennium_updater.cc
+
+    echo "[Nix] Suppressing -Werror for #embed C++26 extension (GCC supports it in C++23 mode)..."
+    sed -i 's/-Wpedantic -Werror/-Wpedantic -Werror -Wno-error=c++26-extensions/' src/CMakeLists.txt
+
+    echo "[Nix] Removing 64-bit-only targets (bootstrap64, pvs64) from bootstrap linux CMakeLists..."
+    awk '/^project\(bootstrap64/{found=1} !found{print}' \
+      src/bootstrap/linux/CMakeLists.txt > /tmp/bootstrap_linux.cmake
+    mv /tmp/bootstrap_linux.cmake src/bootstrap/linux/CMakeLists.txt
   '';
 
   buildPhase = ''
@@ -118,9 +136,10 @@ pkgsi686Linux.stdenv.mkDerivation (finalAttrs: {
     runHook preInstall
 
     mkdir -p $out/lib/
-    install -Dm755 src/libmillennium_x86.so                      $out/lib/libmillennium_x86.so
-    install -Dm755 src/boot/linux/libmillennium_bootstrap_x86.so $out/lib/libmillennium_bootstrap_x86.so
-    install -Dm755 libmillennium_pvs64                           $out/lib/libmillennium_pvs64
+    x86so=$(find . -name "libmillennium_x86.so" | head -1)
+    boot86so=$(find . -name "libmillennium_bootstrap_x86.so" | head -1)
+    install -Dm755 "$x86so"    $out/lib/libmillennium_x86.so
+    install -Dm755 "$boot86so" $out/lib/libmillennium_bootstrap_x86.so
 
     runHook postInstall
   '';
