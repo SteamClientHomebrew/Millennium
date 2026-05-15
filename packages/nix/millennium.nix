@@ -5,6 +5,7 @@
   bun,
   nodejs,
   cacert,
+  patchelf,
 
   lib,
   stdenv,
@@ -87,7 +88,7 @@ let
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
     pname = "millennium-32";
 
-    nativeBuildInputs = commonBuild.nativeBuildInputs ++ [ bun nodejs ];
+    nativeBuildInputs = commonBuild.nativeBuildInputs ++ [ bun nodejs patchelf ];
 
     buildInputs = [
       pkgsi686Linux.gtk3
@@ -130,6 +131,11 @@ let
       install -Dm755 libmillennium_luavm_x86        $out/lib/libmillennium_luavm_x86
       install -Dm755 libmillennium_bootstrap_x86.so $out/lib/libmillennium_bootstrap_x86.so
       runHook postInstall
+    '';
+
+    postFixup = ''
+      patchelf --force-rpath --set-rpath "$(patchelf --print-rpath $out/lib/libmillennium_x86.so)" $out/lib/libmillennium_x86.so
+      patchelf --force-rpath --set-rpath "$(patchelf --print-rpath $out/lib/libmillennium_bootstrap_x86.so)" $out/lib/libmillennium_bootstrap_x86.so
     '';
   });
 
