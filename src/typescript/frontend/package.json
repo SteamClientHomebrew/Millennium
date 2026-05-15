@@ -5,9 +5,9 @@
         "typecheck": "tsc --noEmit"
     },
     "devDependencies": {
-        "@steambrew/client": "../sdk/packages/client",
-        "@steambrew/webkit": "../sdk/packages/browser",
-        "@steambrew/ttc": "../ttc",
+        "@steambrew/client": "workspace:*",
+        "@steambrew/webkit": "workspace:*",
+        "@steambrew/ttc": "workspace:*",
         "@types/node": "^20.14.9",
         "@types/react": "19.1.1",
         "@types/react-dom": "19.1.1",

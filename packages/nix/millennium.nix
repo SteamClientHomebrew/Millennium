@@ -1,126 +1,176 @@
 {
+  cmake,
+  ninja,
+  pkg-config,
+  bun,
+  nodejs,
+  cacert,
+
   lib,
   stdenv,
-  callPackage,
-  fetchFromGitHub,
+  pkgsi686Linux,
+  xorg,
+  re2,
+  runCommand,
 
   inputs,
-  millennium-shims,
-  millennium-assets,
-  millennium-frontend,
-  millennium-32,
-  millennium-64,
+  millennium-src,
+  ...
 }:
-stdenv.mkDerivation {
-  pname = "millennium";
+let
   version = "2.36.0";
 
-  phases = [
-    "installPhase"
-    "fixupPhase"
+  tsPackages = [
+    "src/typescript/ttc"
+    "src/typescript/sdk/packages/client"
+    "src/typescript/sdk/packages/browser"
+    "src/typescript/sdk/packages/cdp-isolated-ctx"
+    "src/typescript/sdk/packages/loader"
+    "src/typescript/frontend"
   ];
 
-  buildInputs = [
-    pkgsi686Linux.gtk3
-    pkgsi686Linux.libpsl
-    pkgsi686Linux.openssl
-    pkgsi686Linux.libxtst
-    cacert
-    millennium-python
-  ];
+  tsDirs = lib.concatStringsSep " " (
+    [ "src/typescript/node_modules" ] ++ map (p: "${p}/node_modules") tsPackages
+  );
+  tsBuildCmds = lib.concatMapStrings (p: "( cd ${p} && bun run build )\n") tsPackages;
 
-  cmakeGenerator = "Ninja";
-  cmakeBuildType = "Release";
-  enableParallelBuilding = true;
+  commonBuild = {
+    inherit version;
+    src = millennium-src;
 
-  cmakeFlags = [
-    "-DGITHUB_ACTION_BUILD=ON"
-    "-DDISTRO_NIX=ON"
-    "-DNIX_FRONTEND=${millennium-frontend}/share/frontend"
-    "-DNIX_SHIMS=${millennium-shims}/share/millennium/shims"
-    "-DNIX_PYTHON=${millennium-python}"
-    "-DCURL_CA_BUNDLE=${cacert}/etc/ssl/certs/ca-bundle.crt"
-    "-DCURL_CA_PATH=${cacert}/etc/ssl/certs"
-    "--preset=linux-release"
-  ];
+    nativeBuildInputs = [ cmake ninja pkg-config ];
 
-  postPatch = ''
-    mkdir -p deps
+    cmakeGenerator      = "Ninja";
+    cmakeBuildType      = "Release";
+    enableParallelBuilding = true;
 
-    prepare_dep() {
-      local name="$1"
-      local src="$2"
-      echo "[Nix Millennium Build Setup] Preparing dependency: $name"
-      cp -r --no-preserve=mode "$src" "deps/$name"
-      chmod -R u+w "deps/$name"
-    }
+    cmakeFlags = [
+      "-DGITHUB_ACTION_BUILD=ON"
+      "-DMILLENNIUM_BUILD_TESTS=OFF"
+    ];
 
-    echo "[Nix Millennium Build Setup] Copying all flake inputs to local writable directories"
-    ${
-      let
-        deps = [
-          "zlib"
-          "luajit"
-          "websocketpp"
-          "json"
-          "minizip"
-          "curl"
-          "asio"
-          "abseil"
-          "re2"
-        ];
-      in
-      lib.concatStrings (map (dep: "prepare_dep ${dep} \"${inputs."${dep}-src"}\"\n") deps)
-    }
-
-    echo "[Nix Millennium Build Setup] Initializing Git Repos and adding Dummy Commits"
-    echo "[Nix Millennium Build Setup] Dummy commits are used to determine versions, but flake inputs strip git history, causing issues"
-
-    export HOME=$(pwd)
-
-    git config --global init.defaultBranch main
-    git config --global user.email "nix-build@localhost"
-    git config --global user.name "Nix Build"
-
-    git init
-    git add .
-    git commit -m "Dummy commit for build" > /dev/null 2>&1
-
-    git init deps/luajit
-    git -C deps/luajit add .
-    git -C deps/luajit commit -m "Dummy Commit for Nix Build" > /dev/null 2>&1
-
-    chmod -R u+rwx deps/
-  '';
-  installPhase = ''
-    mkdir -p $out/lib
-
-    echo "[Nix Millennium] Merging 32-bit libraries..."
-    cp -v ${millennium-32}/lib/*.so $out/lib/
-
-    echo "[Nix Millennium] Merging 64-bit libraries..."
-    cp -v ${millennium-64}/lib/*.so $out/lib/
-  '';
-
-  passthru = {
-    assets = millennium-assets;
-    shims = millennium-shims;
-    frontend = millennium-frontend;
+    buildPhase = ''
+      runHook preBuild
+      cmake --build .
+      runHook postBuild
+    '';
   };
 
+  bunDeps = stdenv.mkDerivation {
+    name = "millennium-typescript-bun-deps";
+
+    src = millennium-src;
+    nativeBuildInputs = [ bun cacert ];
+    SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
+
+    buildPhase = ''
+      export HOME=$TMPDIR
+      bun install --frozen-lockfile
+    '';
+
+    installPhase = ''
+      mkdir -p $out
+      cp -r node_modules $out/node_modules
+
+      for dir in ${tsDirs}; do
+        if [ -d "$dir" ]; then
+          mkdir -p "$out/$(dirname "$dir")"
+          cp -r "$dir" "$out/$dir"
+        fi
+      done
+    '';
+
+    outputHashMode = "recursive";
+    outputHashAlgo = "sha256";
+    outputHash = "sha256-Y8lNXzvtpZ133YZq+R2qyuHB806ezpQW16MZsqTSMtQ=";
+  };
+
+  build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
+    pname = "millennium-32";
+
+    nativeBuildInputs = commonBuild.nativeBuildInputs ++ [ bun nodejs ];
+
+    buildInputs = [
+      pkgsi686Linux.gtk3
+      pkgsi686Linux.openssl
+      pkgsi686Linux.libxtst
+      pkgsi686Linux.curl
+      pkgsi686Linux.minizip-ng
+      pkgsi686Linux.bzip2
+      pkgsi686Linux.xz
+      pkgsi686Linux.zstd
+      pkgsi686Linux.nlohmann_json
+      pkgsi686Linux.zlib
+    ];
+
+    cmakeFlags = commonBuild.cmakeFlags ++ [ "-DDISTRO_NIX=ON" ];
+
+    postPatch = ''
+      mkdir -p deps
+      cp -r --no-preserve=mode ${inputs.luajit-src} deps/luajit
+      chmod -R u+rwx deps/luajit
+
+      export HOME=$TMPDIR
+      cp -r ${bunDeps}/node_modules node_modules
+      chmod -R u+w node_modules
+
+      for dir in ${tsDirs}; do
+        if [ -d ${bunDeps}/$dir ]; then
+          mkdir -p "$(dirname "$dir")"
+          cp -r ${bunDeps}/$dir "$dir"
+          chmod -R u+w "$dir"
+        fi
+      done
+
+      patchShebangs node_modules src/typescript/node_modules
+      ${tsBuildCmds}
+    '';
+
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/lib/
+      install -Dm755 libmillennium_x86.so           $out/lib/libmillennium_x86.so
+      install -Dm755 libmillennium_luavm_x86        $out/lib/libmillennium_luavm_x86
+      install -Dm755 libmillennium_bootstrap_x86.so $out/lib/libmillennium_bootstrap_x86.so
+      runHook postInstall
+    '';
+  });
+
+  build64 = stdenv.mkDerivation (commonBuild // {
+    pname = "millennium-64";
+
+    buildInputs = [
+      xorg.libX11
+      xorg.libXi
+      xorg.libXtst
+      re2
+      re2.dev
+    ];
+
+    cmakeFlags = commonBuild.cmakeFlags ++ [ "-DMILLENNIUM_NIX_64BIT=ON" ];
+
+    installPhase = ''
+      runHook preInstall
+      mkdir -p $out/lib/
+      install -Dm755 libmillennium_hhx64.so           $out/lib/libmillennium_hhx64.so
+      install -Dm755 libmillennium_pvs64              $out/lib/libmillennium_pvs64
+      install -Dm755 libmillennium_bootstrap_hhx64.so $out/lib/libmillennium_bootstrap_hhx64.so
+      runHook postInstall
+    '';
+  });
+in
+runCommand "millennium-${version}" {
   meta = {
     homepage = "https://steambrew.app/";
     license = lib.licenses.mit;
     description = "Modding framework to create, manage and use themes/plugins for Steam";
-
     longDescription = "An open-source low-code modding framework to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead";
 
-    maintainers = [
-      lib.maintainers.trivaris
-    ];
-
-    platforms = [
-      "x86_64-linux"
-    ];
+    maintainers = [ lib.maintainers.trivaris ];
+    platforms   = [ "x86_64-linux" ];
   };
-}
+} ''
+  mkdir -p $out/lib
+  cp ${build32}/lib/* $out/lib/
+  cp ${build64}/lib/* $out/lib/
+''

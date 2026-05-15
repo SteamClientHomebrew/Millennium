@@ -154,7 +154,14 @@ export function patchMissedDocuments() {
 	}
 }
 
-export function onWindowCreatedCallback(windowContext: any): void {
+let resolveConfigReady: () => void;
+const configReady: Promise<void> = new Promise(res => { resolveConfigReady = res; });
+
+export function signalConfigReady() { resolveConfigReady(); }
+
+export async function onWindowCreatedCallback(windowContext: any): Promise<void> {
+	await configReady;
+
 	const windowTitle = windowContext.m_strTitle;
 
 	/** Patch the steam root menu to add the Millennium root menu */

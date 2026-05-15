@@ -42,16 +42,25 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 include(FetchContent)
-FetchContent_Declare(snare GIT_REPOSITORY https://github.com/shdwmtr/libsnare.h GIT_TAG main)
-FetchContent_MakeAvailable(snare)
+set(snare_SOURCE_DIR "${CMAKE_SOURCE_DIR}/thirdparty")
 
 option(MILLENNIUM_BUILD_MAIN         "Build main Millennium library and tools"            ON)
 option(MILLENNIUM_BUILD_TESTS        "Build testing suite for Millennium"                 ON)
 option(MILLENNIUM_RUN_TESTS_ON_BUILD "Run native tests automatically after building them" ON)
+option(MILLENNIUM_NIX_64BIT          "Build only the 64-bit Nix targets (hhx64 + bootstrap64 + pvs64)" OFF)
 
 if(MILLENNIUM_BUILD_MAIN)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/instrumentation/loopback)
+    if(NOT MILLENNIUM_NIX_64BIT)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
+    endif()
+
+    if(NOT DISTRO_NIX OR MILLENNIUM_NIX_64BIT)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/instrumentation/loopback)
+    endif()
+
+    if(MILLENNIUM_NIX_64BIT)
+        add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/bootstrap/linux)
+    endif()
 endif()
 
 if(MILLENNIUM_BUILD_TESTS)

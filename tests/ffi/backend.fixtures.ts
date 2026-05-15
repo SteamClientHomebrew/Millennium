@@ -326,6 +326,16 @@ export const fixtures: BackendFixtures<typeof backend> = {
             args: [false],
             response: { themes: [], plugins: [] },
         },
+        checkMillenniumUpdate: {
+            route: "Core_CheckMillenniumUpdate",
+            args: [MillenniumUpdateChannel.STABLE],
+            response: {
+                hasUpdate: false,
+                updateInProgress: false,
+                newVersion: null,
+                platformRelease: null,
+            },
+        },
         updateMillennium: {
             route: "Core_UpdateMillennium",
             args: ["https://example.com/m.zip", 2048, true],
