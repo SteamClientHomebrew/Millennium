@@ -65,12 +65,11 @@ let
 
     buildPhase = ''
       export HOME=$TMPDIR
-      bun install --frozen-lockfile
+      (cd src/typescript && bun install --frozen-lockfile)
     '';
 
     installPhase = ''
       mkdir -p $out
-      cp -r node_modules $out/node_modules
 
       for dir in ${tsDirs}; do
         if [ -d "$dir" ]; then
@@ -82,7 +81,7 @@ let
 
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = "sha256-Y8lNXzvtpZ133YZq+R2qyuHB806ezpQW16MZsqTSMtQ=";
+    outputHash = "sha256-XMYpHMrcmLNQYyLkc3DngjsZ4DdyPr9on0v5lcDrRiY=";
   };
 
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
@@ -111,8 +110,6 @@ let
       chmod -R u+rwx deps/luajit
 
       export HOME=$TMPDIR
-      cp -r ${bunDeps}/node_modules node_modules
-      chmod -R u+w node_modules
 
       for dir in ${tsDirs}; do
         if [ -d ${bunDeps}/$dir ]; then
@@ -122,7 +119,7 @@ let
         fi
       done
 
-      patchShebangs node_modules src/typescript/node_modules
+      patchShebangs src/typescript/node_modules
       ${tsBuildCmds}
     '';
 
