@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
 
-    millennium-src.url   = "github:SteamClientHomebrew/Millennium/next";
+    millennium-src.url   = "github:SteamClientHomebrew/Millennium/233f417dd99b3ece34d15b75e7cf5fd9d4487f15";
     millennium-src.flake = false;
 
     luajit-src.url   = "github:SteamClientHomebrew/LuaJIT/v2.1";

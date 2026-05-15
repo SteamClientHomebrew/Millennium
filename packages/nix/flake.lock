@@ -17,6 +17,23 @@
         "type": "github"
       }
     },
+    "millennium-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1778867291,
+        "narHash": "sha256-NAnUiDGX+dHSj6OgmJgTEnNHyL8WkOGxxt3T3NDoI/Q=",
+        "owner": "SteamClientHomebrew",
+        "repo": "Millennium",
+        "rev": "233f417dd99b3ece34d15b75e7cf5fd9d4487f15",
+        "type": "github"
+      },
+      "original": {
+        "owner": "SteamClientHomebrew",
+        "repo": "Millennium",
+        "rev": "233f417dd99b3ece34d15b75e7cf5fd9d4487f15",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1770115704,
@@ -36,6 +53,7 @@
     "root": {
       "inputs": {
         "luajit-src": "luajit-src",
+        "millennium-src": "millennium-src",
         "nixpkgs": "nixpkgs"
       }
     }
