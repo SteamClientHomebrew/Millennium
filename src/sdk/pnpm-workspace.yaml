@@ -1,2 +1,7 @@
 packages:
     - 'packages/*'
+
+onlyBuiltDependencies:
+    - '@parcel/watcher'
+    - electron
+    - nx
