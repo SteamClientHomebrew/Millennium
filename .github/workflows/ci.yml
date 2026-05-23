@@ -161,7 +161,11 @@ jobs:
             - name: Build Millennium Backend
               shell: pwsh
               run: |
-                  pushd "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools"
+                  $vsInstallPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
+                    -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+                    -property installationPath
+                  $vsToolsPath = Join-Path $vsInstallPath "Common7\Tools"
+                  pushd $vsToolsPath
 
                   # Initialize Visual Studio x64 host/toolchain and import the environment into PowerShell
                   cmd /c "VsDevCmd.bat -arch=x64 -host_arch=x64 & set" |
@@ -173,7 +177,7 @@ jobs:
                   }
 
                   popd
-                  Write-Host "`nVisual Studio 2022 x64 Command Prompt variables set." -ForegroundColor Yellow
+                  Write-Host "`nVisual Studio x64 Command Prompt variables set (from: $vsInstallPath)" -ForegroundColor Yellow
 
                   # optional sanity checks (helpful for CI debugging)
                   cmd /c "where cl.exe"
