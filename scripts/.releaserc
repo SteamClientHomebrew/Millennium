@@ -1,6 +1,7 @@
 {
   "branches": [
     "main",
+    "legacy",
     {
       "name": "next",
       "prerelease": "beta"
