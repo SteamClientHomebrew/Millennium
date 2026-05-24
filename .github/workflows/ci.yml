@@ -73,14 +73,20 @@ jobs:
       - name: Build Millennium Backend
         shell: pwsh
         run: |
-          $vsDevCmd = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
+          $vsInstallPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" `
+            -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationPath
+          $vsToolsPath = Join-Path $vsInstallPath "Common7\Tools"
+          pushd $vsToolsPath
 
-          cmd /c "`"$vsDevCmd`" -arch=x64 -host_arch=x64 & set" |
-          Where-Object { $_ -match '=' } |
+          cmd /c "VsDevCmd.bat -arch=x64 -host_arch=x64 & set" |
           ForEach-Object {
-              $k,$v = $_ -split '=',2
-              Set-Item "env:$k" $v
+            if ($_ -match "=") {
+              $v = $_.Split("=", 2)
+              Set-Item -Force -Path "ENV:\$($v[0])" -Value "$($v[1])"
+            }
           }
+          popd
 
           cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
           cmake --build build
