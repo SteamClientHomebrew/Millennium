@@ -29,13 +29,13 @@
  */
 
 import type { BackendFixtures } from "@steambrew/test";
-import { backend } from "../../src/typescript/frontend/utils/ffi";
+import { backend } from "../../frontend/utils/ffi";
 import {
     ColorType,
     MillenniumUpdateChannel,
     OnMillenniumUpdate,
     OSType,
-} from "../../src/typescript/frontend/types";
+} from "../../frontend/types";
 
 export const fixtures: BackendFixtures<typeof backend> = {
     getSteamPath: {

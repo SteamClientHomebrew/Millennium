@@ -7,6 +7,6 @@
     "sdk/packages/loader",
     "sdk/packages/test",
     "frontend",
-    "../../tests/ffi"
+    "tests/ffi"
   ]
 }

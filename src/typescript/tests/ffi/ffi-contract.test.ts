@@ -34,7 +34,7 @@ import {
     formatContractReport,
     type FFIStub,
 } from "@steambrew/test";
-import { backend } from "../../src/typescript/frontend/utils/ffi";
+import { backend } from "../../frontend/utils/ffi";
 import { fixtures } from "./backend.fixtures";
 
 const stub: FFIStub = (globalThis as any).__steambrew_test_stub__;
