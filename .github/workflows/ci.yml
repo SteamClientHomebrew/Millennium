@@ -65,6 +65,12 @@ jobs:
           echo "# current version of millennium" > ./scripts/version
           echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
 
+      - name: Enable Developer Mode
+        shell: pwsh
+        run: |
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" `
+            -Name "AllowDevelopmentWithoutDevLicense" -Value 1 -PropertyType DWORD -Force | Out-Null
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
