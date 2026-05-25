@@ -389,11 +389,11 @@ void millennium_updater::update_impl(const std::string& downloadUrl, const size_
         });
 
 #ifdef _WIN32
-        auto lockedFiles = Util::GetLockedFiles(tempFilePath.string(), platform::get_install_path().generic_string());
+        auto lockedFiles = Util::GetLockedFiles(tempFilePath.string(), platform::get_steam_path().generic_string());
         win32_move_old_millennium_version(lockedFiles);
 #endif
-        logger.log("Extracting to {}", platform::get_install_path().generic_string());
-        bool extracted = Util::ExtractZipArchive(tempFilePath.string(), platform::get_install_path().generic_string(), [this](int current, int total, const char*)
+        logger.log("Extracting to {}", platform::get_steam_path().generic_string());
+        bool extracted = Util::ExtractZipArchive(tempFilePath.string(), platform::get_steam_path().generic_string(), [this](int current, int total, const char*)
         {
             if (total == 0) return;
             const double progress = 50.0 + (static_cast<double>(current) / total) * 50.0;
