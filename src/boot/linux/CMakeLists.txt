@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
-project(unix-hooks LANGUAGES CXX)
+project(unix-hooks LANGUAGES C CXX)
 set(CMAKE_C_STANDARD 11)
 
 add_library(unix-hooks SHARED main.c)
+
+target_compile_options(unix-hooks PRIVATE -m32)
+target_link_options(unix-hooks PRIVATE -m32)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(unix-hooks PRIVATE MILLENNIUM_RUNTIME_PATH="$<TARGET_FILE:Millennium>")
