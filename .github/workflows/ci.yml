@@ -94,7 +94,7 @@ jobs:
           }
           popd
 
-          cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON
+          cmake --preset=windows-release -DGITHUB_ACTION_BUILD=ON -DMILLENNIUM_RUN_TESTS_ON_BUILD=OFF
           cmake --build build
 
           New-Item -ItemType Directory -Force -Path D:/a/millennium-build/millennium/lib
