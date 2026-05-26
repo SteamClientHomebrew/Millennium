@@ -50,78 +50,6 @@ declare global {
 	const g_PopupManager: any;
 }
 
-const tabSpotGeneral: SidebarNavigationPage = {
-	visible: true,
-	title: locale.settingsPanelGeneral,
-	icon: <MillenniumIcons.SteamBrewLogo />,
-	content: (
-		<DialogBody className={Classes.SettingsDialogBodyFade}>
-			<GeneralViewModal />
-		</DialogBody>
-	),
-	route: '/millennium/settings/general',
-};
-
-const tabSpotThemes: SidebarNavigationPage = {
-	visible: true,
-	title: locale.settingsPanelThemes,
-	icon: <FaPaintRoller style={{ height: '20px', width: '20px' }} />,
-	content: (
-		<DialogBody className={Classes.SettingsDialogBodyFade}>
-			<ThemeViewModal />
-		</DialogBody>
-	),
-	route: '/millennium/settings/themes',
-};
-
-const tabSpotQuickCSS: SidebarNavigationPage = {
-	visible: true,
-	title: locale.settingsPanelQuickCSS,
-	icon: <MillenniumIcons.RabbitRunning />,
-	content: (
-		<DialogBody className={Classes.SettingsDialogBodyFade}>
-			<QuickCssViewModal />
-		</DialogBody>
-	),
-	route: '/millennium/settings/quickcss',
-};
-
-const tabSpotPlugins: SidebarNavigationPage = {
-	visible: true,
-	title: locale.settingsPanelPlugins,
-	icon: <PiPlugsFill style={{ height: '20px', width: '20px' }} />,
-	content: (
-		<DialogBody className={Classes.SettingsDialogBodyFade}>
-			<PluginViewModal />
-		</DialogBody>
-	),
-	route: '/millennium/settings/plugins',
-};
-
-const tabSpotUpdates: SidebarNavigationPage = {
-	visible: true,
-	title: locale.settingsPanelUpdates,
-	icon: <IconsModule.Update />,
-	content: (
-		<DialogBody className={Classes.SettingsDialogBodyFade}>
-			<UpdatesViewModal />
-		</DialogBody>
-	),
-	route: '/millennium/settings/updates',
-};
-
-const tabSpotLogs: SidebarNavigationPage = {
-	visible: true,
-	title: locale.settingsPanelLogs,
-	icon: <IconsModule.TextCodeBlock />,
-	content: (
-		<DialogBody className={Classes.SettingsDialogBodyFade}>
-			<RenderLogViewer />
-		</DialogBody>
-	),
-	route: '/millennium/settings/logs',
-};
-
 const SETTINGS_TAB_KEY = 'millennium-settings-tab';
 const SETTINGS_RETURN_KEY = 'millennium-return-to-settings';
 const SETTINGS_ORIGINAL_START_PAGE_KEY = 'millennium-original-start-page';
@@ -151,6 +79,79 @@ export function handleSettingsReturnNavigation(): boolean {
 
 export function MillenniumSettings() {
 	const className = `${settingsClasses.SettingsModal} ${settingsClasses.DesktopPopup} MillenniumSettings ModalDialogPopup`;
+
+	const tabSpotGeneral: SidebarNavigationPage = {
+		visible: true,
+		title: locale.settingsPanelGeneral,
+		icon: <MillenniumIcons.SteamBrewLogo />,
+		content: (
+			<DialogBody className={Classes.SettingsDialogBodyFade}>
+				<GeneralViewModal />
+			</DialogBody>
+		),
+		route: '/millennium/settings/general',
+	};
+
+	const tabSpotThemes: SidebarNavigationPage = {
+		visible: true,
+		title: locale.settingsPanelThemes,
+		icon: <FaPaintRoller style={{ height: '20px', width: '20px' }} />,
+		content: (
+			<DialogBody className={Classes.SettingsDialogBodyFade}>
+				<ThemeViewModal />
+			</DialogBody>
+		),
+		route: '/millennium/settings/themes',
+	};
+
+	const tabSpotQuickCSS: SidebarNavigationPage = {
+		visible: true,
+		title: locale.settingsPanelQuickCSS,
+		icon: <MillenniumIcons.RabbitRunning />,
+		content: (
+			<DialogBody className={Classes.SettingsDialogBodyFade}>
+				<QuickCssViewModal />
+			</DialogBody>
+		),
+		route: '/millennium/settings/quickcss',
+	};
+
+	const tabSpotPlugins: SidebarNavigationPage = {
+		visible: true,
+		title: locale.settingsPanelPlugins,
+		icon: <PiPlugsFill style={{ height: '20px', width: '20px' }} />,
+		content: (
+			<DialogBody className={Classes.SettingsDialogBodyFade}>
+				<PluginViewModal />
+			</DialogBody>
+		),
+		route: '/millennium/settings/plugins',
+	};
+
+	const tabSpotUpdates: SidebarNavigationPage = {
+		visible: true,
+		title: locale.settingsPanelUpdates,
+		icon: <IconsModule.Update />,
+		content: (
+			<DialogBody className={Classes.SettingsDialogBodyFade}>
+				<UpdatesViewModal />
+			</DialogBody>
+		),
+		route: '/millennium/settings/updates',
+	};
+
+	const tabSpotLogs: SidebarNavigationPage = {
+		visible: true,
+		title: locale.settingsPanelLogs,
+		icon: <IconsModule.TextCodeBlock />,
+		content: (
+			<DialogBody className={Classes.SettingsDialogBodyFade}>
+				<RenderLogViewer />
+			</DialogBody>
+		),
+		route: '/millennium/settings/logs',
+	};
+
 	const settingsPages: (SidebarNavigationPage | 'separator')[] = [
 		tabSpotGeneral,
 		'separator',
