@@ -225,15 +225,15 @@
   "themeInstallerDescription": "IDからユーザーテーマをインストールします。これらのIDは、テーマを選択後に確認できます。",
   "quickCssEditorTitle": "Quick CSS エディター",
   "updateCompletePendingRestart": "再起動を待機中",
-  "millenniumUpdateMacOS": "Automatic Millennium updates are not yet available on macOS.\n\nRebuild the current branch, reinstall it with `./scripts/install_macos.sh --repair`, then restart Steam to finish updating to {0}.",
-  "millenniumUpdateLinux": "To update Millennium to {0}, run the following command in your terminal:\n\n`{1}`",
+  "millenniumUpdateMacOS": "macOSでは、Millenniumの自動更新はまだ利用できません。\n\n現在のブランチをリビルドし、`./scripts/install_macos.sh --repair`を使用して再インストール後にSteamを再起動して {0} へのアップデートを完了します。",
+  "millenniumUpdateLinux": "Millenniumを {0} にアップデートするにはターミナルで次のコマンドを実行してください:\n\n`{1}`",
   "legacyPluginModalTitle": "プラグイン互換性の警告",
   "legacyPluginModalBody": "ご注意ください！以下のプラグインは旧バージョンのMillennium向けに作成されたため、現在は動作しません。良いニュースですが、アップデートがすでに公開されている可能性があります！",
   "legacyPluginModalViewUpdates": "アップデートを表示",
   "legacyPluginModalDismiss": "無視",
   "legacyPluginDisabledTooltip": "このプラグインは旧バージョンのため動作しませんが、アップデートが利用可能です。引き続きプラグインを使用するには、アップデートをインストールしてください。",
   "supersededPluginModalTitle": "⚠️ アクションが必要です",
-  "supersededPluginModalBody": "The following plugins were built on a legacy Millennium runtime, which has been removed. To continue using these plugins, install [Extendium](https://steambrew.app/plugin?id=788ed8554492) as a replacement. Refer to [Extendium's README](https://steambrew.app/plugin?id=788ed8554492) for usage instructions.",
+  "supersededPluginModalBody": "以下のプラグインは、すでに廃止された旧バージョンのMillenniumランタイム上でビルドされていました。これらのプラグインを引き続き使用するには、代替として[Extendium](https://steambrew.app/plugin?id=788ed8554492)をインストールしてください。使用方法については、[ExtendiumのREADMEファイル](https://steambrew.app/plugin?id=788ed8554492)を参照してください。",
   "supersededPluginModalInstall": "Extendiumをインストール",
   "supersededPluginModalDismiss": "今はしない"
 }
