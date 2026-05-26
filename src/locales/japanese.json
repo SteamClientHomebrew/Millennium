@@ -201,7 +201,7 @@
   "crashModalPluginLogsDescription": "クラッシュが発生する前に何が起こったのか、より詳細な状況については、プラグインのログ出力を参照してください。",
   "crashModalRestartPlugin": "プラグインを再起動",
   "crashModalDisablePlugin": "プラグインを無効化",
-  "logPanelMillenniumLogs": "Millenniumログ",
+  "logPanelMillenniumLogs": "Millenniumのログ",
   "logPanelUserPlugins": "ユーザープラグイン",
   "logPanelErrorCount": "{0} 件のエラー",
   "logPanelWarningCount": "{0} 件の警告",
