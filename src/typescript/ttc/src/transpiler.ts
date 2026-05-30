@@ -172,7 +172,7 @@ function tsconfigPathsPlugin(tsconfigPath: string): InputPluginOption {
 	if (error) return { name: 'tsconfig-paths' };
 
 	const { options } = ts.parseJsonConfigFileContent(config, ts.sys, configDir);
-	const baseUrl = options.baseUrl ?? null;
+	const baseUrl = options.baseUrl ?? configDir;
 	const pathsBase = (options.pathsBasePath as string | undefined) ?? configDir;
 	const paths = options.paths ?? {};
 
