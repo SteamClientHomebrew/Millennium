@@ -42,7 +42,7 @@ import { ConfigProvider } from '../utils/config-provider';
 import Styles from '../utils/styles';
 import { QuickCssViewModal } from './quickcss';
 import { useQuickAccessStore } from '../quick-access/quickAccessStore';
-import { MillenniumIcons } from 'components/Icons';
+import { MillenniumIcons } from '../components/Icons';
 import { FaPaintRoller } from 'react-icons/fa';
 import { PiPlugsFill } from 'react-icons/pi';
 
