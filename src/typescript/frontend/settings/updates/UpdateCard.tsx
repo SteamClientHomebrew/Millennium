@@ -32,7 +32,7 @@ import { DialogButton, Field, IconsModule, joinClassNames } from '@steambrew/cli
 import { settingsClasses } from '../../utils/classes';
 import { Component, createRef, ReactNode } from 'react';
 import Markdown from 'markdown-to-jsx';
-import { locale } from '../../utils/localization-manager';
+import { locale, formatString } from '../../utils/localization-manager';
 import { IconButton, IconButtonWithText } from '../../components/IconButton';
 import { MillenniumIcons } from '../../components/Icons';
 
@@ -129,7 +129,7 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 			);
 		}
 
-		const buttonText = downloadSize && downloadSize > 0 ? `Download (${formatDownloadSize(downloadSize)})` : 'Download';
+		const buttonText = downloadSize && downloadSize > 0 ? formatString(locale.strDownloadWithSize, formatDownloadSize(downloadSize)) : locale.strDownload;
 		return <IconButtonWithText name="Download" text={buttonText} onClick={onUpdateClick} disabled={this.props.disabled} tooltip={`Update ${toolTipText || update.name}`} />;
 	}
 
