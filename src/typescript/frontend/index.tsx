@@ -110,10 +110,11 @@ async function initializeMillennium(settings: SettingsProps) {
 	const checkLegacyPlugins = async () => {
 		try {
 			const plugins: PluginComponent[] = await backend.plugins.getPlugins();
-			const legacy = plugins.filter((p) => p.enabled && p.data.name !== 'core' && p.data.useBackend !== false && p.data.backendType !== 'lua');
+			const legacy = plugins.filter((p) => p.data.name !== 'core' && p.data.useBackend !== false && p.data.backendType !== 'lua');
 
-			if (legacy.length) {
-				const disablePayload = legacy.map((p) => ({ plugin_name: p.data.name, enabled: false }));
+			const enabledLegacy = legacy.filter((p) => p.enabled);
+			if (enabledLegacy.length) {
+				const disablePayload = enabledLegacy.map((p) => ({ plugin_name: p.data.name, enabled: false }));
 				await backend.plugins.togglePlugin(JSON.stringify(disablePayload));
 			}
 
