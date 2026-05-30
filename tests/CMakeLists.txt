@@ -22,7 +22,7 @@ if(MILLENNIUM_BUILD_MAIN)
 endif()
 
 if(MILLENNIUM_BUILD_TESTS)
-    add_subdirectory(ffi)
+    add_subdirectory("${CMAKE_SOURCE_DIR}/src/typescript/tests/ffi" ffi)
 endif()
 
 if(MILLENNIUM_RUN_TESTS_ON_BUILD)

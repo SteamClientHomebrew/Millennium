@@ -371,6 +371,8 @@ void head::theme_config_store::setup_conditionals()
 
                 if (condition_value.contains("default") && condition_value["default"].is_string()) {
                     default_value = condition_value["default"].get<std::string>();
+                } else if (condition_value.contains("default") && condition_value["default"].is_number()) {
+                    default_value = std::to_string(condition_value["default"].get<int>());
                 } else if (slider.contains("min")) {
                     default_value = std::to_string(slider["min"].get<int>());
                 } else {
