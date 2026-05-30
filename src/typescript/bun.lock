@@ -5,13 +5,6 @@
     "": {
       "name": "millennium",
     },
-    "../../tests/ffi": {
-      "name": "@millennium/test-ffi",
-      "devDependencies": {
-        "@steambrew/test": "workspace:*",
-        "@types/bun": "^1.1.0",
-      },
-    },
     "frontend": {
       "name": "core",
       "version": "1.0.0",
@@ -127,6 +120,13 @@
       "devDependencies": {
         "@types/bun": "^1.1.0",
         "typescript": "^5.8.3",
+      },
+    },
+    "tests/ffi": {
+      "name": "@millennium/test-ffi",
+      "devDependencies": {
+        "@steambrew/test": "workspace:*",
+        "@types/bun": "^1.1.0",
       },
     },
     "ttc": {
@@ -483,7 +483,7 @@
 
     "@marijn/find-cluster-break": ["@marijn/find-cluster-break@1.0.2", "", {}, "sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g=="],
 
-    "@millennium/test-ffi": ["@millennium/test-ffi@workspace:../../tests/ffi"],
+    "@millennium/test-ffi": ["@millennium/test-ffi@workspace:tests/ffi"],
 
     "@parcel/watcher": ["@parcel/watcher@2.5.6", "", { "dependencies": { "detect-libc": "^2.0.3", "is-glob": "^4.0.3", "node-addon-api": "^7.0.0", "picomatch": "^4.0.3" }, "optionalDependencies": { "@parcel/watcher-android-arm64": "2.5.6", "@parcel/watcher-darwin-arm64": "2.5.6", "@parcel/watcher-darwin-x64": "2.5.6", "@parcel/watcher-freebsd-x64": "2.5.6", "@parcel/watcher-linux-arm-glibc": "2.5.6", "@parcel/watcher-linux-arm-musl": "2.5.6", "@parcel/watcher-linux-arm64-glibc": "2.5.6", "@parcel/watcher-linux-arm64-musl": "2.5.6", "@parcel/watcher-linux-x64-glibc": "2.5.6", "@parcel/watcher-linux-x64-musl": "2.5.6", "@parcel/watcher-win32-arm64": "2.5.6", "@parcel/watcher-win32-ia32": "2.5.6", "@parcel/watcher-win32-x64": "2.5.6" } }, "sha512-tmmZ3lQxAe/k/+rNnXQRawJ4NjxO2hqiOLTHvWchtGZULp4RyFeh6aU4XdOYBFe2KE1oShQTv4AblOs2iOrNnQ=="],
 

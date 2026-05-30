@@ -29,7 +29,7 @@
  */
 
 import { callOriginal, findClassModule, Patch, replacePatch, sleep, ChromeDevToolsProtocol } from '@steambrew/client';
-import { Logger } from 'utils/Logger';
+import { Logger } from '../utils/Logger';
 
 /**
  * BrowserManagerHook is a utility class that hooks into the MainWindowBrowserManager

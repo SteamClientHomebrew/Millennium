@@ -5,6 +5,7 @@
   bun,
   nodejs,
   cacert,
+  patchelf,
 
   lib,
   stdenv,
@@ -65,12 +66,11 @@ let
 
     buildPhase = ''
       export HOME=$TMPDIR
-      bun install --frozen-lockfile
+      (cd src/typescript && bun install --frozen-lockfile)
     '';
 
     installPhase = ''
       mkdir -p $out
-      cp -r node_modules $out/node_modules
 
       for dir in ${tsDirs}; do
         if [ -d "$dir" ]; then
@@ -82,13 +82,13 @@ let
 
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = "sha256-Y8lNXzvtpZ133YZq+R2qyuHB806ezpQW16MZsqTSMtQ=";
+    outputHash = "sha256-XMYpHMrcmLNQYyLkc3DngjsZ4DdyPr9on0v5lcDrRiY=";
   };
 
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
     pname = "millennium-32";
 
-    nativeBuildInputs = commonBuild.nativeBuildInputs ++ [ bun nodejs ];
+    nativeBuildInputs = commonBuild.nativeBuildInputs ++ [ bun nodejs patchelf ];
 
     buildInputs = [
       pkgsi686Linux.gtk3
@@ -111,8 +111,6 @@ let
       chmod -R u+rwx deps/luajit
 
       export HOME=$TMPDIR
-      cp -r ${bunDeps}/node_modules node_modules
-      chmod -R u+w node_modules
 
       for dir in ${tsDirs}; do
         if [ -d ${bunDeps}/$dir ]; then
@@ -122,7 +120,7 @@ let
         fi
       done
 
-      patchShebangs node_modules src/typescript/node_modules
+      patchShebangs src/typescript/node_modules
       ${tsBuildCmds}
     '';
 
@@ -133,6 +131,11 @@ let
       install -Dm755 libmillennium_luavm_x86        $out/lib/libmillennium_luavm_x86
       install -Dm755 libmillennium_bootstrap_x86.so $out/lib/libmillennium_bootstrap_x86.so
       runHook postInstall
+    '';
+
+    postFixup = ''
+      patchelf --force-rpath --set-rpath "$(patchelf --print-rpath $out/lib/libmillennium_x86.so)" $out/lib/libmillennium_x86.so
+      patchelf --force-rpath --set-rpath "$(patchelf --print-rpath $out/lib/libmillennium_bootstrap_x86.so)" $out/lib/libmillennium_bootstrap_x86.so
     '';
   });
 
