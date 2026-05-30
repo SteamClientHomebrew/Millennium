@@ -131,7 +131,7 @@
     },
     "ttc": {
       "name": "@steambrew/ttc",
-      "version": "3.3.6",
+      "version": "3.3.7",
       "bin": {
         "millennium-ttc": "dist/index.js",
       },
