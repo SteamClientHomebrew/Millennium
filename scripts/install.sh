@@ -41,6 +41,7 @@ BETA=0
 YES=0
 
 log() { printf "%b\n" "$1"; }
+warn() { printf "\033[1;33m%b\033[0m\n" "$1"; }
 is_root() { [ "$(id -u)" -eq 0 ]; }
 format_size() {
     echo "$1" | awk '{ split("B KB MB GB TB PB", v); s=1; while ($1 > 1024) { $1 /= 1024; s++ } printf "%.2f %s\n", $1, v[s] }'
@@ -63,6 +64,14 @@ check_dependencies() {
             exit 1
         }
     done
+}
+
+check_ssl_i386() {
+    command -v dpkg >/dev/null || return 0
+    dpkg -s libssl-dev:i386 &>/dev/null && return 0
+    warn "missing dependency: libssl-dev:i386"
+    warn "  install it with: sudo dpkg --add-architecture i386 && sudo apt-get update && sudo apt-get install libssl-dev:i386"
+    exit 1
 }
 
 fetch_release_info() {
@@ -204,6 +213,7 @@ main() {
 
     target=$(verify_platform)
     check_dependencies
+    check_ssl_i386
 
     install_dir="${DRY_RUN:+./dry-run}"
     install_dir="${install_dir:-${INSTALL_DIR}}"
