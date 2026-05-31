@@ -88,7 +88,7 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
 {
     try {
         logger.log("Requesting to install plugin -> " + downloadUrl);
-        m_updater->dispatch_progress("Starting Plugin Installer...", 0, false);
+        m_updater->dispatch_progress("##strStartingPluginInstaller", 0, false);
 
         const auto downloadPath = get_plugins_path();
         std::filesystem::create_directories(downloadPath);
@@ -98,15 +98,15 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
         auto progressCallback = [&](size_t downloaded, size_t)
         {
             double percent = totalSize ? (double(downloaded) / totalSize) * 100.0 : 0.0;
-            m_updater->dispatch_progress("Download plugin archive...", 50.0 * (percent / 100.0), false);
+            m_updater->dispatch_progress("##strDownloadingPluginArchive", 50.0 * (percent / 100.0), false);
         };
 
         Http::DownloadWithProgress({ downloadUrl, totalSize }, zipPath, progressCallback);
-        m_updater->dispatch_progress("Setting up installed plugin...", 50, false);
+        m_updater->dispatch_progress("##strSettingUpPlugin", 50, false);
         const bool extracted = Util::ExtractZipArchive(zipPath.string(), downloadPath.string(), [&](int current, int total, const char*)
         {
             double percent = (double(current) / total) * 100.0;
-            m_updater->dispatch_progress("Extracting plugin archive...", 50.0 + (45.0 * (percent / 100.0)), false);
+            m_updater->dispatch_progress("##strExtractingPluginArchive", 50.0 + (45.0 * (percent / 100.0)), false);
         });
 
         if (!extracted) {
@@ -114,9 +114,9 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
             throw std::runtime_error("Failed to extract plugin archive");
         }
 
-        m_updater->dispatch_progress("Cleaning up...", 95, false);
+        m_updater->dispatch_progress("##strCleaningUp", 95, false);
         std::filesystem::remove(zipPath);
-        m_updater->dispatch_progress("Done!", 100, true);
+        m_updater->dispatch_progress("strDone", 100, true);
 
         return {
             { "success", true }
@@ -185,13 +185,13 @@ bool head::plugin_installer::update_plugin(const std::string& id, const std::str
         std::filesystem::path tempZipPath = tempDir / (name + ".zip");
         logger.log("Temporary zip path: {}", tempZipPath.string());
 
-        m_updater->dispatch_progress("Downloading plugin update...", 5, false);
+        m_updater->dispatch_progress("##strDownloadingPluginUpdate", 5, false);
         logger.log("Downloading plugin archive...");
         Http::DownloadWithProgress({ url, 0 }, tempZipPath, [&](size_t downloaded, size_t total)
         {
             if (total > 0) {
                 double percent = (double(downloaded) / total) * 100.0;
-                m_updater->dispatch_progress("Downloading plugin update...", 5.0 + (45.0 * (percent / 100.0)), false);
+                m_updater->dispatch_progress("##strDownloadingPluginUpdate", 5.0 + (45.0 * (percent / 100.0)), false);
             }
         });
         logger.log("Download complete. Extracting plugin '{}' into '{}'", name, tempDir.string());
@@ -199,7 +199,7 @@ bool head::plugin_installer::update_plugin(const std::string& id, const std::str
         Util::ExtractZipArchive(tempZipPath.string(), tempDir.string(), [&](int current, int total, const char*)
         {
             double percent = (double(current) / total) * 100.0;
-            m_updater->dispatch_progress("Extracting plugin archive...", 50.0 + (40.0 * (percent / 100.0)), false);
+            m_updater->dispatch_progress("##strExtractingPluginArchive", 50.0 + (40.0 * (percent / 100.0)), false);
         });
 
         logger.log("Extraction complete.");
@@ -225,7 +225,7 @@ bool head::plugin_installer::update_plugin(const std::string& id, const std::str
         logger.log("Preparing target plugin directory: {}", targetFolder.string());
         std::filesystem::create_directories(targetFolder);
 
-        m_updater->dispatch_progress("Copying plugin files...", 92, false);
+        m_updater->dispatch_progress("##strCopyingPluginFiles", 92, false);
         logger.log("Copying plugin files to target directory...");
         for (auto& p : std::filesystem::recursive_directory_iterator(extractedFolder)) {
             auto rel = std::filesystem::relative(p.path(), extractedFolder);

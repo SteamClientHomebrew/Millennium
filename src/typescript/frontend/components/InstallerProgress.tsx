@@ -39,6 +39,14 @@ export interface RendererProps {
 	opId: number;
 }
 
+const resolveStatus = (status: string): string => {
+	if (status.startsWith('##')) {
+		const key = status.slice(2);
+		return (locale as Record<string, string>)[key] ?? key;
+	}
+	return status;
+};
+
 export const OnProgressUpdate = ({ status }: { status: string }) => {
 	const RenderBody = () => (
 		<>
@@ -48,7 +56,7 @@ export const OnProgressUpdate = ({ status }: { status: string }) => {
                 .MillenniumInstallerDialog_ProgressStatus { font-weight: 500; float: right; margin-bottom: 10px; }
                 .DialogBodyText { margin-bottom: unset; }`}
 			</style>
-			<div className="MillenniumInstallerDialog_ProgressStatus">{status}</div>
+			<div className="MillenniumInstallerDialog_ProgressStatus">{resolveStatus(status)}</div>
 			<ProgressBar
 				/* @ts-ignore */
 				className="MillenniumInstallerDialog_ProgressBar"
