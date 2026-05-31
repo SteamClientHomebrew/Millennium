@@ -33,6 +33,7 @@
 #include <mutex>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #ifdef __linux__
 #include <dlfcn.h>
@@ -154,7 +155,7 @@ static bool create_pv_shim()
         std::string shim_bin = binary_directory + "/pressure-vessel-unruntime";
 
         if (symlink(pvs64.c_str(), shim_bin.c_str()) < 0) {
-            LOG_ERROR("create_pv_shim: symlink {} → {} failed (errno {})", pvs64, shim_bin, errno);
+            LOG_ERROR("create_pv_shim: symlink {} \xE2\x86\x92 {} failed (errno {})", pvs64, shim_bin, errno);
             goto cleanup;
         }
     }
@@ -296,6 +297,9 @@ static snare_inline_t g_rdcw_hook = nullptr;
 static snare_inline_t g_create_process_internal_hook = nullptr;
 static std::once_flag g_tier0_hook_once;
 
+static std::vector<PVOID> g_deferred_tier0_modules;
+static std::mutex g_deferred_tier0_mutex;
+
 HMODULE steam_tier0_module;
 
 INT hooked_create_simple_process(const char* a1, char a2, const char* lp_multi_byte_str)
@@ -395,6 +399,31 @@ VOID handle_steam_load()
     millennium_lifecycle::get().steam_ui_loaded.notify();
 }
 
+/**
+ * Queue a tier0 module handle for deferred hook installation.
+ * This avoids calling handle_tier0_dll() (which does VirtualProtect/memory allocation)
+ * from inside the loader lock, which conflicts with Steam's CFileWriterThread on
+ * Steam build 1779918128.
+ */
+static void queue_tier0_module(PVOID module_base)
+{
+    std::lock_guard<std::mutex> lock(g_deferred_tier0_mutex);
+    g_deferred_tier0_modules.push_back(module_base);
+}
+
+/**
+ * Process any tier0 module handles that were queued during DLL loading.
+ * Must be called from a background thread (outside loader lock).
+ */
+static void process_deferred_tier0_hooks()
+{
+    std::lock_guard<std::mutex> lock(g_deferred_tier0_mutex);
+    for (auto mod : g_deferred_tier0_modules) {
+        handle_tier0_dll(mod);
+    }
+    g_deferred_tier0_modules.clear();
+}
+
 VOID CALLBACK dll_notification_callback(ULONG notification_reason, PLDR_DLL_NOTIFICATION_DATA notification_data, [[maybe_unused]] PVOID context)
 {
     std::wstring_view base_dll_name(notification_data->BaseDllName->Buffer, notification_data->BaseDllName->Length / sizeof(WCHAR));
@@ -412,9 +441,9 @@ VOID CALLBACK dll_notification_callback(ULONG notification_reason, PLDR_DLL_NOTI
         return;
     }
 
-    /** hook steam cross platform api (used to hook create proc) */
+    /** defer tier0 hook installation to avoid loader lock conflict */
     if (notification_reason == LDR_DLL_NOTIFICATION_REASON_LOADED && (base_dll_name == L"tier0_s64.dll" || base_dll_name == L"tier0_s.dll")) {
-        handle_tier0_dll(notification_data->DllBase);
+        queue_tier0_module(notification_data->DllBase);
         return;
     }
 }
@@ -486,19 +515,27 @@ void register_dll_notifications()
     LdrRegisterDllNotification(0, dll_notification_callback, nullptr, &g_notification_cookie);
 
     // Check modules that were already loaded before the notification was registered.
-    // handle_tier0_dll is idempotent via std::once_flag, so double-fire is safe.
-    handle_already_loaded(L"tier0_s.dll");
-    handle_already_loaded(L"tier0_s64.dll");
+    // For tier0 modules, defer hook installation to avoid loader lock conflicts.
+    // For steamui.dll, just notify if already loaded (lightweight).
+    HMODULE module = GetModuleHandleW(L"tier0_s.dll");
+    if (module) queue_tier0_module((PVOID)module);
+    module = GetModuleHandleW(L"tier0_s64.dll");
+    if (module) queue_tier0_module((PVOID)module);
+
+    // steamui is fine to handle inline - just a condition_variable notify
     handle_already_loaded(L"steamui.dll");
 }
 
 /**
  * Called from the background thread. By the time this runs, register_dll_notifications()
- * has already been called from DllMain, so the CreateSimpleProcess hook is guaranteed
- * to be in place.
+ * has already been called from DllMain, so the LdrRegisterDllNotification is in place
+ * and any already-loaded tier0 modules have been queued.
  */
 bool initialize_steam_hooks()
 {
+    // Process any tier0 hooks that were queued during DllMain (now outside loader lock)
+    process_deferred_tier0_hooks();
+
     const auto start_time = std::chrono::system_clock::now();
     logger.log("Waiting for Steam UI to load...");
 
