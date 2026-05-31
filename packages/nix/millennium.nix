@@ -46,7 +46,6 @@ let
     enableParallelBuilding = true;
 
     cmakeFlags = [
-      "-DGITHUB_ACTION_BUILD=ON"
       "-DMILLENNIUM_BUILD_TESTS=OFF"
     ];
 

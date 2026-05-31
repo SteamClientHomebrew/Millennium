@@ -27,7 +27,7 @@ add_compile_definitions(MILLENNIUM_64BIT)
 add_library(preload SHARED ${VERSION_SOURCE_FILES})
 target_link_libraries(preload wsock32)
 
-if (NOT GITHUB_ACTION_BUILD)
+if (MILLENNIUM_BUILD_TO_STEAM_PATH)
     include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
     find_steam_path(preload)
 endif()

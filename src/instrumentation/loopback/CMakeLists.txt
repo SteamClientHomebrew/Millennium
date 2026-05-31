@@ -93,7 +93,7 @@ if(UNIX AND NOT APPLE)
 elseif(WIN32)
     target_link_libraries(hhx64 version)
 
-    if(NOT GITHUB_ACTION_BUILD)
+    if(MILLENNIUM_BUILD_TO_STEAM_PATH)
         include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
         find_steam_path(hhx64)
     endif()
