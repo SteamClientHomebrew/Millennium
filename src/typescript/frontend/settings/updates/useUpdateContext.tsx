@@ -33,6 +33,7 @@ import { backend } from '../../utils/ffi';
 import { pluginSelf } from '@steambrew/client';
 import { UpdateItemType } from './UpdateCard';
 import { MillenniumUpdateChannel, PluginUpdateInfo } from '../../types';
+import { locale } from '../../utils/localization-manager';
 
 type UpdateContextProviderProps = {
 	children: React.ReactNode;
@@ -164,7 +165,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 			themeProgress: _opState.themeProgress,
 			pluginProgress: _opState.pluginProgress,
 			isUpdatingMillennium: false,
-			millenniumUpdateProgress: { statusText: 'Starting updater...', progress: 0, isComplete: false },
+			millenniumUpdateProgress: { statusText: locale.strStartingUpdater, progress: 0, isComplete: false },
 			themeUpdates: null,
 			pluginUpdates: null,
 			hasReceivedUpdates: false,
