@@ -83,7 +83,7 @@ if(WIN32)
     set_target_properties(${MILLENNIUM_RTB_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
-if(NOT GITHUB_ACTION_BUILD)
+if(MILLENNIUM_BUILD_TO_STEAM_PATH)
     include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
     find_steam_path(${MILLENNIUM_RTB_NAME})
 endif()

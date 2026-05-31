@@ -1,5 +1,5 @@
 function (find_steam_path project_name)
-    if(WIN32 AND NOT GITHUB_ACTION_BUILD)
+    if(WIN32 AND MILLENNIUM_BUILD_TO_STEAM_PATH)
         execute_process(COMMAND reg query "HKCU\\Software\\Valve\\Steam" /v "SteamPath" RESULT_VARIABLE result OUTPUT_VARIABLE steam_path ERROR_VARIABLE reg_error)
         if(result EQUAL 0)
             string(REGEX MATCH "[a-zA-Z]:/[^ ]+([ ]+[^ ]+)*" out_steam_path "${steam_path}")

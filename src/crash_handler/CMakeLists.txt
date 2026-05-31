@@ -40,9 +40,7 @@ set_target_properties(${MILLENNIUM_CRASH_HANDLER_NAME} PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-# In local dev builds, put the exe in the Steam directory alongside millennium.dll.
-# In CI (GITHUB_ACTION_BUILD), find_steam_path is a no-op and CMAKE_RUNTIME_OUTPUT_DIRECTORY handles it.
-if(NOT GITHUB_ACTION_BUILD)
+if(MILLENNIUM_BUILD_TO_STEAM_PATH)
     include(${MILLENNIUM_BASE}/scripts/cmake/find_steam_path.cmake)
     find_steam_path(${MILLENNIUM_CRASH_HANDLER_NAME})
 endif()

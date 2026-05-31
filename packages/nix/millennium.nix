@@ -19,7 +19,7 @@
   ...
 }:
 let
-  version = "2.36.0";
+  version = "3.1.0";
 
   tsPackages = [
     "src/typescript/ttc"
@@ -46,7 +46,6 @@ let
     enableParallelBuilding = true;
 
     cmakeFlags = [
-      "-DGITHUB_ACTION_BUILD=ON"
       "-DMILLENNIUM_BUILD_TESTS=OFF"
     ];
 

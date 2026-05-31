@@ -215,7 +215,7 @@ endif()
 
 find_steam_path(Millennium)
 
-if (WIN32 AND NOT GITHUB_ACTION_BUILD)
+if (WIN32 AND MILLENNIUM_BUILD_TO_STEAM_PATH)
     message(STATUS "[MLNM] Build Path: ${out_steam_path}")
 endif()
 message(STATUS "[MLNM] Version:    ${MILLENNIUM_VERSION}")
