@@ -1,0 +1,88 @@
+name: Update Nix Package
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version (no 'v' prefix)"
+        required: true
+        type: string
+      ref:
+        description: "Git ref to checkout"
+        required: true
+        type: string
+    outputs:
+      updated_sha:
+        value: ${{ jobs.update-nix.outputs.updated_sha }}
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 3.0.0, no 'v' prefix)"
+        required: true
+        type: string
+      ref:
+        description: "Git ref to checkout (commit SHA or branch; defaults to current branch)"
+        required: false
+        default: ""
+        type: string
+
+jobs:
+  update-nix:
+    runs-on: ubuntu-latest
+    outputs:
+      updated_sha: ${{ steps.push.outputs.updated_sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Update version and source in nix package
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="v${VERSION}"
+
+          COMMIT=$(gh api repos/${{ github.repository }}/git/refs/tags/$TAG --jq '.object.sha')
+          echo "Updating nix package: version=${VERSION} commit=${COMMIT}"
+
+          sed -i "s/version = \"[^\"]*\";/version = \"${VERSION}\";/" packages/nix/millennium.nix
+          sed -i 's/outputHash = "[^"]*";/outputHash = lib.fakeHash;/' packages/nix/millennium.nix
+          sed -i "s|SteamClientHomebrew/Millennium/[^\"]*\"|SteamClientHomebrew/Millennium/${COMMIT}\"|" packages/nix/flake.nix
+
+          cd packages/nix && nix flake update millennium-src
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute bun deps outputHash
+        run: |
+          cd packages/nix
+          BUILD_OUTPUT=$(nix build .#millennium 2>&1 || true)
+          REAL_HASH=$(echo "$BUILD_OUTPUT" | grep -oP 'got:\s+\Ksha256-[A-Za-z0-9+/=]+' | head -1)
+
+          if [ -z "$REAL_HASH" ]; then
+            echo "Failed to extract hash from nix output:"
+            echo "$BUILD_OUTPUT"
+            exit 1
+          fi
+
+          echo "Computed bun deps hash: $REAL_HASH"
+          sed -i "s|outputHash = lib.fakeHash;|outputHash = \"${REAL_HASH}\";|" millennium.nix
+
+      - name: Commit and push nix changes
+        id: push
+        run: |
+          git config --local user.email "github-actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add packages/nix/
+          git commit -m "chore(nix): update nix package for release v${{ inputs.version }}" || true
+          git push origin HEAD:${{ github.ref_name }}
+          echo "updated_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT

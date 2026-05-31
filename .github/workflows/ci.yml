@@ -415,6 +415,15 @@ jobs:
           git push origin ${{ github.ref_name }}
           echo "updated_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
+  update-nix:
+    needs: [prepare, update-pkgbuild]
+    if: ${{ inputs.release_artifacts == 'yes' }}
+    uses: ./.github/workflows/update-nix.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      ref: ${{ needs.update-pkgbuild.outputs.updated_sha }}
+
   publish-aur:
     needs: update-pkgbuild
     runs-on: ubuntu-latest
