@@ -39,7 +39,13 @@ export interface RendererProps {
 	opId: number;
 }
 
-const resolveStatus = (key: string): string => (locale as Record<string, string>)[key] ?? key;
+const resolveStatus = (status: string): string => {
+	if (status.startsWith('##')) {
+		const key = status.slice(2);
+		return (locale as Record<string, string>)[key] ?? key;
+	}
+	return status;
+};
 
 export const OnProgressUpdate = ({ status }: { status: string }) => {
 	const RenderBody = () => (
