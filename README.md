@@ -12,11 +12,11 @@ Open-source modding framework for creating and managing Steam Client themes and 
 
 Installing Millennium is only a few steps. See [here](https://docs.steambrew.app/users/installing) for a more detailed guide.
 
-## Building Source
+## Building Source[^2]
 
 Refer to [BUILDING.md](.github/docs/BUILDING.md) for build instructions for your platform. 
 
-## Features[^2]
+## Features[^3]
 
 * Custom CSS and Themes: Inbuilt css editor with live-edit capability
 * Plugin support allowing full control over Steam
@@ -26,7 +26,7 @@ Refer to [BUILDING.md](.github/docs/BUILDING.md) for build instructions for your
 * Maintained very actively, most widespread bugs are fixed in hours.
 * Yours. Use it how *you* want to.
 
-## Language Support[^3]
+## Language Support[^4]
 
 ### Adding a new locale
 
@@ -40,11 +40,12 @@ and append the target file to the **localizationFiles** [here](./src/typescript/
 
 SteamClientHomebrew only maintains the english locales. If any changes are made to the english locales that wreck another language, contributors are responsible for updating them.
 
-## Sponsors[^4]
+## Sponsors[^5]
 
 Free code signing on Windows provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)
 
 [^1]: Installing and using Millennium
-[^2]: View Millennium feature list
-[^3]: Millennium language support 
-[^4]: Code signing certificate sponsorship
+[^2]: Building and developing with Millennium's source code
+[^3]: View Millennium feature list
+[^4]: Millennium language support 
+[^5]: Code signing certificate sponsorship
