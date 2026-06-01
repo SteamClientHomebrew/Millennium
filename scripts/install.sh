@@ -66,8 +66,19 @@ check_dependencies() {
     done
 }
 
+is_debian_based() {
+    [ -f /etc/os-release ] || return 1
+    local id id_like
+    id=$(. /etc/os-release && echo "${ID:-}")
+    id_like=$(. /etc/os-release && echo "${ID_LIKE:-}")
+    case "${id} ${id_like}" in
+        *debian*|*ubuntu*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 check_ssl_i386() {
-    command -v dpkg >/dev/null || return 0
+    is_debian_based || return 0
     dpkg -s libssl-dev:i386 &>/dev/null && return 0
     warn "missing dependency: libssl-dev:i386"
     warn "  install it with: sudo dpkg --add-architecture i386 && sudo apt-get update && sudo apt-get install libssl-dev:i386"
