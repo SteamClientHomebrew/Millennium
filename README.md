@@ -12,6 +12,10 @@ Open-source modding framework for creating and managing Steam Client themes and 
 
 Installing Millennium is only a few steps. See [here](https://docs.steambrew.app/users/installing) for a more detailed guide.
 
+## Building Source
+
+Refer to [BUILDING.md](.github/docs/BUILDING.md) for build instructions for your platform. 
+
 ## Features[^2]
 
 * Custom CSS and Themes: Inbuilt css editor with live-edit capability
