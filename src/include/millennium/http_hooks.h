@@ -136,6 +136,10 @@ class network_hook_ctl
         }
         // clang-format on
 
+        bool empty() const
+        {
+            return m_css.empty() && m_preloads.empty() && m_scripts.empty();
+        }
         const std::string& css() const
         {
             return m_css;
@@ -176,6 +180,5 @@ class network_hook_ctl
     void mime_doc_request_handler(const nlohmann::basic_json<>& message);
     std::filesystem::path path_from_url(const std::string& requestUrl);
     processed_hooks apply_user_webkit_hooks(const std::string& requestUrl) const;
-    std::string patch_document(const std::string& requestUrl, const std::string& original) const;
     std::string inject_into_document_head(const std::string& original, const std::string& content) const;
 };

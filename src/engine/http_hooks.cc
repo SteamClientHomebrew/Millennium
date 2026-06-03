@@ -197,19 +197,24 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
     /** check if the request URL is a do-not-hook URL. */
     for (const auto& doNotHook : g_js_and_css_hook_blacklist) {
         if (std::regex_match(requestUrl, std::regex(doNotHook))) {
-            m_cdp->send_host("Fetch.continueRequest", params);
+            m_cdp->send_host("Fetch.continueResponse", params);
             return;
         }
     }
 
     const auto redirect_codes = { http_code::SEE_OTHER, http_code::MOVED_PERMANENTLY, http_code::FOUND, http_code::TEMPORARY_REDIRECT, http_code::PERMANENT_REDIRECT };
 
-    /** if the status code is a redirect, we just continue the request. */
     for (const auto& code : redirect_codes) {
         if (statusCode == code) {
-            m_cdp->send_host("Fetch.continueRequest", params);
+            m_cdp->send_host("Fetch.continueResponse", params);
             return;
         }
+    }
+
+    const processed_hooks hooks = apply_user_webkit_hooks(requestUrl);
+    if (hooks.empty()) {
+        m_cdp->send_host("Fetch.continueResponse", params);
+        return;
     }
 
     auto response = m_cdp->send_host("Fetch.getResponseBody", params).get();
@@ -219,11 +224,11 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
     const std::string decodedBody = isBase64 ? Base64Decode(responseBody) : responseBody;
 
     if (requestUrl.empty() || decodedBody.empty()) {
-        m_cdp->send_host("Fetch.continueRequest", params);
+        m_cdp->send_host("Fetch.continueResponse", params);
         return;
     }
 
-    const std::string patchedContent = patch_document(requestUrl, decodedBody);
+    const std::string patchedContent = inject_into_document_head(decodedBody, hooks.preloads() + hooks.css() + hooks.scripts());
     const std::string responseMessage = message.value("responseStatusText", std::string{ "OK" });
     nlohmann::json responseHeaders = message.value("responseHeaders", nlohmann::json::array());
 
@@ -242,9 +247,11 @@ network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(cons
 {
     processed_hooks result;
     auto hookList = get_hook_list();
+    bool anyHookMatched = false;
 
     for (const auto& hook : hookList) {
         if (!std::regex_match(requestUrl, hook.hook.url_pattern)) continue;
+        anyHookMatched = true;
 
         if (hook.hook.type == TagTypes::STYLESHEET)
             result.add_stylesheet(m_themes_url + utils::url::encode_url(hook.hook.path));
@@ -252,7 +259,7 @@ network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(cons
             result.add_script_module(m_themes_url + utils::url::encode_url(hook.hook.path));
     }
 
-    if (m_dynamic_css_provider) {
+    if (anyHookMatched && m_dynamic_css_provider) {
         const auto [rootColors, sliderCss] = m_dynamic_css_provider();
         if (!rootColors.empty()) result.add_inline_style("RootColors", rootColors);
         if (!sliderCss.empty()) result.add_inline_style("MillenniumSliderConditions", sliderCss);
@@ -273,12 +280,6 @@ std::string network_hook_ctl::inject_into_document_head(const std::string& origi
 void network_hook_ctl::set_dynamic_css_provider(std::function<std::pair<std::string, std::string>()> provider)
 {
     m_dynamic_css_provider = std::move(provider);
-}
-
-std::string network_hook_ctl::patch_document(const std::string& requestUrl, const std::string& original) const
-{
-    processed_hooks hooks = apply_user_webkit_hooks(requestUrl);
-    return inject_into_document_head(original, hooks.preloads() + hooks.css() + hooks.scripts());
 }
 
 void network_hook_ctl::init()
@@ -309,12 +310,17 @@ void network_hook_ctl::init()
         });
     }
 
-    /** hook documents */
-    patterns.push_back({
-        { "urlPattern",   "*"        },
-        { "resourceType", "Document" },
-        { "requestStage", "Response" }
-    });
+    static const char* k_steam_document_domains[] = {
+        "https://steamloopback.host/*", "https://*.steampowered.com/*", "https://*.steamcommunity.com/*",
+        "https://*.steamgames.com/*",   "https://*.steam-chat.com/*",   "https://*.steamstatic.com/*",
+    };
+    for (const auto& domain : k_steam_document_domains) {
+        patterns.push_back({
+            { "urlPattern",   domain     },
+            { "resourceType", "Document" },
+            { "requestStage", "Response" }
+        });
+    }
 
     const auto params = nlohmann::json::object({
         { "patterns", patterns }
