@@ -85,7 +85,7 @@ class webkit_world_mgr
 
     /** kick off discovery and attach to existing targets */
     void initialize();
-    void attach_to_target(const std::string& target_id);
+    void attach_to_target(const std::string& target_id, const std::string& url);
     void expose_millennium_to_ctx(const std::string& session_id, bool can_reload);
     void setup_event_listeners();
     bool is_valid_target_url(const std::string& url) const;
