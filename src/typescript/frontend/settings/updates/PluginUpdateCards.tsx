@@ -29,7 +29,7 @@
  */
 
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
-import { formatString, locale, SteamLocale } from '../../utils/localization-manager';
+import { formatString, locale, SteamLocale, tryResolveLocale } from '../../utils/localization-manager';
 import { backend } from '../../utils/ffi';
 import { Utils } from '../../utils';
 import { UpdateCard } from './UpdateCard';
@@ -64,7 +64,7 @@ const StartPluginUpdate = async (ctx: UpdateContextProviderState, updateObject: 
 	const opId: number = result?.opId ?? 0;
 
 	const updateSuccess = await waitForInstallerComplete(opId, ({ progress, status }) => {
-		setPluginProgress(key, { statusText: status, progress });
+		setPluginProgress(key, { statusText: tryResolveLocale(status), progress });
 	});
 
 	if (wasEnabled) {

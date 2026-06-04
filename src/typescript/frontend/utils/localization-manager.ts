@@ -91,7 +91,7 @@ const localizationFiles: { [key: string]: LocalizationData } = {
 	hungarian,
 	koreana,
 	latam,
-	dutch
+	dutch,
 	// Add other languages here
 };
 
@@ -101,8 +101,8 @@ const GetLocalization = async () => {
 		locale = new Proxy(localizationFiles[language], handler);
 	} else {
 		Logger.Warn(`Localization for language ${language} not found, defaulting to English.`);
-    }
-   	Logger.Log(`Loaded ${language} locales`);
+	}
+	Logger.Log(`Loaded ${language} locales`);
 };
 
 // setup locales on startup
@@ -121,4 +121,12 @@ const formatString: FormatString = (template, ...args) => {
 	});
 };
 
-export { formatString };
+const tryResolveLocale = (status: string): string => {
+	if (status.startsWith('##')) {
+		const key = status.slice(2);
+		return (locale as Record<string, string>)[key] ?? key;
+	}
+	return status;
+};
+
+export { formatString, tryResolveLocale };

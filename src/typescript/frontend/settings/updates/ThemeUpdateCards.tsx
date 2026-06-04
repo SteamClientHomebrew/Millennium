@@ -30,7 +30,7 @@
 
 import { pluginSelf } from '@steambrew/client';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
-import { formatString, locale, SteamLocale } from '../../utils/localization-manager';
+import { formatString, locale, SteamLocale, tryResolveLocale } from '../../utils/localization-manager';
 import { UpdateCard, UpdateItemType } from './UpdateCard';
 import { UpdateContextProviderState, useUpdateContext } from './useUpdateContext';
 import { backend } from '../../utils/ffi';
@@ -50,7 +50,7 @@ async function StartThemeUpdate(ctx: UpdateContextProviderState, updateObject: U
 	const opId: number = result?.opId ?? 0;
 
 	const updateSuccess = await waitForInstallerComplete(opId, ({ progress, status }) => {
-		setThemeProgress(key, { statusText: status, progress });
+		setThemeProgress(key, { statusText: tryResolveLocale(status), progress });
 	});
 
 	if (updateSuccess) {
