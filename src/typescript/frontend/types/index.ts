@@ -209,7 +209,7 @@ export interface PluginUpdateInfo {
 	pluginDirectory: string;
 	hasUpdate?: boolean;
 	pluginInfo?: {
-		commit?: string;
+		commitId?: string;
 		pluginJson?: { name: string; common_name?: string };
 		[key: string]: any;
 	};

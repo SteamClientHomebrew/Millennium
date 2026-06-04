@@ -44,7 +44,7 @@ const FindPluginByName = async (pluginName: string) => {
 
 const StartPluginUpdate = async (ctx: UpdateContextProviderState, updateObject: PluginUpdateInfo) => {
 	const pluginName = updateObject?.pluginInfo?.pluginJson?.name;
-	const commit = updateObject?.pluginInfo?.commit;
+	const commit = updateObject?.pluginInfo?.commitId;
 	if (!pluginName || !commit) return;
 
 	const key: string = updateObject?.id ?? updateObject?.pluginDirectory;
@@ -104,7 +104,7 @@ export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: PluginUpdat
 						name: update?.pluginInfo?.pluginJson?.common_name,
 						message: update?.commitMessage,
 						date: Utils.toTimeAgo(update?.pluginInfo?.commitDate),
-						commit: update?.pluginInfo?.commit,
+						commit: update?.pluginInfo?.commitId,
 					}}
 					index={index}
 					totalCount={pluginUpdates.length}
