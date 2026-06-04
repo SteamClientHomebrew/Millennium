@@ -541,12 +541,43 @@ export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpe
     .MillenniumDesktopSidebar_Overlay {
 		position: absolute;
 		inset: 0;
-		z-index: 998;
+		z-index: 997;
 		/* Match .ModalOverlayBackground */
 		background: rgba(0, 0, 0, 0.8);
 		opacity: ${openAnimStart ? 1 : 0};
 		display: ${isDesktopMenuOpen ? 'flex' : 'none'};
 		transition: opacity 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+    }
+
+    .MillenniumQuickAccessButton {
+        position: fixed;
+        right: -24px;
+        top: 25%;
+        transform: translateY(-50%) translateX(0px);
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(26, 159, 255, 0.45);
+        border: none;
+        outline: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding-left: 5px;
+        z-index: 998;
+        transition: background 0.2s ease,
+                    transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+        -webkit-app-region: no-drag;
+    }
+
+    .MillenniumQuickAccessButton:hover {
+        background: rgba(26, 159, 255, 1);
+    }
+
+    .MillenniumQuickAccessButton[data-sidebar-open="true"] {
+        transform: translateY(-50%) translateX(calc(-1 * var(--sidebar-width, 350px)));
+        background: rgba(26, 159, 255, 1);
     }
 
 	.MillenniumDesktopSidebar_Title {

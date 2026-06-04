@@ -40,9 +40,50 @@ import { RenderThemeView, ThemeSelectorView } from './ThemeView';
 import { Placeholder } from '../components/Placeholder';
 import { MillenniumIcons } from '../components/Icons';
 import { locale } from '../utils/localization-manager';
+import { settingsManager } from '../utils/settings-manager';
 
 export const MillenniumDesktopSidebar: React.FC = () => {
 	const { isOpen, focusedItem, focusedItemType, closeMenu, openMenu, toggleMenu, setFocusedItem } = useDesktopMenu();
+	const { showQAButton, qabLocation, setQABConfig } = useQuickAccessStore();
+
+	// Initialize store from saved config on mount
+	useEffect(() => {
+		const cfg = settingsManager.getConfig();
+		if (cfg) {
+			setQABConfig(
+				cfg.general?.showQuickAccessButton ?? true,
+				cfg.general?.quickAccessButtonLocation ?? 'library-nogame',
+			);
+		}
+	}, []);
+	const getPath = () => MainWindowBrowserManager?.m_lastLocation?.pathname ?? window.location.pathname;
+	const [currentPath, setCurrentPath] = useState(getPath());
+
+	useEffect(() => {
+		let debounce: ReturnType<typeof setTimeout>;
+		const onNavChange = () => {
+			clearTimeout(debounce);
+			debounce = setTimeout(() => setCurrentPath(getPath()), 150);
+		};
+
+		// Re-check after Steam finishes initializing navigation state
+		const initTimer = setTimeout(onNavChange, 1000);
+
+		const origPush = history.pushState.bind(history);
+		const origReplace = history.replaceState.bind(history);
+
+		history.pushState = (...args) => { origPush(...args); onNavChange(); };
+		history.replaceState = (...args) => { origReplace(...args); onNavChange(); };
+		window.addEventListener('popstate', onNavChange);
+
+		return () => {
+			clearTimeout(initTimer);
+			clearTimeout(debounce);
+			history.pushState = origPush;
+			history.replaceState = origReplace;
+			window.removeEventListener('popstate', onNavChange);
+		};
+	}, []);
 
 	const [openAnimStart, setOpenAnimStartState] = useState(false);
 	const [closed, setClosed] = useState(true);
@@ -207,6 +248,24 @@ export const MillenniumDesktopSidebar: React.FC = () => {
 		<ErrorBoundary>
 			<Styles />
 			<MillenniumDesktopSidebarStyles isDesktopMenuOpen={isOpen || !closed} openAnimStart={openAnimStart} isViewingPlugin={!!focusedItem} />
+			{showQAButton && (() => {
+			const onLibrary = currentPath.startsWith('/library');
+			const onGamePage = /^\/library\/app\/\d+/.test(currentPath);
+			return qabLocation === 'everywhere' || (onLibrary && !(qabLocation === 'library-nogame' && onGamePage));
+		})() && (
+				<button
+					className="MillenniumQuickAccessButton"
+					data-sidebar-open={openAnimStart}
+					onClick={toggleMenu}
+					title={locale.strShowMenu}
+				>
+					<svg width="16" height="12" viewBox="0 0 16 12" fill="white" xmlns="http://www.w3.org/2000/svg">
+						<rect width="16" height="2" rx="1"/>
+						<rect y="5" width="16" height="2" rx="1"/>
+						<rect y="10" width="16" height="2" rx="1"/>
+					</svg>
+				</button>
+			)}
 			<div className="MillenniumDesktopSidebar_Overlay" onClick={handleSidebarDimClick} />
 			<div className="MillenniumDesktopSidebar" ref={ref} data-focused-item-type={focusedItemType !== undefined ? DesktopSideBarFocusedItemType[focusedItemType] : undefined}>
 				<TitleView />

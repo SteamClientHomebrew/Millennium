@@ -40,6 +40,8 @@ export interface AppConfig {
 		millenniumUpdateChannel: MillenniumUpdateChannel;
 		shouldShowThemePluginUpdateNotifications: boolean;
 		accentColor: SystemAccentColor;
+		showQuickAccessButton?: boolean;
+		quickAccessButtonLocation?: 'library' | 'library-nogame' | 'everywhere';
 	};
 	misc: {
 		hasShownWelcomeModal: boolean;

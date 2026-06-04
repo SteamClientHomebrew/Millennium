@@ -38,10 +38,12 @@ import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamC
 import { AppConfig } from '../../utils/AppConfig';
 import { deferredSettingLabelClasses } from '../../utils/classes';
 import { refetchMillenniumUpdates } from '../updates/useUpdateContext';
+import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
 
 export const GeneralViewModal: React.FC = () => {
 	const configOrNull = useMillenniumState();
 	const updateConfig = useUpdateConfig();
+	const setQABConfig = useQuickAccessStore((s) => s.setQABConfig);
 
 	if (!configOrNull) return null;
 	const config = configOrNull;
@@ -148,6 +150,44 @@ export const GeneralViewModal: React.FC = () => {
 				</Field>
 
 				<RenderAccentColorPicker />
+			</DialogControlsSection>
+
+			<DialogControlsSection>
+				<SettingsDialogSubHeader>{locale.settingsQuickAccessButtonHeader}</SettingsDialogSubHeader>
+
+				<Field label={locale.settingsShowQuickAccessButton} description={locale.settingsShowQuickAccessButtonTooltip}>
+					<Toggle
+						value={config.general.showQuickAccessButton ?? true}
+						onChange={(e) => {
+							handleChange('showQuickAccessButton', e);
+							setQABConfig(e, config.general.quickAccessButtonLocation ?? 'library-nogame');
+						}}
+					/>
+				</Field>
+
+				<Field label={locale.settingsQuickAccessButtonLocation} disabled={!(config.general.showQuickAccessButton ?? true)}>
+					{(() => {
+						const locationOpts = [
+							{ label: locale.settingsQuickAccessButtonLocationLibrary, data: 'library' },
+							{ label: locale.settingsQuickAccessButtonLocationLibraryNoGame, data: 'library-nogame' },
+							{ label: locale.settingsQuickAccessButtonLocationEverywhere, data: 'everywhere' },
+						];
+						const current = config.general.quickAccessButtonLocation ?? 'library-nogame';
+						return (
+							<Dropdown
+								rgOptions={locationOpts}
+								selectedOption={locationOpts.findIndex((o) => o.data === current)}
+								onChange={(e) => {
+									handleChange('quickAccessButtonLocation', e.data);
+									setQABConfig(config.general.showQuickAccessButton ?? true, e.data);
+								}}
+								contextMenuPositionOptions={{ bMatchWidth: false }}
+								strDefaultLabel={locationOpts.find((o) => o.data === current)?.label ?? ''}
+								disabled={!(config.general.showQuickAccessButton ?? true)}
+							/>
+						);
+					})()}
+				</Field>
 			</DialogControlsSection>
 
 			<DialogControlsSection>

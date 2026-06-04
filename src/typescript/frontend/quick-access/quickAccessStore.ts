@@ -35,12 +35,15 @@ type QuickAccessState = {
 	closeQuickAccess: () => void;
 	subscribeToOpen: (callback: () => void) => () => void;
 	subscribeToClose: (callback: () => void) => () => void;
+	showQAButton: boolean;
+	qabLocation: 'library' | 'library-nogame' | 'everywhere';
+	setQABConfig: (show: boolean, location: 'library' | 'library-nogame' | 'everywhere') => void;
 };
 
 const openListeners = new Set<(userdata?: any) => void>();
 const closeListeners = new Set<() => void>();
 
-export const useQuickAccessStore = create<QuickAccessState>(() => ({
+export const useQuickAccessStore = create<QuickAccessState>((set) => ({
 	openQuickAccess: (userdata?: any) => {
 		openListeners.forEach((cb) => cb(userdata));
 	},
@@ -55,4 +58,7 @@ export const useQuickAccessStore = create<QuickAccessState>(() => ({
 		closeListeners.add(cb);
 		return () => closeListeners.delete(cb);
 	},
+	showQAButton: true,
+	qabLocation: 'library-nogame',
+	setQABConfig: (show, location) => set({ showQAButton: show, qabLocation: location }),
 }));
