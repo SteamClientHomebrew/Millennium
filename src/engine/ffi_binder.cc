@@ -438,19 +438,17 @@ void ffi_binder::binding_call_hdlr(const json& params)
         try {
             this->callback_into_js(params, request_id, result);
         } catch (const std::exception& e) {
-            LOG_ERROR("ffi_binder: failed to send binding response: {}", e.what());
-            throw;
+            throw; /** not fatal, the host likely died before we could respond */
         }
 
     } catch (const std::exception& e) {
-        LOG_ERROR("ffi_binder: exception while handling binding call: {}", e.what());
-
         const ordered_json callback_params = {
             { "success",    false    },
             { "returnJson", e.what() }
         };
-        /** hope we got the call id before the exception, if not we're fucked */
-        this->callback_into_js(params, payload.value("call_id", -1), callback_params);
+
+        if (payload.contains("call_id") && payload["call_id"].is_number()) /** hope we got the call id before the exception, if not we're fucked */
+            this->callback_into_js(params, payload["call_id"], callback_params);
     }
 }
 

@@ -93,10 +93,23 @@ bool webkit_world_mgr::is_valid_target_url(const std::string& url) const
         }
     }
 
-    return true;
+    const auto hookList = m_network_hook_ctl->get_hook_list();
+    return std::any_of(hookList.begin(), hookList.end(), [&url](const auto& hook)
+    {
+        return std::regex_match(url, hook.hook.url_pattern);
+    });
 }
 
-void webkit_world_mgr::attach_to_target(const std::string& target_id)
+static bool is_steam_owned_url(const std::string& url)
+{
+    if (url.find(std::string("https://") + k_steam_loopback + "/") == 0) return true;
+    for (const auto* tld : k_steam_tlds) {
+        if (url.find(std::string(".") + tld + "/") != std::string::npos) return true;
+    }
+    return false;
+}
+
+void webkit_world_mgr::attach_to_target(const std::string& target_id, const std::string& url)
 {
     if (m_shutdown.load(std::memory_order_acquire)) {
         return;
@@ -154,17 +167,25 @@ void webkit_world_mgr::attach_to_target(const std::string& target_id)
             return;
         }
 
-        /** check if this is a top-level target (can reload) by checking the target info */
+        /**
+         * reload only if top level and steam owned. extern pages: steamdb, csstats, etc, may break on reloads.
+         * it seems this reload interferes with some versions of CF turnstile.
+         */
         bool is_top_level = !frame_tree_result["frameTree"]["frame"].contains("parentId");
+        bool can_reload = is_top_level && is_steam_owned_url(url);
 
         {
             std::lock_guard<std::mutex> lock(m_targets_mutex);
             m_attached_targets[target_id] = target_context{ session_id, "", false };
         }
-        expose_millennium_to_ctx(session_id, is_top_level);
+        expose_millennium_to_ctx(session_id, can_reload);
 
     } catch (const std::exception& e) {
-        LOG_ERROR("webkit_world_mgr: exception while attaching to target {}: {}", target_id, e.what());
+        /** if the target died before we could attach, that's totally fine. */
+        if (std::string(e.what()) != "No target with given id found") {
+            LOG_ERROR("webkit_world_mgr: exception while attaching to target {}: {}", target_id, e.what());
+        }
+
         std::lock_guard<std::mutex> lock(m_targets_mutex);
         auto it = m_attached_targets.find(target_id);
         if (it != m_attached_targets.end()) {
@@ -305,7 +326,7 @@ void webkit_world_mgr::target_create_hdlr(const json& params)
             m_attachments_in_flight.erase(target_id);
             return;
         }
-        attach_to_target(target_id);
+        attach_to_target(target_id, url);
 
         std::lock_guard<std::mutex> lock(m_inflight_mutex);
         m_attachments_in_flight.erase(target_id);
@@ -337,18 +358,17 @@ void webkit_world_mgr::target_change_hdlr(const json& params)
 
     const auto& target_info = params["targetInfo"];
     std::string target_id = target_info["targetId"].get<std::string>();
-    bool should_attach = false;
+    std::string url;
 
     if (target_info.contains("canAccessOpener") && target_info["canAccessOpener"].get<bool>()) {
         return;
     }
 
     if (target_info.contains("url") && target_info["url"].is_string()) {
-        std::string url = target_info["url"].get<std::string>();
-        should_attach = is_valid_target_url(url);
+        url = target_info["url"].get<std::string>();
     }
 
-    if (!should_attach) return;
+    if (!is_valid_target_url(url)) return;
     {
         std::lock_guard<std::mutex> lock(m_targets_mutex);
         auto it = m_attached_targets.find(target_id);
@@ -373,7 +393,7 @@ void webkit_world_mgr::target_change_hdlr(const json& params)
             m_attachments_in_flight.erase(target_id);
             return;
         }
-        attach_to_target(target_id);
+        attach_to_target(target_id, url);
 
         std::lock_guard<std::mutex> lock(m_inflight_mutex);
         m_attachments_in_flight.erase(target_id);

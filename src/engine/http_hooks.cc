@@ -310,13 +310,14 @@ void network_hook_ctl::init()
         });
     }
 
-    static const char* k_steam_document_domains[] = {
-        "https://steamloopback.host/*", "https://*.steampowered.com/*", "https://*.steamcommunity.com/*",
-        "https://*.steamgames.com/*",   "https://*.steam-chat.com/*",   "https://*.steamstatic.com/*",
-    };
-    for (const auto& domain : k_steam_document_domains) {
+    patterns.push_back({
+        { "urlPattern", std::format("https://{}/*", k_steam_loopback) },
+        { "resourceType", "Document" },
+        { "requestStage", "Response" }
+    });
+    for (const auto* tld : k_steam_tlds) {
         patterns.push_back({
-            { "urlPattern",   domain     },
+            { "urlPattern", std::format("https://*.{}/*", tld) },
             { "resourceType", "Document" },
             { "requestStage", "Response" }
         });
