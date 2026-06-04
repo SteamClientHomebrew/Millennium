@@ -1,5 +1,23 @@
 import { Millennium } from './millennium-api';
 
+function waitForDocument(): Promise<Document> {
+	return new Promise((resolve) => {
+		const check = () => {
+			/** in the odd case the document doesn't even exist */
+			if (typeof document === 'undefined') {
+				setTimeout(check, 0);
+				return;
+			}
+			if (document.readyState !== 'loading') {
+				resolve(document);
+			} else {
+				document.addEventListener('DOMContentLoaded', () => resolve(document), { once: true });
+			}
+		};
+		check();
+	});
+}
+
 function addStyleSheetFromText(document: Document, innerStyle: string, id?: string) {
 	if (document.querySelectorAll(`style[id='${id}']`).length) return;
 
@@ -19,19 +37,20 @@ export async function appendAccentColor() {
 		})
 		.join('\n');
 
-	addStyleSheetFromText(document, `:root {\n${entries}\n}`, 'SystemAccentColorInject');
+	addStyleSheetFromText(await waitForDocument(), `:root {\n${entries}\n}`, 'SystemAccentColorInject');
 }
 
 export async function appendQuickCss() {
 	try {
 		const quickCss: string = JSON.parse(await Millennium.callServerMethod('core', 'Core_LoadQuickCss'));
-		addStyleSheetFromText(document, quickCss, 'MillenniumQuickCss');
+		addStyleSheetFromText(await waitForDocument(), quickCss, 'MillenniumQuickCss');
 	} catch {}
 }
 
 export async function addPluginDOMBreadCrumbs(enabledPlugins: string[] = []) {
-	document.documentElement.setAttribute('data-millennium-plugin', enabledPlugins.join(' '));
-	document.documentElement.classList.add('MillenniumWindow_SteamBrowser');
+	const doc = await waitForDocument();
+	doc.documentElement.setAttribute('data-millennium-plugin', enabledPlugins.join(' '));
+	doc.documentElement.classList.add('MillenniumWindow_SteamBrowser');
 }
 
 function formatCssVarKey(key: string) {
