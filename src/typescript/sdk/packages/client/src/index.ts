@@ -7,6 +7,7 @@ export * from './deck-hooks';
 export * from './globals';
 export * from './millennium-api';
 export * from './modules';
+export * from './millennium-sidebar';
 export * from './constSysfsExpr';
 export * from './utils';
 export * from './webpack';

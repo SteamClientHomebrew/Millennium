@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ErrorBoundary, getParentWindow } from '@steambrew/client';
+import { ErrorBoundary, getParentWindow, registerMillenniumSidebar } from '@steambrew/client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TitleView } from '../components/QuickAccessTitle';
 import { PluginSelectorView, RenderPluginView } from './PluginView';
@@ -36,6 +36,7 @@ import { BrowserManagerHook } from './browserHook';
 import Styles, { MillenniumDesktopSidebarStyles } from '../utils/styles';
 import { DesktopSideBarFocusedItemType, useDesktopMenu } from './DesktopMenuContext';
 import { useQuickAccessStore } from './quickAccessStore';
+import { backend } from '../utils/ffi';
 import { RenderThemeView, ThemeSelectorView } from './ThemeView';
 import { Placeholder } from '../components/Placeholder';
 import { MillenniumIcons } from '../components/Icons';
@@ -74,6 +75,34 @@ export const MillenniumDesktopSidebar: React.FC = () => {
 			unsubscribeOpen();
 			unsubscribeClose();
 		};
+	}, []);
+
+	// Register this sidebar's controls with the SDK's MillenniumSidebar API, so
+	// plugins can drive it (open their own panel, another plugin's, or open/close
+	// the list) through @steambrew/client without touching Millennium internals.
+	useEffect(() => {
+		registerMillenniumSidebar({
+			openPlugin: async (pluginName: string): Promise<boolean> => {
+				try {
+					const plugins = await backend.plugins.getPlugins();
+					const plugin = plugins?.find((p: any) => p?.data?.name === pluginName);
+					const store = useQuickAccessStore.getState();
+					if (!plugin) {
+						store.openQuickAccess();
+						return false;
+					}
+					store.openQuickAccess({
+						data: { libraryItem: plugin, libraryItemType: DesktopSideBarFocusedItemType.PLUGIN },
+					});
+					return true;
+				} catch (error) {
+					console.error('[Millennium] MillenniumSidebar.openPlugin failed:', error);
+					return false;
+				}
+			},
+			open: () => useQuickAccessStore.getState().openQuickAccess(),
+			close: () => useQuickAccessStore.getState().closeQuickAccess(),
+		});
 	}, []);
 
 	const closeQuickAccess = useCallback(async () => {
