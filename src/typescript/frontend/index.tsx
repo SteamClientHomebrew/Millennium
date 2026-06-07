@@ -82,8 +82,6 @@ async function initializeMillennium(settings: SettingsProps) {
 		themesPath: settings?.themesPath,
 		version: settings?.millenniumVersion,
 		enabledPlugins: settings?.enabledPlugins ?? [],
-		updates: settings?.updates ?? [],
-		hasCheckedForUpdates: settings?.hasCheckedForUpdates ?? false,
 		buildDate: settings?.buildDate,
 		gitCommitOid: settings?.gitCommitOid,
 		millenniumUpdates: settings?.millenniumUpdates ?? {},

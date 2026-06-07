@@ -287,9 +287,6 @@ export interface SettingsProps {
 	themesPath: string;
 	millenniumVersion: string;
 	enabledPlugins: string;
-	hasCheckedForUpdates: boolean;
-
-	updates: UpdatesResponse;
 	millenniumUpdates?: MillenniumUpdates;
 
 	buildDate: string;

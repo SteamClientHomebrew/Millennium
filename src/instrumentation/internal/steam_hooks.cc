@@ -42,9 +42,10 @@
 #include <sys/eventfd.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#elif _WIN32
+#include "millennium/filesystem.h"
 #endif
 
-#include "millennium/filesystem.h"
 #include "millennium/logger.h"
 #include "millennium/steam_hooks.h"
 #include "millennium/cmdline_api.h"
@@ -176,9 +177,9 @@ cleanup:
 
 const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 {
-    /** only wait on the first call. */
-    if (!millennium_lifecycle::get().backends_loaded.flag.load()) {
-        millennium_lifecycle::get().backends_loaded.wait();
+    if (!cmd) {
+        LOG_ERROR("Plat_HookedCreateSimpleProcess: received null cmd");
+        return cmd;
     }
 
     command cmd_line(cmd);
@@ -194,6 +195,10 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 
     if (cmd_line.executable() != target_executable) {
         return cmd;
+    }
+
+    if (!millennium_lifecycle::get().backends_loaded.flag.load()) {
+        millennium_lifecycle::get().backends_loaded.wait();
     }
 
     bool is_developer_mode = CommandLineArguments::has_argument("-dev");
@@ -540,7 +545,6 @@ void uninitialize_steam_hooks()
 
 #include <dlfcn.h>
 #include <string>
-#include <format>
 #define SNARE_STATIC
 #define SNARE_IMPLEMENTATION
 #include <libsnare.h>

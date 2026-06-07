@@ -107,6 +107,10 @@ void millennium_updater::check_for_updates(const std::string& channel_override)
 
     try {
         response = Http::Get(GITHUB_API_URL, false);
+        if (response.empty()) {
+            LOG_ERROR("Empty response from GitHub API, skipping update check.");
+            return;
+        }
         auto response_data = nlohmann::json::parse(response);
         if (!response_data.is_array() || response_data.empty()) {
             LOG_ERROR("Invalid response from GitHub API: expected non-empty array.");

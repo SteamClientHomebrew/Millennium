@@ -34,6 +34,8 @@ import { pluginSelf } from '@steambrew/client';
 import { UpdateItemType } from './UpdateCard';
 import { MillenniumUpdateChannel, PluginUpdateInfo } from '../../types';
 import { locale } from '../../utils/localization-manager';
+import { notifyLibraryUpdates } from '../../utils/update-notification-service';
+import { settingsManager } from '../../utils/settings-manager';
 
 type UpdateContextProviderProps = {
 	children: React.ReactNode;
@@ -82,6 +84,35 @@ export const RegisterUpdateListener = (callback: () => void) => {
 export const NotifyUpdateListeners = () => {
 	updateListeners.forEach((callback) => callback());
 };
+
+type BufferedUpdates = { themes: any; plugins: any } | null;
+let _bufferedUpdates: BufferedUpdates = null;
+
+function LibraryUpdatesEmitter(themesJson: string, pluginsJson: string) {
+	try {
+		const themes = JSON.parse(themesJson);
+		const plugins = JSON.parse(pluginsJson);
+
+		pluginSelf.updates = { themes, plugins };
+		pluginSelf.hasCheckedForUpdates = true;
+
+		if (_syncToComponent) {
+			_syncToComponent();
+			NotifyUpdateListeners();
+			if (settingsManager.config.general.shouldShowThemePluginUpdateNotifications) {
+				notifyLibraryUpdates();
+			}
+		} else {
+			/* component not mounted yet, buffer so componentDidMount can replay. */
+			_bufferedUpdates = { themes, plugins };
+		}
+	} catch (error) {
+		console.error('LibraryUpdatesEmitter: failed to parse update payload', error);
+	}
+}
+
+// @ts-ignore
+Millennium.exposeObj({ LibraryUpdatesEmitter });
 
 const UpdateContext = createContext<UpdateContextProviderState | null>(null);
 
@@ -141,9 +172,8 @@ export const refetchMillenniumUpdates = async (channel: MillenniumUpdateChannel)
 const _fetchAvailableUpdates = async (force: boolean = false): Promise<boolean> => {
 	try {
 		if (force || !pluginSelf.hasCheckedForUpdates) {
-			const updates = await backend.updater.getUpdates(true);
-			pluginSelf.updates.themes = updates.themes;
-			pluginSelf.updates.plugins = updates.plugins;
+			const updates = await backend.updater.getUpdates(force);
+			pluginSelf.updates = { themes: updates.themes, plugins: updates.plugins };
 			pluginSelf.hasCheckedForUpdates = true;
 			NotifyUpdateListeners();
 		}
@@ -196,8 +226,21 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 
 	componentDidMount() {
 		_syncToComponent = this.syncFromOpState;
-		// Re-sync in case operations completed while unmounted.
+
+		/* replay a push that arrived before this component mounted. */
+		if (_bufferedUpdates) {
+			pluginSelf.updates = _bufferedUpdates;
+			pluginSelf.hasCheckedForUpdates = true;
+			_bufferedUpdates = null;
+			if (settingsManager.config.general.shouldShowThemePluginUpdateNotifications) {
+				notifyLibraryUpdates();
+			}
+		}
+
+		/* re-sync in case operations completed while unmounted. */
 		this.syncFromOpState();
+
+		/* fallback, hits C++ cache instantly if push already fired, otherwise fetches. */
 		_fetchAvailableUpdates();
 	}
 

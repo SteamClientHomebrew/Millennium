@@ -35,12 +35,12 @@
 #include "head/theme_mgr.h"
 
 #include <atomic>
-#include <chrono>
+#include <future>
 #include <memory>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
-#include <thread>
 
 namespace head
 {
@@ -79,8 +79,13 @@ class library_updater : public std::enable_shared_from_this<library_updater>
     std::shared_ptr<theme_installer> theme_updater;
     std::shared_ptr<plugin_installer> plugin_updater;
 
+    bool push_updates_to_frontend();
+
+    mutable std::mutex m_updates_mutex;
     std::optional<json> cached_updates;
     bool m_has_checked_for_updates;
+    std::future<void> m_update_future;
+    std::future<void> m_push_future;
 
     std::atomic<int> m_next_op_id{ 1 };
 };

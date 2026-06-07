@@ -113,6 +113,7 @@ std::string command::quote_token(const std::string& s)
 
 void command::parse(const char* full_cmd)
 {
+    if (!full_cmd) return;
     std::string token;
     bool in_quotes = false;
     char quote_char = 0;
