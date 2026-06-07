@@ -176,6 +176,12 @@ export const Millennium = {
 		}),
 
 	exposeObj: <T extends object>(exports: any, obj: T) => Object.assign(exports, obj),
+
+	openQuickAccess: async (target?: { plugin: string } | { theme: string }): Promise<void> => {
+		await _frontendApiReady;
+		(window.MILLENNIUM_API as any).openQuickAccess(target);
+	},
+
 	...(isClient && {
 		AddWindowCreateHook: (cb: any) => {
 			Array.from(g_PopupManager.GetPopups()).forEach(cb);
@@ -251,6 +257,14 @@ export const pluginConfig = {
 	delete: (pluginName: string, key: string): Promise<void> => _configCall(pluginName, ConfigMethod.DELETE, { key }),
 	getAll: <T = Record<string, any>>(pluginName: string): Promise<T> => _configCall(pluginName, ConfigMethod.GET_ALL, {}),
 };
+
+const _frontendApiReady: Promise<void> = new Promise((resolve) => {
+	if (typeof window.MILLENNIUM_API?.openQuickAccess === 'function') {
+		resolve();
+	} else {
+		window.addEventListener('millennium-quick-access-ready', () => resolve(), { once: true });
+	}
+});
 
 const _React = () => (window as any).SP_REACT;
 

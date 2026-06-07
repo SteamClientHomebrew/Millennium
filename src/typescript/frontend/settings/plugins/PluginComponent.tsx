@@ -32,7 +32,6 @@ import { Field, IconsModule, Menu, MenuItem, showContextMenu, Toggle } from '@st
 import React, { Component } from 'react';
 import { IconButton } from '../../components/IconButton';
 import { DesktopTooltip, Separator } from '../../components/SteamComponents';
-import { DesktopSideBarFocusedItemType } from '../../quick-access/DesktopMenuContext';
 import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
 import { PluginComponent, PluginMetrics } from '../../types';
 import { Utils } from '../../utils';
@@ -79,7 +78,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 		const prev = prevProps.metrics;
 		const curr = this.props.metrics;
 		if (curr && prev !== curr) {
-		    this.setState((s) => ({ flashKey: s.flashKey + 1 }));
+			this.setState((s) => ({ flashKey: s.flashKey + 1 }));
 		}
 	}
 
@@ -117,12 +116,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 
 	openPluginSettings() {
 		const { plugin } = this.props;
-		useQuickAccessStore.getState().openQuickAccess({
-			data: {
-				libraryItem: plugin,
-				libraryItemType: DesktopSideBarFocusedItemType.PLUGIN,
-			},
-		});
+		useQuickAccessStore.getState().openQuickAccess({ plugin: plugin?.data?.name });
 	}
 
 	onExtensionSettings() {}
@@ -153,7 +147,9 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 					{plugin.data.common_name}
 				</MenuItem>
 				<Separator />
-				<MenuItem onSelected={() => backend.plugins.reload(plugin.data.name)} disabled={!plugin.enabled || this.props.isLegacy}>{locale.strReload}</MenuItem>
+				<MenuItem onSelected={() => backend.plugins.reload(plugin.data.name)} disabled={!plugin.enabled || this.props.isLegacy}>
+					{locale.strReload}
+				</MenuItem>
 				{config()}
 				<MenuItem onSelected={this.uninstallPlugin.bind(this)}>{locale.uninstall}</MenuItem>
 				<MenuItem onSelected={Utils.BrowseLocalFolder.bind(null, plugin.path)}>{locale.optionBrowseLocalFiles}</MenuItem>
@@ -174,7 +170,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 					</DesktopTooltip>
 				),
 			};
-        }
+		}
 
 		if (plugin.status === 'crashed' && plugin.crash) {
 			const crash = plugin.crash;

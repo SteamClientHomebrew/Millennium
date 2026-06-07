@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import React, { createContext, useContext, ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { PluginComponent, ThemeItem } from '../types';
 import { backend } from '../utils/ffi';
 import { pluginSelf } from '@steambrew/client';
@@ -40,6 +40,8 @@ export enum DesktopSideBarFocusedItemType {
 	THEME,
 }
 
+export type QuickAccessTarget = { plugin: string } | { theme: string };
+
 interface DesktopMenuContextType {
 	isOpen: boolean;
 	focusedItem?: PluginComponent | ThemeItem;
@@ -49,7 +51,7 @@ interface DesktopMenuContextType {
 	toggleMenu: () => void;
 	setFocusedItem: (item?: PluginComponent | ThemeItem, type?: DesktopSideBarFocusedItemType) => void;
 	closeMenu: () => void;
-	openMenu: (userdata?: any) => void;
+	openMenu: (target?: QuickAccessTarget) => void;
 }
 
 const DesktopMenuContext = createContext<DesktopMenuContextType | undefined>(undefined);
@@ -65,17 +67,28 @@ export const DesktopMenuProvider: React.FC<DesktopMenuProviderProps> = ({ childr
 	const [themes, setThemes] = useState<ThemeItem[] | undefined>(undefined);
 	const [focusedItemType, setFocusedItemType] = useState<DesktopSideBarFocusedItemType | undefined>(undefined);
 
+	const pluginsRef = useRef(plugins);
+	const themesRef = useRef(themes);
+
 	useEffect(() => {
-		backend.plugins.getPlugins().then(setPlugins);
-		backend.themes.getThemes().then(setThemes);
+		backend.plugins.getPlugins().then((p) => {
+			setPlugins(p);
+			pluginsRef.current = p;
+		});
+		backend.themes.getThemes().then((t) => {
+			setThemes(t);
+			themesRef.current = t;
+		});
 	}, []);
 
-	const openMenu = useCallback((userdata?: any) => {
-		if (userdata?.data?.hasOwnProperty('libraryItem') && userdata?.data?.hasOwnProperty('libraryItemType')) {
-			/** open the sidebar to a specfic library item */
-			setFocusedItem(userdata?.data?.libraryItem, userdata?.data?.libraryItemType);
+	const openMenu = useCallback((target?: QuickAccessTarget) => {
+		if (target && 'plugin' in target) {
+			const match = pluginsRef.current?.find((p) => p.data.name === target.plugin);
+			setFocusedItem(match, match ? DesktopSideBarFocusedItemType.PLUGIN : undefined);
+		} else if (target && 'theme' in target) {
+			const match = themesRef.current?.find((t) => t?.data?.name === target.theme);
+			setFocusedItem(match, match ? DesktopSideBarFocusedItemType.THEME : undefined);
 		} else {
-			/** if we aren't explicitly asked to open the sidebar on a specific item, clear the last focused item to force go home */
 			setFocusedLibraryItem(undefined);
 		}
 

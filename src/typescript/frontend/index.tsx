@@ -45,6 +45,7 @@ import { Logger } from './utils/Logger';
 import { useQuickCssState } from './utils/quick-css-state';
 import { NotificationService } from './utils/update-notification-service';
 import { OnRunSteamURL } from './utils/url-scheme-handler';
+import { useQuickAccessStore } from './quick-access/quickAccessStore';
 import { showPluginCrashModal } from './components/PluginCrashModal';
 import { showLegacyPluginModal } from './components/LegacyPluginModal';
 import { showSupersededPluginModal, SUPERSEDED_PLUGIN_NAMES } from './components/SupersededPluginModal';
@@ -188,6 +189,11 @@ export default async function PluginMain() {
 	} finally {
 		signalConfigReady();
 	}
+
+	Object.assign(window.MILLENNIUM_API, {
+		openQuickAccess: useQuickAccessStore.getState().openQuickAccess,
+	});
+	window.dispatchEvent(new CustomEvent('millennium-quick-access-ready'));
 
 	// If the user was in Millennium Settings when a JS context restart happened,
 	// navigate back to settings and restore the original start_page.
