@@ -42,6 +42,7 @@
 #include <sys/eventfd.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 #include "millennium/filesystem.h"
 
 #include "millennium/logger.h"
