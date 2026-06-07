@@ -42,9 +42,7 @@
 #include <sys/eventfd.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#elif _WIN32
 #include "millennium/filesystem.h"
-#endif
 
 #include "millennium/logger.h"
 #include "millennium/steam_hooks.h"
