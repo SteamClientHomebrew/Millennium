@@ -28,15 +28,15 @@
  * SOFTWARE.
  */
 
-import { DialogControlsSection, Dropdown, Field, IconsModule, pluginSelf, Toggle } from '@steambrew/client';
-import React from 'react';
+import { ConfirmModal, DialogButton, DialogControlsSection, Dropdown, Field, IconsModule, pluginSelf, showModal, ShowModalResult, TextField, Toggle } from '@steambrew/client';
+import React, { useEffect } from 'react';
 import { locale } from '../../utils/localization-manager';
 import { MillenniumUpdateChannel, OnMillenniumUpdate, OSType } from '../../types';
 import { RenderAccentColorPicker } from '../../components/AccentColorPicker';
 import { useMillenniumState, useUpdateConfig } from '../../utils/config-provider';
 import { DesktopTooltip, SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { AppConfig } from '../../utils/AppConfig';
-import { deferredSettingLabelClasses } from '../../utils/classes';
+import { deferredSettingLabelClasses, settingsClasses } from '../../utils/classes';
 import { refetchMillenniumUpdates } from '../updates/useUpdateContext';
 
 export const GeneralViewModal: React.FC = () => {
@@ -50,6 +50,43 @@ export const GeneralViewModal: React.FC = () => {
 		updateConfig((draft) => {
 			draft.general[key] = value;
 		});
+	};
+
+	const handleNetworkChange = <K extends keyof AppConfig['network']>(key: K, value: AppConfig['network'][K]) => {
+		updateConfig((draft) => {
+			draft.network[key] = value;
+		});
+	};
+
+	const showCredentialModal = (title: string, placeholder: string, isPassword: boolean, onConfirm: (value: string) => void) => {
+		let modal: ShowModalResult;
+
+		const Modal = () => {
+			const [value, setValue] = React.useState('');
+			const [modalInstance, setModalInstance] = React.useState<ShowModalResult | null>(null);
+			useEffect(() => { setModalInstance(modal); }, []);
+
+			return (
+				<ConfirmModal
+					strTitle={title}
+					strDescription={
+						<TextField
+							// @ts-ignore
+							placeholder={placeholder}
+							type={isPassword ? 'password' : 'text'}
+							value={value}
+							onChange={(e) => setValue(e.target.value)}
+						/>
+					}
+					bHideCloseIcon={true}
+					strOKButtonText={locale.optionSet}
+					onOK={() => { onConfirm(value); modalInstance?.Close(); }}
+					onCancel={() => modalInstance?.Close()}
+				/>
+			);
+		};
+
+		modal = showModal(<Modal />, pluginSelf.mainWindow, { bNeverPopOut: true, popupHeight: 250, popupWidth: 500 });
 	};
 
 	const OnMillenniumUpdateOpts = [
@@ -148,6 +185,58 @@ export const GeneralViewModal: React.FC = () => {
 				</Field>
 
 				<RenderAccentColorPicker />
+			</DialogControlsSection>
+
+			<DialogControlsSection>
+				<SettingsDialogSubHeader>{locale.headerNetwork}</SettingsDialogSubHeader>
+
+				<Field label={locale.optionProxyUrl} description={locale.optionProxyUrlDescription}>
+					<TextField
+						// @ts-ignore
+						placeholder={locale.optionProxyUrlPlaceholder}
+						value={config.network.proxy}
+						onChange={(e) => handleNetworkChange('proxy', e.target.value)}
+					/>
+				</Field>
+
+				<Field label={locale.optionProxyUsername} disabled={!config.network.proxy}>
+					{config.network.proxyUsername && (
+						<TextField disabled value={config.network.proxyUsername} />
+					)}
+					<DialogButton
+						className={settingsClasses.SettingsDialogButton}
+						disabled={!config.network.proxy}
+						onClick={() => showCredentialModal(locale.optionProxyUsername, 'Username', false, (v) => handleNetworkChange('proxyUsername', v))}
+					>
+						{config.network.proxyUsername ? locale.optionChangeUsername : locale.optionSetUsername}
+					</DialogButton>
+					{config.network.proxyUsername && (
+						<DialogButton
+							className={settingsClasses.SettingsDialogButton}
+							onClick={() => handleNetworkChange('proxyUsername', '')}
+						>
+							{locale.optionRemove}
+						</DialogButton>
+					)}
+				</Field>
+
+				<Field label={locale.optionProxyPassword} disabled={!config.network.proxy} bottomSeparator="none">
+					<DialogButton
+						className={settingsClasses.SettingsDialogButton}
+						disabled={!config.network.proxy}
+						onClick={() => showCredentialModal(locale.optionProxyPassword, 'Password', true, (v) => handleNetworkChange('proxyPassword', v))}
+					>
+						{config.network.proxyPassword === '__SET__' ? locale.optionChangePassword : locale.optionSetPassword}
+					</DialogButton>
+					{config.network.proxyPassword === '__SET__' && (
+						<DialogButton
+							className={settingsClasses.SettingsDialogButton}
+							onClick={() => handleNetworkChange('proxyPassword', '')}
+						>
+							{locale.optionRemove}
+						</DialogButton>
+					)}
+				</Field>
 			</DialogControlsSection>
 
 			<DialogControlsSection>

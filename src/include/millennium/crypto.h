@@ -28,25 +28,21 @@
  * SOFTWARE.
  */
 
-import { MillenniumUpdateChannel, OnMillenniumUpdate, SystemAccentColor } from '../types';
+#pragma once
+#include <string>
+#include <string_view>
 
-export interface AppConfig {
-	general: {
-		injectJavascript: boolean;
-		injectCSS: boolean;
-		checkForMillenniumUpdates: boolean;
-		checkForPluginAndThemeUpdates: boolean;
-		onMillenniumUpdate: OnMillenniumUpdate;
-		millenniumUpdateChannel: MillenniumUpdateChannel;
-		shouldShowThemePluginUpdateNotifications: boolean;
-		accentColor: SystemAccentColor;
-	};
-	misc: {
-		hasShownWelcomeModal: boolean;
-	};
-	network: {
-		proxy: string;
-		proxyUsername: string;
-		proxyPassword: string;
-	};
-}
+namespace Crypto
+{
+/** Sentinel returned to the frontend when a password is stored but should not be exposed. */
+constexpr std::string_view STORED_SENTINEL = "__SET__";
+
+/** Encrypt plaintext and return an opaque blob suitable for storing in config. Returns "" on failure. */
+std::string encrypt(const std::string& plaintext);
+
+/** Decrypt a blob produced by encrypt(). Returns "" on failure or if ciphertext is empty. */
+std::string decrypt(const std::string& ciphertext);
+
+/** Returns true if value looks like an encrypted blob (not plaintext, not sentinel, not empty). */
+bool is_encrypted(const std::string& value);
+} // namespace Crypto
