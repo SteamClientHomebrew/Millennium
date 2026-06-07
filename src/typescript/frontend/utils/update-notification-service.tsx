@@ -37,15 +37,30 @@ import { MillenniumIcons } from '../components/Icons';
  * Notify the user about available updates in their library.
  * This method checks for theme and plugin updates and displays a notification if any are found.
  */
+export async function notifyLibraryUpdates() {
+	const themeUpdates: any[] = pluginSelf.updates?.themes;
+	const pluginUpdates: any[] = pluginSelf.updates?.plugins;
+	const count = (themeUpdates?.length ?? 0) + (pluginUpdates?.filter?.((u: any) => u?.hasUpdate)?.length ?? 0);
+
+	if (count === 0) return;
+
+	toaster.toast({
+		title: `Updates Available`,
+		body: `We've found ${count} updates for items in your library!`,
+		logo: <IconsModule.Download />,
+		onClick: () => Navigation.Navigate('/millennium/settings/updates'),
+	});
+}
+
 export class NotificationService {
 	shouldNotifyLibraryUpdates: boolean;
 	onMillenniumUpdates: OnMillenniumUpdate;
 
 	get libraryUpdateCount() {
-		const themeUpdates: any[] = pluginSelf.updates.themes;
-		const pluginUpdates: any[] = pluginSelf.updates.plugins;
+		const themeUpdates: any[] = pluginSelf.updates?.themes;
+		const pluginUpdates: any[] = pluginSelf.updates?.plugins;
 
-		return themeUpdates?.length + pluginUpdates?.filter?.((update: any) => update?.hasUpdate)?.length || 0;
+		return (themeUpdates?.length ?? 0) + (pluginUpdates?.filter?.((update: any) => update?.hasUpdate)?.length ?? 0);
 	}
 
 	async notifyLibraryUpdates() {

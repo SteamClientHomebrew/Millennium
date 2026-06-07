@@ -54,14 +54,17 @@ void head::library_updater::init(std::shared_ptr<plugin_manager> plugin_manager)
         return;
     }
 
-    cached_updates = check_for_updates();
-    m_has_checked_for_updates = true;
+    m_update_future = std::async(std::launch::async, [self = shared_from_this()]() {
+        self->check_for_updates();
+        self->push_updates_to_frontend();
+    });
 }
 
 bool head::library_updater::download_plugin_update(const std::string& id, const std::string& name, const std::string& commit)
 {
     bool ok = plugin_updater->update_plugin(id, name, commit);
     if (ok) {
+        std::lock_guard<std::mutex> lock(m_updates_mutex);
         cached_updates.reset();
     }
     return ok;
@@ -71,6 +74,7 @@ bool head::library_updater::download_theme_update(std::shared_ptr<theme_config_s
 {
     bool ok = theme_updater->update_theme(themeConfig, native);
     if (ok) {
+        std::lock_guard<std::mutex> lock(m_updates_mutex);
         cached_updates.reset();
     }
     return ok;
@@ -78,20 +82,25 @@ bool head::library_updater::download_theme_update(std::shared_ptr<theme_config_s
 
 std::optional<json> head::library_updater::get_cached_updates() const
 {
+    std::lock_guard<std::mutex> lock(m_updates_mutex);
     return cached_updates;
 }
 
 bool head::library_updater::has_checked_for_updates() const
 {
+    std::lock_guard<std::mutex> lock(m_updates_mutex);
     return m_has_checked_for_updates;
 }
 
 std::optional<json> head::library_updater::check_for_updates(bool force)
 {
     try {
-        if (!force && cached_updates.has_value()) {
-            logger.log("Using cached updates.");
-            return cached_updates;
+        {
+            std::lock_guard<std::mutex> lock(m_updates_mutex);
+            if (!force && cached_updates.has_value()) {
+                logger.log("Using cached updates.");
+                return cached_updates;
+            }
         }
 
         auto plugins = plugin_updater->get_updater_request_body();
@@ -105,10 +114,11 @@ std::optional<json> head::library_updater::check_for_updates(bool force)
 
         if (request_body.empty()) {
             logger.log("No themes or plugins to update!");
-            return json{
-                { "themes",  {} },
-                { "plugins", {} }
-            };
+            json result = { { "themes", {} }, { "plugins", {} } };
+            std::lock_guard<std::mutex> lock(m_updates_mutex);
+            cached_updates = result;
+            m_has_checked_for_updates = true;
+            return result;
         }
 
         auto response_str = Http::Post(api_url.c_str(), request_body.dump());
@@ -123,8 +133,11 @@ std::optional<json> head::library_updater::check_for_updates(bool force)
             logger.log("[update-check] After filtering: {} theme(s) have updates", resp["themes"].size());
         }
 
-        cached_updates = resp;
-        m_has_checked_for_updates = true;
+        {
+            std::lock_guard<std::mutex> lock(m_updates_mutex);
+            cached_updates = resp;
+            m_has_checked_for_updates = true;
+        }
         return resp;
     } catch (const std::exception& e) {
         logger.log(std::string("An error occurred while checking for updates: ") + e.what());
@@ -137,10 +150,9 @@ std::optional<json> head::library_updater::check_for_updates(bool force)
 std::string head::library_updater::re_check_for_updates()
 {
     logger.log("Resyncing updates...");
-    cached_updates = check_for_updates(true);
-    m_has_checked_for_updates = true;
+    auto result = check_for_updates(true);
     logger.log("Resync complete.");
-    return cached_updates.has_value() ? cached_updates->dump() : "{}";
+    return result.has_value() ? result->dump() : "{}";
 }
 
 std::weak_ptr<head::theme_installer> head::library_updater::get_theme_updater()
@@ -156,6 +168,29 @@ std::weak_ptr<head::plugin_installer> head::library_updater::get_plugin_updater(
 void head::library_updater::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
 {
     m_ipc_main = std::move(ipc_main);
+    // If the background check already finished before IPC was ready, push now.
+    if (has_checked_for_updates()) {
+        push_updates_to_frontend();
+    }
+}
+
+void head::library_updater::push_updates_to_frontend()
+{
+    auto ipc = m_ipc_main;
+    if (!ipc) return;
+
+    std::optional<json> updates;
+    {
+        std::lock_guard<std::mutex> lock(m_updates_mutex);
+        updates = cached_updates;
+    }
+    if (!updates) return;
+
+    std::string themes_json = updates->value("themes", json::array()).dump();
+    std::string plugins_json = updates->value("plugins", json::array()).dump();
+
+    std::vector<ipc_main::javascript_parameter> params = { themes_json, plugins_json };
+    ipc->evaluate_javascript_expression(ipc->compile_javascript_expression("core", "LibraryUpdatesEmitter", params));
 }
 
 // Thread-local state for per-operation progress dispatching.

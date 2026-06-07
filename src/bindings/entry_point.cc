@@ -233,8 +233,6 @@ builtin_payload head::millennium_backend::Core_GetStartConfig(const builtin_payl
         { "themesPath", (platform::get_millennium_path() / "themes").string() },
         { "millenniumVersion", MILLENNIUM_VERSION },
         { "enabledPlugins", m_plugin_manager->get_enabled_plugin_names() },
-        { "updates", m_updater->check_for_updates() },
-        { "hasCheckedForUpdates", m_updater->has_checked_for_updates() },
         { "millenniumUpdates", m_millennium_updater->has_any_updates() },
         { "buildDate", GetBuildTimestamp() },
         { "gitCommitOid", GIT_COMMIT_HASH },

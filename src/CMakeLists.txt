@@ -79,6 +79,7 @@ set(SOURCE_FILES
     shared/crash_handler_core.cc
     system/config.cc
     system/environment.cc
+    system/http.cc
     system/filesystem.cc
     system/health_check.cc
     system/logger.cc

@@ -176,11 +176,12 @@ cleanup:
 
 const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 {
-    /** only wait on the first call. */
-    if (!millennium_lifecycle::get().backends_loaded.flag.load()) {
-        millennium_lifecycle::get().backends_loaded.wait();
+    if (!cmd) {
+        LOG_ERROR("Plat_HookedCreateSimpleProcess: received null cmd — Steam may have updated CreateSimpleProcess");
+        return cmd;
     }
 
+    logger.log("Plat_HookedCreateSimpleProcess: cmd = {}", cmd);
     command cmd_line(cmd);
 
     const char* target_executable =
@@ -193,7 +194,16 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 #endif
 
     if (cmd_line.executable() != target_executable) {
+        logger.log("dispatching: {}", cmd_line.exec);
         return cmd;
+    }
+
+    /** Only block on the steamwebhelper spawn — anything else must pass through immediately
+     *  or we risk deadlocking the backend initializer thread. */
+    if (!millennium_lifecycle::get().backends_loaded.flag.load()) {
+        logger.log("waiting for backends before patching steamwebhelper...");
+        millennium_lifecycle::get().backends_loaded.wait();
+        logger.log("backends ready, continuing steamwebhelper spawn");
     }
 
     bool is_developer_mode = CommandLineArguments::has_argument("-dev");
@@ -559,6 +569,7 @@ extern "C" int hooked_create_simple_process(const char* cmd, unsigned int a2, co
     auto orig = reinterpret_cast<int (*)(const char*, unsigned int, const char*)>(create_hook.get_trampoline());
     int result = orig(cmd, a2, a3);
 
+    logger.log("[hooked_create_simple_process]: {}", cmd);
     return result;
 }
 
