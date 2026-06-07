@@ -10,7 +10,7 @@ Open-source modding framework for creating and managing Steam Client themes and 
 
 ## Installation[^1]
 
-Installing Millennium is only a few steps. See [here](https://docs.steambrew.app/users/installing) for a more detailed guide.
+Installing Millennium is only a few steps. See [here](https://docs.steambrew.app/users/getting-started/installation) for a more detailed guide.
 
 ## Building Source[^2]
 
