@@ -30,6 +30,8 @@
 
 #include "millennium/http.h"
 #include "millennium/millennium_lifecycle.h"
+#include "millennium/config.h"
+#include "millennium/crypto.h"
 
 #include <atomic>
 #include <chrono>

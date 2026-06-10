@@ -183,29 +183,6 @@ std::weak_ptr<head::plugin_installer> head::library_updater::get_plugin_updater(
 void head::library_updater::set_ipc_main(std::shared_ptr<ipc_main> ipc_main)
 {
     m_ipc_main = std::move(ipc_main);
-    // If the background check already finished before IPC was ready, push now.
-    if (has_checked_for_updates()) {
-        push_updates_to_frontend();
-    }
-}
-
-void head::library_updater::push_updates_to_frontend()
-{
-    auto ipc = m_ipc_main;
-    if (!ipc) return;
-
-    std::optional<json> updates;
-    {
-        std::lock_guard<std::mutex> lock(m_updates_mutex);
-        updates = cached_updates;
-    }
-    if (!updates) return;
-
-    std::string themes_json = updates->value("themes", json::array()).dump();
-    std::string plugins_json = updates->value("plugins", json::array()).dump();
-
-    std::vector<ipc_main::javascript_parameter> params = { themes_json, plugins_json };
-    ipc->evaluate_javascript_expression(ipc->compile_javascript_expression("core", "LibraryUpdatesEmitter", params));
 }
 
 // Thread-local state for per-operation progress dispatching.

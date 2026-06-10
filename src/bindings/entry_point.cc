@@ -331,20 +331,21 @@ builtin_payload head::millennium_backend::Core_SetBackendConfig(const builtin_pa
 
         if (pw == std::string(Crypto::STORED_SENTINEL))
         {
-            // Frontend didn't change the password — restore the currently stored
-            // encrypted value so set_all doesn't clobber it.
+            /*
+             * frontend didn't change the password, restore the currently stored
+             * encrypted value so set_all doesn't clobber it.
+             */
             incoming["network"]["proxyPassword"] = CONFIG.get({ "network", "proxyPassword" }, "");
         }
         else if (!pw.empty())
         {
-            // New plaintext password — encrypt before persisting.
             const std::string encrypted = Crypto::encrypt(pw);
             if (!encrypted.empty())
                 incoming["network"]["proxyPassword"] = encrypted;
             else
                 incoming["network"].erase("proxyPassword");
         }
-        // pw == "" means the user explicitly cleared the field — store "" as-is.
+        /* pw == "" means user explicitly cleared the field */
     }
 
     return CONFIG.set_all(incoming, args.value("skipPropagation", false));

@@ -36,10 +36,6 @@
 
 static constexpr std::string_view BLOB_PREFIX = "MGCRYPT:v1:";
 
-// ---------------------------------------------------------------------------
-// Portable base64 (no external dependency)
-// ---------------------------------------------------------------------------
-
 static const char kB64Chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 static const int8_t kB64Inv[256] = {
@@ -100,10 +96,6 @@ static std::vector<uint8_t> base64_decode(const std::string& s)
     return out;
 }
 
-// ---------------------------------------------------------------------------
-// Platform-specific encryption
-// ---------------------------------------------------------------------------
-
 #ifdef _WIN32
 
 #include <windows.h>
@@ -135,7 +127,7 @@ std::string Crypto::decrypt(const std::string& ciphertext)
     return result;
 }
 
-#else // Linux / macOS — AES-256-GCM via OpenSSL
+#else
 
 #include <array>
 #include <cstring>
@@ -188,7 +180,6 @@ std::string Crypto::encrypt(const std::string& plaintext)
 
     auto key = derive_machine_key();
 
-    // Random 12-byte IV for AES-GCM
     std::array<uint8_t, 12> iv = {};
     if (RAND_bytes(iv.data(), 12) != 1) return "";
 
@@ -206,7 +197,6 @@ std::string Crypto::encrypt(const std::string& plaintext)
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag.data());
     EVP_CIPHER_CTX_free(ctx);
 
-    // Pack: IV(12) || TAG(16) || CIPHERTEXT
     std::vector<uint8_t> packed;
     packed.reserve(12 + 16 + ciphertext.size());
     packed.insert(packed.end(), iv.begin(), iv.end());
@@ -221,7 +211,6 @@ std::string Crypto::decrypt(const std::string& ciphertext)
     if (!is_encrypted(ciphertext)) return "";
 
     auto decoded = base64_decode(ciphertext.substr(BLOB_PREFIX.size()));
-    // Minimum: IV(12) + TAG(16) = 28 bytes, plus at least 1 byte of payload
     if (decoded.size() < 29) return "";
 
     auto key = derive_machine_key();

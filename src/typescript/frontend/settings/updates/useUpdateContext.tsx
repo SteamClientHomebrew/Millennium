@@ -85,35 +85,6 @@ export const NotifyUpdateListeners = () => {
 	updateListeners.forEach((callback) => callback());
 };
 
-type BufferedUpdates = { themes: any; plugins: any } | null;
-let _bufferedUpdates: BufferedUpdates = null;
-
-function LibraryUpdatesEmitter(themesJson: string, pluginsJson: string) {
-	try {
-		const themes = JSON.parse(themesJson);
-		const plugins = JSON.parse(pluginsJson);
-
-		pluginSelf.updates = { themes, plugins };
-		pluginSelf.hasCheckedForUpdates = true;
-
-		if (_syncToComponent) {
-			_syncToComponent();
-			NotifyUpdateListeners();
-			if (settingsManager.config.general.shouldShowThemePluginUpdateNotifications) {
-				notifyLibraryUpdates();
-			}
-		} else {
-			// Component not mounted yet — buffer so componentDidMount can replay.
-			_bufferedUpdates = { themes, plugins };
-		}
-	} catch (error) {
-		console.error('LibraryUpdatesEmitter: failed to parse update payload', error);
-	}
-}
-
-// @ts-ignore
-Millennium.exposeObj({ LibraryUpdatesEmitter });
-
 const UpdateContext = createContext<UpdateContextProviderState | null>(null);
 
 /**
