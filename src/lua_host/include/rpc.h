@@ -36,6 +36,10 @@
 #include <functional>
 #include <mutex>
 #include <string>
+#include <unordered_map>
+#include <vector>
+
+#include <lua.hpp>
 
 /**
  * Child-side RPC client — single-threaded, blocking.
@@ -60,11 +64,16 @@ class rpc_client
         return m_connected.load();
     }
 
+    /* async I/O support */
+    void enqueue_coroutine(lua_State* co);
+    void watch_fd(uintptr_t fd, lua_State* co);
+
   private:
     bool read_message(nlohmann::json& out);
     bool send_message(const nlohmann::json& msg);
     void respond(int id, const nlohmann::json& result);
     void respond_error(int id, const std::string& error);
+    void resume_coroutine(lua_State* co);
 
     plugin_ipc::socket_fd m_fd;
     std::atomic<bool> m_connected{ true };
@@ -72,4 +81,9 @@ class rpc_client
     std::mutex m_write_mutex;
 
     std::vector<nlohmann::json> m_deferred_notifications;
+
+    /* coroutines waiting for their first resume */
+    std::vector<lua_State*> m_pending_coroutines;
+    /* fd -> coroutine blocked on that fd becoming readable */
+    std::unordered_map<uintptr_t, lua_State*> m_fd_watches;
 };

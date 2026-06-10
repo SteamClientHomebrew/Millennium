@@ -49,6 +49,7 @@
 #ifndef _WIN32
 #include <sys/socket.h>
 #include <unistd.h>
+#include <poll.h>
 #endif
 
 /**
@@ -186,5 +187,19 @@ inline void close_fd(socket_fd fd)
     ::close(fd);
 #endif
 }
+
+#ifdef _WIN32
+using poll_fd_t = WSAPOLLFD;
+inline int sys_poll(WSAPOLLFD* fds, ULONG n, int ms)
+{
+    return ::WSAPoll(fds, n, ms);
+}
+#else
+using poll_fd_t = struct pollfd;
+inline int sys_poll(struct pollfd* fds, nfds_t n, int ms)
+{
+    return ::poll(fds, n, ms);
+}
+#endif
 
 } // namespace plugin_ipc
