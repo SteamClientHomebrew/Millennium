@@ -182,7 +182,8 @@ export default async function PluginMain() {
 	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);
 
 	try {
-		await initializeMillennium(await backend.config.getInitService());
+		const initService = await backend.config.getInitService();
+		await initializeMillennium(initService);
 	} catch (error) {
 		Logger.Error('Millennium frontend initialization failed, continuing with route registration.', error);
 	} finally {

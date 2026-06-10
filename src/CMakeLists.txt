@@ -78,6 +78,7 @@ set(SOURCE_FILES
     shared/crash_handler.cc
     shared/crash_handler_core.cc
     system/config.cc
+    system/crypto.cc
     system/environment.cc
     system/http.cc
     system/filesystem.cc
@@ -236,6 +237,11 @@ elseif(UNIX AND NOT APPLE)
 endif()
 
 target_link_libraries(Millennium libcurl minizip nlohmann_json)
+
+if(NOT WIN32)
+    find_package(OpenSSL REQUIRED)
+    target_link_libraries(Millennium OpenSSL::Crypto)
+endif()
 
 if(WIN32)
     target_link_libraries(Millennium user32 ws2_32 crypt32 winhttp rpcrt4 secur32 bcrypt iphlpapi dbghelp schannel normaliz winmm)

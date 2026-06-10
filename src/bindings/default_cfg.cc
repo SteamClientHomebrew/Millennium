@@ -60,6 +60,11 @@ json head::get_default_config()
         { "misc", {
             { "hasShownWelcomeModal", hasShownWelcomeModal }
         } },
+        { "network", {
+            { "proxy", "" },
+            { "proxyUsername", "" },
+            { "proxyPassword", "" }
+        } },
         { "themes", {
             { "activeTheme", "default" },
             { "allowedStyles", true },

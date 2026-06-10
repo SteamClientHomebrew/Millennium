@@ -28,25 +28,14 @@
  * SOFTWARE.
  */
 
-import { MillenniumUpdateChannel, OnMillenniumUpdate, SystemAccentColor } from '../types';
+#pragma once
+#include <string>
+#include <string_view>
 
-export interface AppConfig {
-	general: {
-		injectJavascript: boolean;
-		injectCSS: boolean;
-		checkForMillenniumUpdates: boolean;
-		checkForPluginAndThemeUpdates: boolean;
-		onMillenniumUpdate: OnMillenniumUpdate;
-		millenniumUpdateChannel: MillenniumUpdateChannel;
-		shouldShowThemePluginUpdateNotifications: boolean;
-		accentColor: SystemAccentColor;
-	};
-	misc: {
-		hasShownWelcomeModal: boolean;
-	};
-	network: {
-		proxy: string;
-		proxyUsername: string;
-		proxyPassword: string;
-	};
+namespace Crypto
+{
+constexpr std::string_view STORED_SENTINEL = "__SET__";
+std::string encrypt(const std::string& plaintext);
+std::string decrypt(const std::string& ciphertext);
+bool is_encrypted(const std::string& value);
 }

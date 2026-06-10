@@ -30,6 +30,8 @@
 
 #include "millennium/http.h"
 #include "millennium/millennium_lifecycle.h"
+#include "millennium/config.h"
+#include "millennium/crypto.h"
 
 #include <atomic>
 #include <chrono>
@@ -54,6 +56,30 @@ static size_t WriteFileCallback(void* ptr, size_t size, size_t nmemb, void* user
     return written;
 }
 
+static std::string get_proxy_url()
+{
+    return CONFIG.get({ "network", "proxy" }, "").get<std::string>();
+}
+
+static void apply_proxy(CURL* curl)
+{
+    const std::string proxy = get_proxy_url();
+    if (proxy.empty()) {
+        return;
+    }
+
+    curl_easy_setopt(curl, CURLOPT_PROXY, proxy.c_str());
+
+    const std::string username = CONFIG.get({ "network", "proxyUsername" }, "").get<std::string>();
+    const std::string stored_pw = CONFIG.get({ "network", "proxyPassword" }, "").get<std::string>();
+
+    if (!username.empty()) {
+        const std::string password = Crypto::is_encrypted(stored_pw) ? Crypto::decrypt(stored_pw) : stored_pw;
+        const std::string userpwd  = username + ":" + password;
+        curl_easy_setopt(curl, CURLOPT_PROXYUSERPWD, userpwd.c_str());
+    }
+}
+
 namespace Http
 {
 
@@ -72,6 +98,7 @@ std::string Get(const char* url, bool retry, const long timeout)
         curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
+        apply_proxy(curl);
 
         while (true) {
             res = curl_easy_perform(curl);
@@ -110,6 +137,7 @@ std::string Post(const char* url, const std::string& postData, bool retry)
         curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+        apply_proxy(curl);
 
         while (true) {
             res = curl_easy_perform(curl);
@@ -147,6 +175,7 @@ void DownloadWithProgress(const std::tuple<std::string, size_t>& download_info, 
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        apply_proxy(curl);
 
         res = curl_easy_perform(curl);
         if (res == CURLE_OK) {
@@ -163,6 +192,7 @@ void DownloadWithProgress(const std::tuple<std::string, size_t>& download_info, 
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &downloadData);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, MILLENNIUM_USERAGENT);
+    apply_proxy(curl);
 
     res = curl_easy_perform(curl);
 

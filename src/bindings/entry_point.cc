@@ -46,6 +46,7 @@
 #include "millennium/plugin_loader.h"
 #include "millennium/logger.h"
 #include "millennium/config.h"
+#include "millennium/crypto.h"
 #include "millennium/file_watcher.h"
 #include "millennium/filesystem.h"
 #include "millennium/plugin_config.h"
@@ -308,11 +309,44 @@ builtin_payload head::millennium_backend::Core_GetEnvironmentVar(const builtin_p
 }
 builtin_payload head::millennium_backend::Core_GetBackendConfig(const builtin_payload&)
 {
-    return CONFIG.get_all();
+    auto cfg = CONFIG.get_all();
+
+    if (cfg.contains("network") && cfg["network"].contains("proxyPassword") && cfg["network"]["proxyPassword"].is_string())
+    {
+        const auto stored = cfg["network"]["proxyPassword"].get<std::string>();
+        cfg["network"]["proxyPassword"] = stored.empty() ? "" : std::string(Crypto::STORED_SENTINEL);
+    }
+
+    return cfg;
 }
 builtin_payload head::millennium_backend::Core_SetBackendConfig(const builtin_payload& args)
 {
-    return CONFIG.set_all(nlohmann::json::parse(args["config"].get<std::string>()), args.value("skipPropagation", false));
+    auto incoming = nlohmann::json::parse(args["config"].get<std::string>());
+
+    if (incoming.contains("network") && incoming["network"].contains("proxyPassword"))
+    {
+        const auto& pw = incoming["network"]["proxyPassword"].get<std::string>();
+
+        if (pw == std::string(Crypto::STORED_SENTINEL))
+        {
+            /*
+             * frontend didn't change the password, restore the currently stored
+             * encrypted value so set_all doesn't clobber it.
+             */
+            incoming["network"]["proxyPassword"] = CONFIG.get({ "network", "proxyPassword" }, "");
+        }
+        else if (!pw.empty())
+        {
+            const std::string encrypted = Crypto::encrypt(pw);
+            if (!encrypted.empty())
+                incoming["network"]["proxyPassword"] = encrypted;
+            else
+                incoming["network"].erase("proxyPassword");
+        }
+        /* pw == "" means user explicitly cleared the field */
+    }
+
+    return CONFIG.set_all(incoming, args.value("skipPropagation", false));
 }
 
 /** Theme and Plugin update API */

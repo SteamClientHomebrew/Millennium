@@ -988,9 +988,12 @@ void plugin_loader::start_plugin_backends()
     /* has to be called here and not from init() — weak_from_this() returns an
        empty weak_ptr when called from the constructor, before make_shared finishes. */
     if (!m_child_handler_installed) {
+        logger.log("Setting up child request handler");
         this->setup_child_request_handler();
+        logger.log("Done!");
         m_child_handler_installed = true;
     }
+
     this->log_enabled_plugins();
 
     for (auto& plugin : *m_enabledPluginsPtr) {
