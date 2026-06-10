@@ -310,7 +310,7 @@ jobs:
   release:
     needs: [prepare, build-windows, build-linux, test-pkgbuild]
     runs-on: ubuntu-latest
-    if: ${{ inputs.release_artifacts }}
+    if: ${{ inputs.release_artifacts == true }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -383,7 +383,7 @@ jobs:
   update-pkgbuild:
     needs: [prepare, release]
     runs-on: ubuntu-latest
-    if: ${{ inputs.release_artifacts }}
+    if: ${{ inputs.release_artifacts == true }}
     outputs:
       updated_sha: ${{ steps.push.outputs.updated_sha }}
 
@@ -421,7 +421,7 @@ jobs:
 
   update-nix:
     needs: [prepare, update-pkgbuild]
-    if: ${{ inputs.publish_packages }}
+    if: ${{ inputs.publish_packages == true }}
     uses: ./.github/workflows/update-nix.yml
     secrets: inherit
     with:
@@ -431,7 +431,7 @@ jobs:
   publish-aur:
     needs: update-pkgbuild
     runs-on: ubuntu-latest
-    if: ${{ inputs.publish_packages }}
+    if: ${{ inputs.publish_packages == true }}
 
     steps:
       - name: Checkout repository
