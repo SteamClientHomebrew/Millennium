@@ -130,9 +130,9 @@ class RouterHook extends Logger {
 				return (
 					typeStr &&
 					typeStr?.includes('.IsMainDesktopWindow') &&
-					typeStr?.includes('.IN_STEAMUI_SHARED_CONTEXT') &&
-					typeStr?.includes('.ContentFrame') &&
-					typeStr?.includes('.Console()')
+					typeStr?.includes('bShowDesktopUIContent') &&
+					typeStr?.includes('bShowSuperNav') &&
+					typeStr?.includes('bShowTitleBarControls')
 				);
 			});
 		let routerNode = findRouterNode();
