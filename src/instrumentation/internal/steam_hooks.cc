@@ -43,8 +43,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
-
 #include "millennium/filesystem.h"
+
 #include "millennium/logger.h"
 #include "millennium/steam_hooks.h"
 #include "millennium/cmdline_api.h"
@@ -177,7 +177,7 @@ cleanup:
 const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 {
     if (!cmd) {
-        LOG_ERROR("Plat_HookedCreateSimpleProcess: received null cmd — Steam may have updated CreateSimpleProcess");
+        LOG_ERROR("Plat_HookedCreateSimpleProcess: received null cmd");
         return cmd;
     }
 
@@ -198,12 +198,8 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
         return cmd;
     }
 
-    /** Only block on the steamwebhelper spawn — anything else must pass through immediately
-     *  or we risk deadlocking the backend initializer thread. */
     if (!millennium_lifecycle::get().backends_loaded.flag.load()) {
-        logger.log("waiting for backends before patching steamwebhelper...");
         millennium_lifecycle::get().backends_loaded.wait();
-        logger.log("backends ready, continuing steamwebhelper spawn");
     }
 
     bool is_developer_mode = CommandLineArguments::has_argument("-dev");
@@ -550,7 +546,6 @@ void uninitialize_steam_hooks()
 
 #include <dlfcn.h>
 #include <string>
-#include <format>
 #define SNARE_STATIC
 #define SNARE_IMPLEMENTATION
 #include <libsnare.h>

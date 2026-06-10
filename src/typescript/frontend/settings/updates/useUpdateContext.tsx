@@ -30,11 +30,11 @@
 
 import React, { createContext, useContext } from 'react';
 import { backend } from '../../utils/ffi';
-import { pluginSelf } from '@steambrew/client';
+import { pluginSelf, sleep } from '@steambrew/client';
 import { UpdateItemType } from './UpdateCard';
 import { MillenniumUpdateChannel, PluginUpdateInfo } from '../../types';
 import { locale } from '../../utils/localization-manager';
-import { notifyLibraryUpdates } from '../../utils/update-notification-service';
+import { notificationService } from '../../utils/update-notification-service';
 import { settingsManager } from '../../utils/settings-manager';
 
 type UpdateContextProviderProps = {
@@ -172,10 +172,14 @@ export const refetchMillenniumUpdates = async (channel: MillenniumUpdateChannel)
 const _fetchAvailableUpdates = async (force: boolean = false): Promise<boolean> => {
 	try {
 		if (force || !pluginSelf.hasCheckedForUpdates) {
+			const isFirstCheck = !pluginSelf.hasCheckedForUpdates;
 			const updates = await backend.updater.getUpdates(force);
 			pluginSelf.updates = { themes: updates.themes, plugins: updates.plugins };
 			pluginSelf.hasCheckedForUpdates = true;
 			NotifyUpdateListeners();
+			if (isFirstCheck && settingsManager.config.general.shouldShowThemePluginUpdateNotifications) {
+				sleep(5000).then(notificationService.notifyLibraryUpdates);
+			}
 		}
 		pluginSelf.connectionFailed = false;
 		_syncToComponent?.();
@@ -227,20 +231,9 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 	componentDidMount() {
 		_syncToComponent = this.syncFromOpState;
 
-		// Replay a push that arrived before this component mounted.
-		if (_bufferedUpdates) {
-			pluginSelf.updates = _bufferedUpdates;
-			pluginSelf.hasCheckedForUpdates = true;
-			_bufferedUpdates = null;
-			if (settingsManager.config.general.shouldShowThemePluginUpdateNotifications) {
-				notifyLibraryUpdates();
-			}
-		}
-
-		// Re-sync in case operations completed while unmounted.
+		/* re-sync in case operations completed while unmounted. */
 		this.syncFromOpState();
 
-		// Fallback fetch — hits C++ cache instantly if push already fired, otherwise fetches.
 		_fetchAvailableUpdates();
 	}
 

@@ -111,13 +111,25 @@ class cdp_client : public std::enable_shared_from_this<cdp_client>
     /** set the session id for the shared js context (used by send()) */
     void set_shared_js_session_id(const std::string& sessionId)
     {
-        m_shared_js_session_id = sessionId;
+        {
+            std::lock_guard<std::mutex> lock(m_session_mutex);
+            m_shared_js_session_id = sessionId;
+        }
+        m_session_cv.notify_all();
     }
 
     /** get the session id for the shared js context */
-    const std::string& get_shared_js_session_id() const
+    std::string get_shared_js_session_id() const
     {
+        std::lock_guard<std::mutex> lock(m_session_mutex);
         return m_shared_js_session_id;
+    }
+
+    /** block until SharedJSContext session ID is set or the client shuts down */
+    void wait_for_shared_js_session()
+    {
+        std::unique_lock<std::mutex> lock(m_session_mutex);
+        m_session_cv.wait(lock, [this] { return !m_shared_js_session_id.empty() || m_shutdown.load(std::memory_order_acquire); });
     }
 
     /** check if the client is still running */
@@ -128,6 +140,8 @@ class cdp_client : public std::enable_shared_from_this<cdp_client>
 
   private:
     /** session id for the main js context we're talking to */
+    mutable std::mutex m_session_mutex;
+    std::condition_variable m_session_cv;
     std::string m_shared_js_session_id;
 
     /** tracks a cdp command we sent and are waiting for a response to */

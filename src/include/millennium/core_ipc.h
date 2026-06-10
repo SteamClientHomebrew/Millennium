@@ -99,6 +99,7 @@ class ipc_main
         {
         }
 
+        bool ok() const { return valid; }
         json to_json(const std::string& pluginName) const;
     };
 

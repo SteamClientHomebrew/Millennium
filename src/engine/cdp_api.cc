@@ -113,6 +113,7 @@ void cdp_client::shutdown()
     /** wake up all waiting threads */
     m_incoming_cv.notify_all();
     m_incoming_space_cv.notify_all();
+    m_session_cv.notify_all();
 
     if (m_incoming_worker.joinable()) m_incoming_worker.join();
 

@@ -33,84 +33,39 @@ import { settingsManager } from './settings-manager';
 import { OnMillenniumUpdate } from '../types';
 import { MillenniumIcons } from '../components/Icons';
 
-/**
- * Notify the user about available updates in their library.
- * This method checks for theme and plugin updates and displays a notification if any are found.
- */
-export async function notifyLibraryUpdates() {
-	const themeUpdates: any[] = pluginSelf.updates?.themes;
-	const pluginUpdates: any[] = pluginSelf.updates?.plugins;
-	const count = (themeUpdates?.length ?? 0) + (pluginUpdates?.filter?.((u: any) => u?.hasUpdate)?.length ?? 0);
+let _libraryNotified = false;
 
-	if (count === 0) return;
-
-	toaster.toast({
-		title: `Updates Available`,
-		body: `We've found ${count} updates for items in your library!`,
-		logo: <IconsModule.Download />,
-		onClick: () => Navigation.Navigate('/millennium/settings/updates'),
-	});
-}
-
-export class NotificationService {
-	shouldNotifyLibraryUpdates: boolean;
-	onMillenniumUpdates: OnMillenniumUpdate;
-
-	get libraryUpdateCount() {
+export const notificationService = {
+	async notifyLibraryUpdates() {
+		if (_libraryNotified) return;
 		const themeUpdates: any[] = pluginSelf.updates?.themes;
 		const pluginUpdates: any[] = pluginSelf.updates?.plugins;
-
-		return (themeUpdates?.length ?? 0) + (pluginUpdates?.filter?.((update: any) => update?.hasUpdate)?.length ?? 0);
-	}
-
-	async notifyLibraryUpdates() {
-		await sleep(1000); // Wait for the toaster to be ready
-
-		if (this.libraryUpdateCount === 0) {
-			return;
-		}
-
+		const count = (themeUpdates?.length ?? 0) + (pluginUpdates?.filter?.((u: any) => u?.hasUpdate)?.length ?? 0);
+		if (count === 0) return;
+		_libraryNotified = true;
 		toaster.toast({
 			title: `Updates Available`,
-			body: `We've found ${this.libraryUpdateCount} updates for items in your library!`,
+			body: `We've found ${count} updates for items in your library!`,
 			logo: <IconsModule.Download />,
-			onClick: () => {
-				Navigation.Navigate('/millennium/settings/updates');
-			},
+			onClick: () => Navigation.Navigate('/millennium/settings/updates'),
 		});
-	}
+	},
 
 	async notifyMillenniumUpdates() {
-		await sleep(1000); // Wait for the toaster to be ready
-
+		await sleep(1000);
 		toaster.toast({
 			title: `Millennium Update Available`,
 			body: `A new version of Millennium is available! Click here to update.`,
 			logo: <MillenniumIcons.SteamBrewLogo />,
-			onClick: () => {
-				Navigation.Navigate('/millennium/settings/updates');
-			},
+			onClick: () => Navigation.Navigate('/millennium/settings/updates'),
 		});
-	}
-
-	constructor() {
-		this.shouldNotifyLibraryUpdates = settingsManager.config.general.shouldShowThemePluginUpdateNotifications;
-		this.onMillenniumUpdates = settingsManager.config.general.onMillenniumUpdate;
-	}
+	},
 
 	async showNotifications() {
-		await sleep(3000); // Wait for the toaster to be ready
-
-		if (this.shouldNotifyLibraryUpdates) {
-			this.notifyLibraryUpdates();
+		await sleep(3000);
+		if (!pluginSelf?.millenniumUpdates?.hasUpdate) return;
+		if (settingsManager.config.general.onMillenniumUpdate === OnMillenniumUpdate.NOTIFY) {
+			notificationService.notifyMillenniumUpdates();
 		}
-
-		if (!pluginSelf?.millenniumUpdates?.hasUpdate) {
-			return;
-		}
-
-		if (this.onMillenniumUpdates == OnMillenniumUpdate.NOTIFY) {
-			this.notifyMillenniumUpdates();
-		}
-	}
-}
+	},
+};

@@ -39,7 +39,6 @@ import { backend } from '../../utils/ffi';
 import { IconButton } from '../../components/IconButton';
 import { settingsClasses } from '../../utils/classes';
 import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
-import { DesktopSideBarFocusedItemType } from '../../quick-access/DesktopMenuContext';
 
 interface ThemeItemComponentProps {
 	theme: ThemeItem;
@@ -111,13 +110,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 
 	openThemeSettings() {
 		const { theme } = this.props;
-
-		useQuickAccessStore.getState().openQuickAccess({
-			data: {
-				libraryItem: theme,
-				libraryItemType: DesktopSideBarFocusedItemType.THEME,
-			},
-		});
+		useQuickAccessStore.getState().openQuickAccess({ theme: theme?.data?.name });
 	}
 
 	openThemeFolder() {

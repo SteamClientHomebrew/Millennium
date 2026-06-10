@@ -29,8 +29,6 @@
  */
 
 #include "millennium/http.h"
-#include "millennium/config.h"
-#include "millennium/crypto.h"
 #include "millennium/millennium_lifecycle.h"
 
 #include <atomic>

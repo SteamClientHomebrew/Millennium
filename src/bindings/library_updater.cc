@@ -51,13 +51,16 @@ void head::library_updater::init(std::shared_ptr<plugin_manager> plugin_manager)
 
     if (!CONFIG.get({ "general", "checkForPluginAndThemeUpdates" }).get<bool>()) {
         logger.warn("User has disabled update checking for plugins and themes.");
+        std::lock_guard<std::mutex> lock(m_updates_mutex);
+        cached_updates = json{ { "themes", json::array() }, { "plugins", json::array() } };
+        m_has_checked_for_updates = true;
         return;
     }
 
-    m_update_future = std::async(std::launch::async, [self = shared_from_this()]() {
+    m_update_future = std::async(std::launch::async, [self = shared_from_this()]()
+    {
         self->check_for_updates();
-        self->push_updates_to_frontend();
-    });
+    }).share();
 }
 
 bool head::library_updater::download_plugin_update(const std::string& id, const std::string& name, const std::string& commit)
@@ -103,6 +106,15 @@ std::optional<json> head::library_updater::check_for_updates(bool force)
             }
         }
 
+        if (!force && m_update_future.valid()) {
+            m_update_future.wait();
+            std::lock_guard<std::mutex> lock(m_updates_mutex);
+            if (cached_updates.has_value()) {
+                logger.log("Using cached updates (waited for background check).");
+                return cached_updates;
+            }
+        }
+
         auto plugins = plugin_updater->get_updater_request_body();
         auto themes = theme_updater->get_request_body();
 
@@ -114,7 +126,10 @@ std::optional<json> head::library_updater::check_for_updates(bool force)
 
         if (request_body.empty()) {
             logger.log("No themes or plugins to update!");
-            json result = { { "themes", {} }, { "plugins", {} } };
+            json result = {
+                { "themes",  {} },
+                { "plugins", {} }
+            };
             std::lock_guard<std::mutex> lock(m_updates_mutex);
             cached_updates = result;
             m_has_checked_for_updates = true;

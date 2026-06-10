@@ -34,6 +34,7 @@ declare module '*.gif' {
 }
 
 interface Window {
+	MILLENNIUM_API: any;
 	MILLENNIUM_BROWSER_LIB_VERSION?: string;
 	MILLENNIUM_FRONTEND_LIB_VERSION?: string;
 	MILLENNIUM_LOADER_BUILD_DATE?: string;
