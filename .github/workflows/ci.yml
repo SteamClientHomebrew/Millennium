@@ -35,9 +35,7 @@ jobs:
           node-version: 24
 
       - name: Download Semantic Release
-        run: |
-          npm install -g pnpm
-          pnpm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
+        run: npm install --save-dev semantic-release @semantic-release/github @semantic-release/exec @semantic-release/changelog @semantic-release/git
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
