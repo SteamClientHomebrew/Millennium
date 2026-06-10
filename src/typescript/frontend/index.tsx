@@ -43,7 +43,7 @@ import { PluginComponent, PluginCrashInfo, SettingsProps, SystemAccentColor, The
 import { backend } from './utils/ffi';
 import { Logger } from './utils/Logger';
 import { useQuickCssState } from './utils/quick-css-state';
-import { NotificationService } from './utils/update-notification-service';
+import { notificationService } from './utils/update-notification-service';
 import { OnRunSteamURL } from './utils/url-scheme-handler';
 import { useQuickAccessStore } from './quick-access/quickAccessStore';
 import { showPluginCrashModal } from './components/PluginCrashModal';
@@ -93,7 +93,6 @@ async function initializeMillennium(settings: SettingsProps) {
 
 	patchMissedDocuments();
 
-	const notificationService = new NotificationService();
 	notificationService.showNotifications();
 
 	const crashQueue: PluginCrashInfo[] = [];
