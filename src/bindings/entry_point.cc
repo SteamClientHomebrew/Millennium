@@ -311,8 +311,6 @@ builtin_payload head::millennium_backend::Core_GetBackendConfig(const builtin_pa
 {
     auto cfg = CONFIG.get_all();
 
-    // Never expose the encrypted blob to the frontend — replace with a sentinel
-    // so the UI can show "a password is saved" without seeing the ciphertext.
     if (cfg.contains("network") && cfg["network"].contains("proxyPassword") && cfg["network"]["proxyPassword"].is_string())
     {
         const auto stored = cfg["network"]["proxyPassword"].get<std::string>();
