@@ -45,7 +45,6 @@
 #include <unistd.h>
 #endif
 #include "millennium/filesystem.h" // IWYU pragma: keep
-
 #include "millennium/logger.h"
 #include "millennium/steam_hooks.h"
 #include "millennium/cmdline_api.h"

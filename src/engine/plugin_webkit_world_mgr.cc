@@ -36,6 +36,7 @@
 #include "millennium/logger.h"
 #include "millennium/auth.h"
 #include "millennium/url_parser.h"
+#include "millennium/target_url.h"
 #include <format>
 
 webkit_world_mgr::webkit_world_mgr(std::shared_ptr<cdp_client> client, std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<network_hook_ctl> network_hook_ctl,
@@ -73,59 +74,9 @@ void webkit_world_mgr::initialize()
     }
 }
 
-static bool is_steam_owned_url(const std::string& url)
-{
-    /* extract just the hostname: skip scheme, stop at port / path / query */
-    auto scheme_end = url.find("://");
-    if (scheme_end == std::string::npos) return false;
-    auto host_start = scheme_end + 3;
-    auto host_end = url.find_first_of(":/?#", host_start);
-    std::string host = url.substr(host_start, host_end == std::string::npos ? std::string::npos : host_end - host_start);
-
-    if (host == k_steam_loopback) return true;
-    for (const auto* tld : k_steam_tlds) {
-        const size_t tld_len = std::strlen(tld);
-        if (host == tld) return true;
-        if (host.size() > tld_len + 1 && host[host.size() - tld_len - 1] == '.' && host.compare(host.size() - tld_len, tld_len, tld) == 0)
-            return true;
-    }
-    return false;
-}
-
 bool webkit_world_mgr::is_valid_target_url(const std::string& url) const
 {
-    if (url.empty()) {
-        return false;
-    }
-
-    // only web protocols are supported
-    if (url.find("http://") != 0 && url.find("https://") != 0) {
-        return false;
-    }
-
-    // steamloopback is the main UI, handled natively by SharedJSContext
-    if (url.find("https://steamloopback.host/") == 0) {
-        return false;
-    }
-
-    // forbid URLs matching the global blacklist (e.g. checkout pages)
-    for (const auto& pattern : g_js_hook_blacklist) {
-        if (std::regex_match(url, pattern)) {
-            return false;
-        }
-    }
-
-    // allow all steam-owned popups/frames (e.g. store, community)
-    if (is_steam_owned_url(url)) {
-        return true;
-    }
-
-    // allow external URLs if explicitly hooked by a plugin or theme (e.g. via add_browser_js / add_browser_css in the backend)
-    const auto hookList = m_network_hook_ctl->get_hook_list();
-    return std::any_of(hookList.begin(), hookList.end(), [&url](const auto& hook)
-    {
-        return std::regex_match(url, hook.hook.url_pattern);
-    });
+    return target_url(url).allows_webkit_injection(m_network_hook_ctl->get_hook_list());
 }
 
 void webkit_world_mgr::attach_to_target(const std::string& target_id, const std::string& url)
@@ -191,7 +142,7 @@ void webkit_world_mgr::attach_to_target(const std::string& target_id, const std:
          * it seems this reload interferes with some versions of CF turnstile.
          */
         bool is_top_level = !frame_tree_result["frameTree"]["frame"].contains("parentId");
-        bool can_reload = is_top_level && is_steam_owned_url(url);
+        bool can_reload = is_top_level && target_url(url).is_steam_owned();
 
         {
             std::lock_guard<std::mutex> lock(m_targets_mutex);
