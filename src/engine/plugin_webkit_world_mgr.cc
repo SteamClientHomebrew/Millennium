@@ -73,33 +73,6 @@ void webkit_world_mgr::initialize()
     }
 }
 
-bool webkit_world_mgr::is_valid_target_url(const std::string& url) const
-{
-    if (url.empty()) {
-        return false;
-    }
-
-    if (url.find("http://") != 0 && url.find("https://") != 0) {
-        return false;
-    }
-
-    if (url.find("https://steamloopback.host/") == 0) {
-        return false;
-    }
-
-    for (const auto& pattern : g_js_hook_blacklist) {
-        if (std::regex_match(url, std::regex(pattern))) {
-            return false;
-        }
-    }
-
-    const auto hookList = m_network_hook_ctl->get_hook_list();
-    return std::any_of(hookList.begin(), hookList.end(), [&url](const auto& hook)
-    {
-        return std::regex_match(url, hook.hook.url_pattern);
-    });
-}
-
 static bool is_steam_owned_url(const std::string& url)
 {
     if (url.find(std::string("https://") + k_steam_loopback + "/") == 0) return true;
@@ -107,6 +80,42 @@ static bool is_steam_owned_url(const std::string& url)
         if (url.find(std::string(".") + tld + "/") != std::string::npos) return true;
     }
     return false;
+}
+
+bool webkit_world_mgr::is_valid_target_url(const std::string& url) const
+{
+    if (url.empty()) {
+        return false;
+    }
+
+    // only web protocols are supported
+    if (url.find("http://") != 0 && url.find("https://") != 0) {
+        return false;
+    }
+
+    // steamloopback is the main UI, handled natively by SharedJSContext
+    if (url.find("https://steamloopback.host/") == 0) {
+        return false;
+    }
+
+    // forbid URLs matching the global blacklist (e.g. checkout pages)
+    for (const auto& pattern : g_js_hook_blacklist) {
+        if (std::regex_match(url, std::regex(pattern))) {
+            return false;
+        }
+    }
+
+    // allow all steam-owned popups/frames (e.g. store, community)
+    if (is_steam_owned_url(url)) {
+        return true;
+    }
+
+    // allow external URLs if explicitly hooked by a plugin or theme (e.g. via add_browser_js / add_browser_css in the backend)
+    const auto hookList = m_network_hook_ctl->get_hook_list();
+    return std::any_of(hookList.begin(), hookList.end(), [&url](const auto& hook)
+    {
+        return std::regex_match(url, hook.hook.url_pattern);
+    });
 }
 
 void webkit_world_mgr::attach_to_target(const std::string& target_id, const std::string& url)
