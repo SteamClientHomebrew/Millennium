@@ -57,6 +57,7 @@ set(SOURCE_FILES
     engine/star_parser.cc
     engine/plugin_webkit_store.cc
     engine/plugin_webkit_world_mgr.cc
+    engine/target_url.cc
     engine/thread_pool.cc
     util/cmdline_parser.cc
     util/file_watcher.cc
