@@ -254,7 +254,7 @@
     "legacyPluginModalViewUpdates": "アップデートを表示",
     "legacyPluginModalDismiss": "無視",
     "legacyPluginDisabledTooltip": "このプラグインは旧バージョンのため動作しませんが、アップデートが利用可能です。引き続きプラグインを使用するには、アップデートをインストールしてください。",
-    "supersededPluginModalTitle": "⚠ アクションが必要です",
+    "supersededPluginModalTitle": "⚠️ アクションが必要です",
     "supersededPluginModalBody": "以下のプラグインは、すでに廃止された旧バージョンのMillenniumランタイム上でビルドされていました。これらのプラグインを引き続き使用するには、代替として[Extendium](https://steambrew.app/plugin?id=788ed8554492)をインストールしてください。使用方法については、[ExtendiumのREADMEファイル](https://steambrew.app/plugin?id=788ed8554492)を参照してください。",
     "supersededPluginModalInstall": "Extendiumをインストール",
     "supersededPluginModalDismiss": "今はしない"
