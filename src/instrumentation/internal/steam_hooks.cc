@@ -43,9 +43,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #elif _WIN32
-#include "millennium/filesystem.h"
 #endif
 
+#include "millennium/filesystem.h"
 #include "millennium/logger.h"
 #include "millennium/steam_hooks.h"
 #include "millennium/cmdline_api.h"
