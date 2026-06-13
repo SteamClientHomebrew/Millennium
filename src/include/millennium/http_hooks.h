@@ -46,16 +46,12 @@
 #include <shared_mutex>
 #include <string>
 #include <vector>
-#include <unordered_set>
+
 
 extern std::atomic<unsigned long long> g_hookedModuleId;
 std::string get_cdp_isolated_ctx_script();
 
-/**
- * Millennium will not load JavaScript into the following URLs to favor user safety.
- * This is a list of URLs that may have sensitive information or are not safe to load JavaScript into.
- */
-static const std::vector<std::string> g_js_hook_blacklist = { "https://checkout\\.steampowered\\.com/.*" };
+
 
 /** Canonical list of Steam-owned TLDs. Both the CDP network interceptor and the webkit world manager derive their domain checks from this. */
 static constexpr const char* k_steam_tlds[] = {
@@ -63,23 +59,7 @@ static constexpr const char* k_steam_tlds[] = {
 };
 static constexpr const char* k_steam_loopback = "steamloopback.host";
 
-// clang-format off
-/** Millennium will not hook the following URLs to favor user safety. (Neither JavaScript nor CSS will be injected into these URLs.) */
-static const std::unordered_set<std::string> g_js_and_css_hook_blacklist = {
-    /** Ignore paypal related content */
-    R"(https?:\/\/(?:[\w-]+\.)*paypal\.com\/[^\s"']*)",
-    R"(https?:\/\/(?:[\w-]+\.)*paypalobjects\.com\/[^\s"']*)",
-    R"(https?:\/\/(?:[\w-]+\.)*recaptcha\.net\/[^\s"']*)",
-
-    /** Ignore youtube related content */
-    R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)",
-    R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)",
-
-    /** Ignore Chrome Web Store (causes a webhelper crash on Fetch.fulfillRequest) */
-    R"(https?:\/\/(?:[\w-]+\.)*chromewebstore\.google\.com\/[^\s"']*)",
-};
-// clang-format on
-
+class target_url;
 class network_hook_ctl
 {
   public:
@@ -185,6 +165,6 @@ class network_hook_ctl
     void vfs_request_handler(const nlohmann::basic_json<>& message);
     void mime_doc_request_handler(const nlohmann::basic_json<>& message);
     std::filesystem::path path_from_url(const std::string& requestUrl);
-    processed_hooks apply_user_webkit_hooks(const std::string& requestUrl) const;
+    processed_hooks apply_user_webkit_hooks(const target_url& target) const;
     std::string inject_into_document_head(const std::string& original, const std::string& content) const;
 };
