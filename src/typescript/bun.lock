@@ -105,6 +105,7 @@
       "dependencies": {
         "@happy-dom/global-registrator": "^15.11.7",
         "@steambrew/api": "workspace:*",
+        "@steambrew/client": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "^1.1.0",
