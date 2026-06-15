@@ -22,7 +22,6 @@ file(GLOB_RECURSE _src_ttc    CONFIGURE_DEPENDS "${TS_ROOT}/ttc/src/*.ts"    "${
 file(GLOB_RECURSE _src_client CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/client/src/*.ts"  "${TS_ROOT}/sdk/packages/client/src/*.tsx")
 file(GLOB_RECURSE _src_webkit CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/browser/src/*.ts" "${TS_ROOT}/sdk/packages/browser/src/*.tsx")
 file(GLOB_RECURSE _src_api    CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/loader/src/*.ts"  "${TS_ROOT}/sdk/packages/loader/src/*.tsx")
-file(GLOB_RECURSE _src_cdp_isolated_ctx CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/cdp-isolated-ctx/src/*.ts" "${TS_ROOT}/sdk/packages/cdp-isolated-ctx/src/*.tsx")
 file(GLOB_RECURSE _src_core   CONFIGURE_DEPENDS
     "${TS_ROOT}/frontend/*.ts"
     "${TS_ROOT}/frontend/*.tsx"
@@ -83,13 +82,6 @@ _ts_package(api "${TS_ROOT}/sdk/packages/loader"
 )
 add_dependencies(ts_api ts_client)
 
-_ts_package(cdp_isolated_ctx "${TS_ROOT}/sdk/packages/cdp-isolated-ctx"
-    "${TS_ROOT}/sdk/packages/cdp-isolated-ctx/package.json"
-    "${TS_ROOT}/sdk/packages/cdp-isolated-ctx/rollup.config.js"
-    "${TS_ROOT}/sdk/packages/cdp-isolated-ctx/tsconfig.json"
-    ${_src_cdp_isolated_ctx}
-)
-
 _ts_package(core "${TS_ROOT}/frontend"
     "${TS_STAMPS}/client.stamp"
     "${TS_STAMPS}/webkit.stamp"
@@ -114,9 +106,8 @@ add_custom_command(
     DEPENDS
         "${TS_STAMPS}/api.stamp"
         "${TS_STAMPS}/core.stamp"
-        "${TS_STAMPS}/cdp_isolated_ctx.stamp"
     COMMENT "Generating virtfs.h"
     VERBATIM
 )
 add_custom_target(virtfs_header DEPENDS "${_virtfs_h}")
-add_dependencies(virtfs_header ts_api ts_core ts_cdp_isolated_ctx)
+add_dependencies(virtfs_header ts_api ts_core)

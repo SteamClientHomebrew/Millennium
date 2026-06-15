@@ -44,17 +44,6 @@
         "typescript": "^4.9.5",
       },
     },
-    "sdk/packages/cdp-isolated-ctx": {
-      "name": "@steambrew/cdp-isolated-ctx",
-      "dependencies": {
-        "@rollup/plugin-terser": "^0.4.4",
-        "@rollup/plugin-typescript": "^12.1.1",
-        "rollup": "^4.17.2",
-        "rollup-plugin-del": "^1.0.1",
-        "tslib": "^2.8.1",
-        "typescript": "^5.8.3",
-      },
-    },
     "sdk/packages/client": {
       "name": "@steambrew/client",
       "version": "5.8.5",
@@ -588,8 +577,6 @@
     "@sindresorhus/is": ["@sindresorhus/is@4.6.0", "", {}, "sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw=="],
 
     "@steambrew/api": ["@steambrew/api@workspace:sdk/packages/loader"],
-
-    "@steambrew/cdp-isolated-ctx": ["@steambrew/cdp-isolated-ctx@workspace:sdk/packages/cdp-isolated-ctx"],
 
     "@steambrew/client": ["@steambrew/client@workspace:sdk/packages/client"],
 

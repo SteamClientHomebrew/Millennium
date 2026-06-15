@@ -31,3 +31,4 @@ scripts/RC*
 
 # Nix build files
 **/result
+__cmake_systeminformation/
