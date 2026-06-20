@@ -14,7 +14,6 @@
   re2,
   runCommand,
 
-  inputs,
   millennium-src,
   ...
 }:
@@ -105,10 +104,6 @@ let
     cmakeFlags = commonBuild.cmakeFlags ++ [ "-DDISTRO_NIX=ON" ];
 
     postPatch = ''
-      mkdir -p deps
-      cp -r --no-preserve=mode ${inputs.luajit-src} deps/luajit
-      chmod -R u+rwx deps/luajit
-
       export HOME=$TMPDIR
 
       for dir in ${tsDirs}; do
