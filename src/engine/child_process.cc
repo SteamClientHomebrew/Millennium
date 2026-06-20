@@ -51,6 +51,9 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#if defined(__linux__)
+#include <sys/prctl.h>
+#endif
 #endif
 
 #if defined(__linux__)
@@ -134,11 +137,6 @@ PluginProcess::~PluginProcess()
         m_reader_thread.join();
     }
 
-    /** check if it failed to join and detach as a fallback */
-    if (m_reader_thread.joinable()) {
-        m_reader_thread.detach();
-    }
-
     /* clean up the socket file so we don't leak temp entries */
     ::unlink(m_socket_path.c_str());
 
@@ -149,10 +147,20 @@ PluginProcess::~PluginProcess()
         CloseHandle(m_process_handle);
 #else
         ::kill(m_pid, SIGTERM);
+        for (int i = 0; i < 30 && ::kill(m_pid, 0) == 0; ++i)
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (::kill(m_pid, 0) == 0) ::kill(m_pid, SIGKILL);
         int status;
-        ::waitpid(m_pid, &status, WNOHANG);
+        ::waitpid(m_pid, &status, 0);
 #endif
     }
+
+#ifdef _WIN32
+    if (m_job_handle != INVALID_HANDLE_VALUE) {
+        CloseHandle(m_job_handle);
+        m_job_handle = INVALID_HANDLE_VALUE;
+    }
+#endif
 
     /* fail anything still waiting for a response */
     {
@@ -479,8 +487,12 @@ void PluginProcess::detect_child_exit()
     pid_t result = ::waitpid(m_pid, &status, WNOHANG);
 
     if (result == 0) {
-        /* WNOHANG: child still alive — shouldn't normally happen since the socket just closed */
-        return;
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        result = ::waitpid(m_pid, &status, WNOHANG);
+        if (result == 0) {
+            LOG_ERROR("Plugin '{}' closed IPC socket unexpectedly but process is still alive (pid={})", m_plugin_name, m_pid);
+            return;
+        }
     }
 
     if (result < 0) {
@@ -515,20 +527,16 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
     /* set up a listening socket for the child to connect back to */
     ::unlink(socket_path.c_str());
 
-    plugin_ipc::socket_fd server_fd = static_cast<plugin_ipc::socket_fd>(::socket(AF_UNIX, SOCK_STREAM, 0));
-
 #ifdef _WIN32
+    plugin_ipc::socket_fd server_fd = static_cast<plugin_ipc::socket_fd>(::socket(AF_UNIX, SOCK_STREAM, 0));
     if (server_fd == INVALID_SOCKET) {
 #else
+    plugin_ipc::socket_fd server_fd = static_cast<plugin_ipc::socket_fd>(::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0));
     if (server_fd < 0) {
 #endif
         LOG_ERROR("[spawn] socket() failed for plugin '{}'", plugin_name);
         return nullptr;
     }
-
-#ifndef _WIN32
-    ::fcntl(server_fd, F_SETFD, FD_CLOEXEC);
-#endif
 
     sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
@@ -581,6 +589,9 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
 
         if (child_pid == 0) {
             ::setpgid(0, 0);
+#if defined(__linux__)
+            ::prctl(PR_SET_PDEATHSIG, SIGTERM);
+#endif
             ::close(server_fd);
             ::execl(exe_path.c_str(), exe_path.c_str(), socket_path.c_str(), nullptr);
             /* execl only returns on error */
@@ -615,7 +626,14 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
             return nullptr;
         }
     }
+#if defined(__linux__)
+    plugin_ipc::socket_fd client_fd = static_cast<plugin_ipc::socket_fd>(::accept4(server_fd, nullptr, nullptr, SOCK_CLOEXEC));
+#elif defined(_WIN32)
     plugin_ipc::socket_fd client_fd = static_cast<plugin_ipc::socket_fd>(::accept(server_fd, nullptr, nullptr));
+#else
+plugin_ipc::socket_fd client_fd = static_cast<plugin_ipc::socket_fd>(::accept(server_fd, nullptr, nullptr));
+if (client_fd >= 0) ::fcntl(client_fd, F_SETFD, FD_CLOEXEC);
+#endif
     plugin_ipc::close_fd(server_fd);
 
 #ifdef _WIN32
@@ -634,6 +652,41 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
         return nullptr;
     }
 
+    auto process = std::make_unique<PluginProcess>(plugin_name, socket_path, client_fd, child_pid, std::move(handler));
+
+#ifdef _WIN32
+    process->m_process_handle = hProcess;
+
+    /**
+     * on windows, explicitly kill the child proc after millennium detaches. On the win32 implementation
+     * of AF_UNIX, WSAPoll never sends POLLHUP, resulting in zombie processes that were never reaped.
+     */
+    {
+        HANDLE hJob = CreateJobObjectW(nullptr, nullptr);
+        if (hJob != INVALID_HANDLE_VALUE) {
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli{};
+            jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            if (SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)) && AssignProcessToJobObject(hJob, hProcess)) {
+                process->m_job_handle = hJob;
+            } else {
+                LOG_ERROR("[spawn] failed to configure job object for plugin '{}' (error: {})", plugin_name, GetLastError());
+                CloseHandle(hJob);
+            }
+        } else {
+            LOG_ERROR("[spawn] CreateJobObjectW failed for plugin '{}' (error: {})", plugin_name, GetLastError());
+        }
+    }
+#endif
+
+    process->m_crash_dump_dir = init_params.value("crash_dump_dir", "");
+
+    auto entry = std::make_shared<PluginProcess::pending_entry>();
+    auto future = entry->promise.get_future();
+    {
+        std::lock_guard<std::mutex> lock(process->m_pending_mutex);
+        process->m_pending[0] = entry;
+    }
+
     /* tell the child who it is and what to load */
     nlohmann::json init_msg = {
         { "type",   plugin_ipc::TYPE_REQUEST        },
@@ -644,53 +697,23 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
 
     if (!plugin_ipc::write_msg(client_fd, init_msg)) {
         LOG_ERROR("[spawn] failed to send init to plugin '{}'", plugin_name);
-        plugin_ipc::close_fd(client_fd);
-#ifdef _WIN32
-        TerminateProcess(hProcess, 1);
-        CloseHandle(hProcess);
-#else
-        ::kill(child_pid, SIGTERM);
-        ::waitpid(child_pid, nullptr, 0);
-#endif
         return nullptr;
     }
 
-    /* wrap it up — handler must be set before the reader thread starts,
-       otherwise early child RPCs (patches, ready) race against set_request_handler */
-    auto process = std::make_unique<PluginProcess>(plugin_name, socket_path, client_fd, child_pid, std::move(handler));
+    if (future.wait_for(std::chrono::seconds(30)) != std::future_status::ready) {
+        LOG_ERROR("[spawn] init response timed out for plugin '{}'", plugin_name);
+        return nullptr;
+    }
 
-#ifdef _WIN32
-    process->m_process_handle = hProcess;
-#endif
-
-    process->m_crash_dump_dir = init_params.value("crash_dump_dir", "");
-
-    /* wait for the child to finish init and respond.
-       we manually register id=0 in the pending map since the reader thread is
-       already running and will deliver the response for us. */
-    {
-        auto entry = std::make_shared<PluginProcess::pending_entry>();
-        auto future = entry->promise.get_future();
-        {
-            std::lock_guard<std::mutex> lock(process->m_pending_mutex);
-            process->m_pending[0] = entry;
-        }
-
-        if (future.wait_for(std::chrono::seconds(30)) != std::future_status::ready) {
-            LOG_ERROR("[spawn] init response timed out for plugin '{}'", plugin_name);
+    try {
+        auto result = future.get();
+        if (!result.value("ok", false)) {
+            LOG_ERROR("[spawn] init failed for plugin '{}': {}", plugin_name, result.dump());
             return nullptr;
         }
-
-        try {
-            auto result = future.get();
-            if (!result.value("ok", false)) {
-                LOG_ERROR("[spawn] init failed for plugin '{}': {}", plugin_name, result.dump());
-                return nullptr;
-            }
-        } catch (const std::exception& e) {
-            LOG_ERROR("[spawn] init error for plugin '{}': {}", plugin_name, e.what());
-            return nullptr;
-        }
+    } catch (const std::exception& e) {
+        LOG_ERROR("[spawn] init error for plugin '{}': {}", plugin_name, e.what());
+        return nullptr;
     }
 
     logger.log("Plugin '{}' child process started (pid={})", plugin_name, child_pid);

@@ -7,8 +7,6 @@
     millennium-src.url   = "github:SteamClientHomebrew/Millennium/bd79fe7a94aad1e840d8cae54d6b5233d80268a8";
     millennium-src.flake = false;
 
-    luajit-src.url   = "github:SteamClientHomebrew/LuaJIT/v2.1";
-    luajit-src.flake = false;
   };
 
   outputs =
@@ -28,7 +26,7 @@
 
           packages = {
             default          = packages.millennium-steam;
-            millennium       = pkgs.callPackage ./millennium.nix { inherit inputs millennium-src; };
+            millennium       = pkgs.callPackage ./millennium.nix { inherit millennium-src; };
             millennium-steam = pkgs.callPackage ./steam.nix {
               inherit (packages) millennium;
             };

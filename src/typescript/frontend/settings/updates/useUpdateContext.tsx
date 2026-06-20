@@ -157,6 +157,7 @@ const _fetchAvailableUpdates = async (force: boolean = false): Promise<boolean> 
 		return true;
 	} catch {
 		pluginSelf.connectionFailed = true;
+		_syncToComponent?.();
 		return false;
 	}
 };
@@ -186,8 +187,8 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 			pluginProgress: _opState.pluginProgress,
 			themeUpdates: pluginSelf.updates?.themes ?? null,
 			pluginUpdates: pluginSelf.updates?.plugins ?? null,
-			hasUpdateError: Boolean(pluginSelf?.updates?.themes?.error || pluginSelf?.updates?.plugins?.error),
-			hasReceivedUpdates: Boolean(pluginSelf.hasCheckedForUpdates),
+			hasUpdateError: Boolean(pluginSelf?.connectionFailed || pluginSelf?.updates?.themes?.error || pluginSelf?.updates?.plugins?.error),
+			hasReceivedUpdates: Boolean(pluginSelf.hasCheckedForUpdates || pluginSelf.connectionFailed),
 		});
 	};
 
