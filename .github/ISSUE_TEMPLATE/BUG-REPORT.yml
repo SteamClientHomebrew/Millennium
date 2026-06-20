@@ -1,6 +1,6 @@
 name: Bug Report
 description: Create a bug report to help us find and fix bugs!
-title: "[Bug 🪲]: "
+title: "[Bug]: "
 labels: [bug]
 body:
   - type: checkboxes
@@ -28,7 +28,7 @@ body:
       label: (if-applicable) Linux Distribution Check
       description: "verify the following conditions:"
       options:
-        - label: I am not a NixOS user. SteamClientHomebrew does not maintain the NixOS package, all contributions are made by external contributors like you! If you'd like to discuss or report issues with other NixOS users, check out the [NixOS MegaThread](https://github.com/SteamClientHomebrew/Millennium/issues/551).
+        - label: I am not a NixOS user. SteamClientHomebrew does not maintain the NixOS package, all contributions are made by external contributors like you!
           required: false
   - type: dropdown
     attributes:
