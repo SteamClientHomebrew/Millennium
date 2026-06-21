@@ -10,7 +10,9 @@
   lib,
   stdenv,
   pkgsi686Linux,
-  xorg,
+  libx11,
+  libXi,
+  libXtst,
   re2,
   runCommand,
 
@@ -18,13 +20,12 @@
   ...
 }:
 let
-  version = "3.2.1-beta.1";
+  version = "3.3.0-beta.3";
 
   tsPackages = [
     "src/typescript/ttc"
     "src/typescript/sdk/packages/client"
     "src/typescript/sdk/packages/browser"
-    "src/typescript/sdk/packages/cdp-isolated-ctx"
     "src/typescript/sdk/packages/loader"
     "src/typescript/frontend"
   ];
@@ -80,7 +81,7 @@ let
 
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = "sha256-XMYpHMrcmLNQYyLkc3DngjsZ4DdyPr9on0v5lcDrRiY=";
+    outputHash = "sha256-07kSANQ5uLwsLX+wuS0Cq2YSeTqkSVnUBGqadP0Uj4Y=";
   };
 
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
@@ -137,9 +138,9 @@ let
     pname = "millennium-64";
 
     buildInputs = [
-      xorg.libX11
-      xorg.libXi
-      xorg.libXtst
+      libx11
+      libXi
+      libXtst
       re2
       re2.dev
     ];

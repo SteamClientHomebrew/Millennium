@@ -2,9 +2,10 @@
   description = "Nix Build for Millennium";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    # Bun FOD is sensitive to version changes, so we use a specific commit instead of a channel.
+    nixpkgs.url = "github:nixos/nixpkgs/567a49d1913ce81ac6e9582e3553dd90a955875f";
 
-    millennium-src.url   = "github:SteamClientHomebrew/Millennium/bd79fe7a94aad1e840d8cae54d6b5233d80268a8";
+    millennium-src.url   = "github:SteamClientHomebrew/Millennium/744de7d8a69592b8bdadad74e0e2b9b961e80c5f";
     millennium-src.flake = false;
 
   };
