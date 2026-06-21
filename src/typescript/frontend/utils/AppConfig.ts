@@ -44,4 +44,9 @@ export interface AppConfig {
 	misc: {
 		hasShownWelcomeModal: boolean;
 	};
+	network: {
+		proxy: string;
+		proxyUsername: string;
+		proxyPassword: string;
+	};
 }

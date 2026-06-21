@@ -3,7 +3,6 @@
     "ttc",
     "sdk/packages/client",
     "sdk/packages/browser",
-    "sdk/packages/cdp-isolated-ctx",
     "sdk/packages/loader",
     "sdk/packages/test",
     "frontend",

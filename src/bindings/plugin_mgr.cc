@@ -116,7 +116,7 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
 
         m_updater->dispatch_progress("##strCleaningUp", 95, false);
         std::filesystem::remove(zipPath);
-        m_updater->dispatch_progress("strDone", 100, true);
+        m_updater->dispatch_progress("##strDone", 100, true);
 
         return {
             { "success", true }

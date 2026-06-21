@@ -42,9 +42,8 @@
 #include <sys/eventfd.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#elif _WIN32
-#include "millennium/filesystem.h"
 #endif
+#include "millennium/filesystem.h"
 
 #include "millennium/logger.h"
 #include "millennium/steam_hooks.h"
@@ -182,6 +181,7 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
         return cmd;
     }
 
+    logger.log("Plat_HookedCreateSimpleProcess: cmd = {}", cmd);
     command cmd_line(cmd);
 
     const char* target_executable =
@@ -194,6 +194,7 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 #endif
 
     if (cmd_line.executable() != target_executable) {
+        logger.log("dispatching: {}", cmd_line.exec);
         return cmd;
     }
 
@@ -563,6 +564,7 @@ extern "C" int hooked_create_simple_process(const char* cmd, unsigned int a2, co
     auto orig = reinterpret_cast<int (*)(const char*, unsigned int, const char*)>(create_hook.get_trampoline());
     int result = orig(cmd, a2, a3);
 
+    logger.log("[hooked_create_simple_process]: {}", cmd);
     return result;
 }
 

@@ -8,6 +8,8 @@ type Json = string | number | boolean | null | void | Json[] | { [key: string]: 
 /*
  Global Millennium API for developers.
 */
+export type QuickAccessTarget = { plugin: string } | { theme: string };
+
 type Millennium = {
 	/**
 	 * Call a method on the backend
@@ -27,6 +29,17 @@ type Millennium = {
 	findElement: (privateDocument: Document, querySelector: string, timeOut?: number) => Promise<NodeListOf<Element>>;
 	exposeObj: <T extends object>(obj: T) => any;
 	AddWindowCreateHook?: (callback: (context: object) => void) => void;
+
+	/**
+	 * ```typescript
+	 * Millennium.openQuickAccess(); // open QAM home
+	 * Millennium.openQuickAccess({ theme: 'themeName' }); // "name" property from the themes skin.json
+	 * Millennium.openQuickAccess({ plugin: 'pluginName' }); // "name" property from the plugins plugin.json
+	 * ```
+	 * @param target
+	 * @returns
+	 */
+	openQuickAccess: (target?: QuickAccessTarget) => Promise<void>;
 };
 
 /**

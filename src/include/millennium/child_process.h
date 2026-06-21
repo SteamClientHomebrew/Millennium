@@ -138,6 +138,7 @@ class PluginProcess
 
 #ifdef _WIN32
     HANDLE m_process_handle = INVALID_HANDLE_VALUE;
+    HANDLE m_job_handle = INVALID_HANDLE_VALUE;
 #endif
 };
 

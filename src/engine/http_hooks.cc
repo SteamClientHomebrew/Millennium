@@ -367,11 +367,5 @@ void network_hook_ctl::set_cdp_client(std::shared_ptr<cdp_client> cdp)
 
 std::string get_cdp_isolated_ctx_script()
 {
-    const std::string url = std::format("https://millennium.ftp/{}/cdp-isolated-ctx.js", GetScrambledApiPathToken());
-    auto it = INTERNAL_FTP_CALL_DATA.find(url);
-    if (it != INTERNAL_FTP_CALL_DATA.end()) {
-        return it->second();
-    }
-    LOG_ERROR("get_cdp_isolated_ctx_script: cdp-isolated-ctx.js not found in virtfs");
-    return {};
+    return R"(!function(){"use strict";const i="__millennium_cdp_proxy__";window.__millennium_isolated_ctx__={handleResponse:function(n,o,l){void 0!==l?window[i](JSON.stringify({action:"relay_error",callbackId:n,error:l})):window[i](JSON.stringify({action:"relay",callbackId:n,result:o}))}}}();)";
 }

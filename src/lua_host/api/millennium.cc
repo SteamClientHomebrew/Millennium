@@ -85,13 +85,25 @@ static int RPC_CallFrontendMethod(lua_State* L)
 
         if (!result.value("success", false)) {
             lua_pushnil(L);
-            lua_pushstring(L, result.value("error", "unknown error").c_str());
+            std::string err;
+            if (result.contains("error") && result["error"].is_string()) {
+                err = result["error"].get<std::string>();
+            } else if (result.contains("returnJson") && result["returnJson"].is_string()) {
+                err = result["returnJson"].get<std::string>();
+            } else {
+                err = "unknown error";
+            }
+            lua_pushstring(L, err.c_str());
             return 2;
         }
 
         const auto& response = result["returnJson"];
-        std::string type = response.value("type", "");
+        std::string type = response.is_object() ? response.value("type", "") : "";
 
+        if (type == "undefined" || type == "null") {
+            lua_pushnil(L);
+            return 1;
+        }
         if (type == "string") {
             lua_pushstring(L, response["value"].get<std::string>().c_str());
             return 1;
@@ -252,6 +264,26 @@ static int RPC_CompareVersion(lua_State* L)
     return 1;
 }
 
+static int RPC_StartCoroutine(lua_State* L)
+{
+    luaL_checktype(L, 1, LUA_TTHREAD);
+    lua_State* co = lua_tothread(L, 1);
+    g_rpc->enqueue_coroutine(co);
+    return 0;
+}
+
+static int RPC_YieldReadable(lua_State* L)
+{
+    uintptr_t fd = static_cast<uintptr_t>(luaL_checkinteger(L, 1));
+    if (lua_pushthread(L)) {
+        lua_pop(L, 1);
+        return luaL_error(L, "millennium.yield_readable() must be called from a coroutine, not the main thread");
+    }
+    lua_pop(L, 1);
+    g_rpc->watch_fd(fd, L);
+    return lua_yield(L, 0);
+}
+
 static const luaL_Reg millennium_lib[] = {
     { "ready",                 RPC_EmitReadyMessage    },
     { "add_browser_css",       RPC_AddBrowserCss       },
@@ -263,6 +295,8 @@ static const luaL_Reg millennium_lib[] = {
     { "call_frontend_method",  RPC_CallFrontendMethod  },
     { "is_plugin_enabled",     RPC_IsPluginEnabled     },
     { "cmp_version",           RPC_CompareVersion      },
+    { "start_coroutine",       RPC_StartCoroutine      },
+    { "yield_readable",        RPC_YieldReadable       },
     { NULL,                    NULL                    }
 };
 

@@ -43,8 +43,9 @@ import { PluginComponent, PluginCrashInfo, SettingsProps, SystemAccentColor, The
 import { backend } from './utils/ffi';
 import { Logger } from './utils/Logger';
 import { useQuickCssState } from './utils/quick-css-state';
-import { NotificationService } from './utils/update-notification-service';
+import { notificationService } from './utils/update-notification-service';
 import { OnRunSteamURL } from './utils/url-scheme-handler';
+import { useQuickAccessStore } from './quick-access/quickAccessStore';
 import { showPluginCrashModal } from './components/PluginCrashModal';
 import { showLegacyPluginModal } from './components/LegacyPluginModal';
 import { showSupersededPluginModal, SUPERSEDED_PLUGIN_NAMES } from './components/SupersededPluginModal';
@@ -92,7 +93,6 @@ async function initializeMillennium(settings: SettingsProps) {
 
 	patchMissedDocuments();
 
-	const notificationService = new NotificationService();
 	notificationService.showNotifications();
 
 	const crashQueue: PluginCrashInfo[] = [];
@@ -182,12 +182,18 @@ export default async function PluginMain() {
 	SteamClient.URL.RegisterForRunSteamURL('millennium', OnRunSteamURL);
 
 	try {
-		await initializeMillennium(await backend.config.getInitService());
+		const initService = await backend.config.getInitService();
+		await initializeMillennium(initService);
 	} catch (error) {
 		Logger.Error('Millennium frontend initialization failed, continuing with route registration.', error);
 	} finally {
 		signalConfigReady();
 	}
+
+	Object.assign(window.MILLENNIUM_API, {
+		openQuickAccess: useQuickAccessStore.getState().openQuickAccess,
+	});
+	window.dispatchEvent(new CustomEvent('millennium-quick-access-ready'));
 
 	// If the user was in Millennium Settings when a JS context restart happened,
 	// navigate back to settings and restore the original start_page.
