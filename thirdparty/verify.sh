@@ -39,39 +39,38 @@ TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 
 check() {
-    local file="$1"
-    local url="$2"
+	local file="$1"
+	local url="$2"
 
-    if [[ ! -f "$file" ]]; then
-        echo "MISSING  $file"
-        FAIL=$((FAIL + 1))
-        return
-    fi
+	if [[ ! -f "$file" ]]; then
+		echo "MISSING  $file"
+		FAIL=$((FAIL + 1))
+		return
+	fi
 
-    printf "checking %-40s ... " "$file"
-    curl -fsSL -o "$TMPDIR/$file" "$url"
+	printf "checking %-40s ... " "$file"
+	curl -fsSL -o "$TMPDIR/$file" "$url"
 
-    local committed upstream
-    committed="$(shasum -a 256 "$file"        | awk '{print $1}')"
-    upstream="$(shasum  -a 256 "$TMPDIR/$file" | awk '{print $1}')"
+	local committed upstream
+	committed="$(shasum -a 256 "$file" | awk '{print $1}')"
+	upstream="$(shasum -a 256 "$TMPDIR/$file" | awk '{print $1}')"
 
-    if [[ "$committed" == "$upstream" ]]; then
-        echo "OK"
-        PASS=$((PASS + 1))
-    else
-        echo "MISMATCH"
-        echo "  committed: $committed"
-        echo "  upstream:  $upstream"
-        FAIL=$((FAIL + 1))
-    fi
+	if [[ "$committed" == "$upstream" ]]; then
+		echo "OK"
+		PASS=$((PASS + 1))
+	else
+		echo "MISMATCH"
+		echo "  committed: $committed"
+		echo "  upstream:  $upstream"
+		FAIL=$((FAIL + 1))
+	fi
 }
 
-check zlib-2.2.5.tar.gz            https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.2.5.tar.gz
-check luajit-89550023.tar.gz       https://github.com/SteamClientHomebrew/LuaJIT/archive/89550023569c3e195e75e12951c067fe5591e0d2.tar.gz
+check zlib-2.2.5.tar.gz https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.2.5.tar.gz
 check nlohmann_json-v3.12.0.tar.gz https://github.com/nlohmann/json/archive/refs/tags/v3.12.0.tar.gz
-check minizip_ng-4.0.10.tar.gz     https://github.com/zlib-ng/minizip-ng/archive/refs/tags/4.0.10.tar.gz
-check curl-8_13_0.tar.gz           https://github.com/curl/curl/archive/refs/tags/curl-8_13_0.tar.gz
-check catch2-v3.5.3.tar.gz         https://github.com/catchorg/Catch2/archive/refs/tags/v3.5.3.tar.gz
+check minizip_ng-4.0.10.tar.gz https://github.com/zlib-ng/minizip-ng/archive/refs/tags/4.0.10.tar.gz
+check curl-8_13_0.tar.gz https://github.com/curl/curl/archive/refs/tags/curl-8_13_0.tar.gz
+check catch2-v3.5.3.tar.gz https://github.com/catchorg/Catch2/archive/refs/tags/v3.5.3.tar.gz
 
 echo ""
 echo "$PASS passed, $FAIL failed"
