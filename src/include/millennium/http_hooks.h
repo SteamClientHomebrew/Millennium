@@ -50,13 +50,8 @@
 extern std::atomic<unsigned long long> g_hookedModuleId;
 std::string get_cdp_isolated_ctx_script();
 
-/**
- * Millennium will not load JavaScript into the following URLs to favor user safety.
- * This is a list of URLs that may have sensitive information or are not safe to load JavaScript into.
- */
-static const std::vector<std::regex> g_js_hook_blacklist = {
-    std::regex(R"(https?://checkout\.steampowered\.com/[^\s"']*)"),
-};
+/** Millennium will not load JavaScript into the following URLs (CSS injection is still allowed). */
+extern const std::vector<std::regex> g_js_hook_blacklist;
 
 /** Canonical list of Steam-owned TLDs. Both the CDP network interceptor and the webkit world manager derive their domain checks from this. */
 static constexpr const char* k_steam_tlds[] = {
@@ -64,22 +59,8 @@ static constexpr const char* k_steam_tlds[] = {
 };
 static constexpr const char* k_steam_loopback = "steamloopback.host";
 
-// clang-format off
 /** Millennium will not hook the following URLs to favor user safety. (Neither JavaScript nor CSS will be injected into these URLs.) */
-static const std::vector<std::regex> g_js_and_css_hook_blacklist = {
-    /** Ignore paypal related content */
-    std::regex(R"(https?://(?:[\w-]+\.)*paypal\.com/[^\s"']*)"),
-    std::regex(R"(https?://(?:[\w-]+\.)*paypalobjects\.com/[^\s"']*)"),
-    std::regex(R"(https?://(?:[\w-]+\.)*recaptcha\.net/[^\s"']*)"),
-
-    /** Ignore youtube related content */
-    std::regex(R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)"),
-    std::regex(R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)"),
-
-    /** Ignore Chrome Web Store (causes a webhelper crash on Fetch.fulfillRequest) */
-    std::regex(R"(https?://(?:[\w-]+\.)*chromewebstore\.google\.com/[^\s"']*)"),
-};
-// clang-format on
+extern const std::vector<std::regex> g_js_and_css_hook_blacklist;
 
 class network_hook_ctl
 {

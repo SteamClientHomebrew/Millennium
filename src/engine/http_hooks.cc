@@ -45,6 +45,21 @@
 
 std::atomic<unsigned long long> g_hookedModuleId{ 0 };
 
+// clang-format off
+const std::vector<std::regex> g_js_hook_blacklist = {
+    std::regex(R"(https?://checkout\.steampowered\.com/[^\s"']*)"),
+};
+
+const std::vector<std::regex> g_js_and_css_hook_blacklist = {
+    std::regex(R"(https?://(?:[\w-]+\.)*paypal\.com/[^\s"']*)"),
+    std::regex(R"(https?://(?:[\w-]+\.)*paypalobjects\.com/[^\s"']*)"),
+    std::regex(R"(https?://(?:[\w-]+\.)*recaptcha\.net/[^\s"']*)"),
+    std::regex(R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)"),
+    std::regex(R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)"),
+    std::regex(R"(https?://(?:[\w-]+\.)*chromewebstore\.google\.com/[^\s"']*)"),
+};
+// clang-format on
+
 json make_headers(const std::vector<std::pair<std::string, std::string>>& headers)
 {
     json j_headers = json::array();
