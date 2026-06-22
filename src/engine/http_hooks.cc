@@ -45,6 +45,21 @@
 
 std::atomic<unsigned long long> g_hookedModuleId{ 0 };
 
+// clang-format off
+const std::vector<std::regex> g_js_hook_blacklist = {
+    std::regex(R"(https?://checkout\.steampowered\.com/[^\s"']*)"),
+};
+
+const std::vector<std::regex> g_js_and_css_hook_blacklist = {
+    std::regex(R"(https?://(?:[\w-]+\.)*paypal\.com/[^\s"']*)"),
+    std::regex(R"(https?://(?:[\w-]+\.)*paypalobjects\.com/[^\s"']*)"),
+    std::regex(R"(https?://(?:[\w-]+\.)*recaptcha\.net/[^\s"']*)"),
+    std::regex(R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)"),
+    std::regex(R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)"),
+    std::regex(R"(https?://(?:[\w-]+\.)*chromewebstore\.google\.com/[^\s"']*)"),
+};
+// clang-format on
+
 json make_headers(const std::vector<std::pair<std::string, std::string>>& headers)
 {
     json j_headers = json::array();
@@ -195,8 +210,8 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
     };
 
     /** check if the request URL is a do-not-hook URL. */
-    for (const auto& doNotHook : g_js_and_css_hook_blacklist) {
-        if (std::regex_match(requestUrl, std::regex(doNotHook))) {
+    for (const auto& pattern : g_js_and_css_hook_blacklist) {
+        if (std::regex_match(requestUrl, pattern)) {
             m_cdp->send_host("Fetch.continueResponse", params);
             return;
         }
@@ -318,6 +333,11 @@ void network_hook_ctl::init()
     for (const auto* tld : k_steam_tlds) {
         patterns.push_back({
             { "urlPattern", std::format("https://*.{}/*", tld) },
+            { "resourceType", "Document" },
+            { "requestStage", "Response" }
+        });
+        patterns.push_back({
+            { "urlPattern", std::format("https://{}/*", tld) },
             { "resourceType", "Document" },
             { "requestStage", "Response" }
         });
