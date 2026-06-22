@@ -5,7 +5,7 @@
     # Bun FOD is sensitive to version changes, so we use a specific commit instead of a channel.
     nixpkgs.url = "github:nixos/nixpkgs/567a49d1913ce81ac6e9582e3553dd90a955875f";
 
-    millennium-src.url   = "github:SteamClientHomebrew/Millennium/744de7d8a69592b8bdadad74e0e2b9b961e80c5f";
+    millennium-src.url   = "github:SteamClientHomebrew/Millennium/689baa5be7e949a7525833baa0951c51edfe4f5a";
     millennium-src.flake = false;
 
   };
