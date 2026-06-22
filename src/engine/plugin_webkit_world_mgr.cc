@@ -100,7 +100,7 @@ bool webkit_world_mgr::is_valid_target_url(const std::string& url) const
 
     // forbid URLs matching the global blacklist (e.g. checkout pages)
     for (const auto& pattern : g_js_hook_blacklist) {
-        if (std::regex_match(url, std::regex(pattern))) {
+        if (std::regex_match(url, pattern)) {
             return false;
         }
     }

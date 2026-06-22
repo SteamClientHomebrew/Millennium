@@ -195,8 +195,8 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
     };
 
     /** check if the request URL is a do-not-hook URL. */
-    for (const auto& doNotHook : g_js_and_css_hook_blacklist) {
-        if (std::regex_match(requestUrl, std::regex(doNotHook))) {
+    for (const auto& pattern : g_js_and_css_hook_blacklist) {
+        if (std::regex_match(requestUrl, pattern)) {
             m_cdp->send_host("Fetch.continueResponse", params);
             return;
         }
@@ -318,6 +318,11 @@ void network_hook_ctl::init()
     for (const auto* tld : k_steam_tlds) {
         patterns.push_back({
             { "urlPattern", std::format("https://*.{}/*", tld) },
+            { "resourceType", "Document" },
+            { "requestStage", "Response" }
+        });
+        patterns.push_back({
+            { "urlPattern", std::format("https://{}/*", tld) },
             { "resourceType", "Document" },
             { "requestStage", "Response" }
         });
