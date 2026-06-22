@@ -20,7 +20,7 @@
   ...
 }:
 let
-  version = "3.3.0-beta.4";
+  version = "3.3.0-beta.5";
 
   tsPackages = [
     "src/typescript/ttc"
