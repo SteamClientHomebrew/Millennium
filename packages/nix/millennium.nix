@@ -20,7 +20,7 @@
   ...
 }:
 let
-  version = "3.3.0-beta.5";
+  version = "3.3.0-beta.6";
 
   tsPackages = [
     "src/typescript/ttc"
@@ -81,7 +81,7 @@ let
 
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = "sha256-07kSANQ5uLwsLX+wuS0Cq2YSeTqkSVnUBGqadP0Uj4Y=";
+    outputHash = "sha256-7qGT7ve1+6oLnzk1paRFNdi0/bVJIn3W5Y1+4Xgnqes=";
   };
 
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
