@@ -58,7 +58,10 @@ void head::library_updater::init(std::shared_ptr<plugin_manager> plugin_manager)
     if (!updates_enabled) {
         logger.warn("[library_updater::init] user has disabled update checking for plugins and themes — skipping background fetch");
         std::lock_guard<std::mutex> lock(m_updates_mutex);
-        cached_updates = json{ { "themes", json::array() }, { "plugins", json::array() } };
+        cached_updates = json{
+            { "themes",  json::array() },
+            { "plugins", json::array() }
+        };
         m_has_checked_for_updates = true;
         return;
     }
@@ -67,7 +70,7 @@ void head::library_updater::init(std::shared_ptr<plugin_manager> plugin_manager)
     m_update_future = std::async(std::launch::async, [self = shared_from_this()]()
     {
         logger.log("[library_updater::init] background update thread started");
-        self->check_for_updates();
+        self->fetch_updates_from_network();
         logger.log("[library_updater::init] background update thread finished");
     }).share();
     logger.log("[library_updater::init] background future submitted");
@@ -111,67 +114,44 @@ bool head::library_updater::has_checked_for_updates() const
     return m_has_checked_for_updates;
 }
 
-std::optional<json> head::library_updater::check_for_updates(bool force)
+std::optional<json> head::library_updater::fetch_updates_from_network()
 {
-    logger.log("[check_for_updates] entry: force={}", force);
+    logger.log("[fetch_updates_from_network] entry");
     try {
-        {
-            std::lock_guard<std::mutex> lock(m_updates_mutex);
-            if (!force && cached_updates.has_value()) {
-                logger.log("[check_for_updates] cache hit — returning cached result without network call");
-                return cached_updates;
-            }
-            logger.log("[check_for_updates] cache miss (has_value={}, force={})", cached_updates.has_value(), force);
-        }
-
-        if (!force && m_update_future.valid()) {
-            logger.log("[check_for_updates] waiting for in-flight background update future...");
-            m_update_future.wait();
-            logger.log("[check_for_updates] background future finished, checking cache");
-            std::lock_guard<std::mutex> lock(m_updates_mutex);
-            if (cached_updates.has_value()) {
-                logger.log("[check_for_updates] background future populated the cache — returning that");
-                return cached_updates;
-            }
-            logger.log("[check_for_updates] background future finished but cache is still empty, proceeding with fresh fetch");
-        }
-
-        logger.log("[check_for_updates] building plugin request body...");
+        logger.log("[fetch_updates_from_network] building plugin request body...");
         auto plugins = plugin_updater->get_updater_request_body();
-        logger.log("[check_for_updates] plugin request body: {} entry(ies)", plugins.size());
+        logger.log("[fetch_updates_from_network] plugin request body: {} entry(ies)", plugins.size());
 
-        logger.log("[check_for_updates] building theme request body...");
+        logger.log("[fetch_updates_from_network] building theme request body...");
         auto themes = theme_updater->get_request_body();
         bool has_theme_post_body = themes.contains("post_body") && themes["post_body"].is_array() && !themes["post_body"].empty();
-        logger.log("[check_for_updates] theme request body: has_post_body={}, post_body_size={}",
-            has_theme_post_body,
-            (has_theme_post_body ? themes["post_body"].size() : 0));
+        logger.log("[fetch_updates_from_network] theme request body: has_post_body={}, post_body_size={}", has_theme_post_body,
+                   (has_theme_post_body ? themes["post_body"].size() : 0));
 
         json request_body;
 
         if (!plugins.empty()) {
-            logger.log("[check_for_updates] adding {} plugin(s) to request body", plugins.size());
+            logger.log("[fetch_updates_from_network] adding {} plugin(s) to request body", plugins.size());
             request_body["plugins"] = plugins;
             for (const auto& p : plugins) {
-                logger.log("[check_for_updates]   plugin: id='{}' version='{}'",
-                    p.value("id", "?"), p.value("version", "?"));
+                logger.log("[fetch_updates_from_network]   plugin: id='{}' version='{}'", p.value("id", "?"), p.value("version", "?"));
             }
         } else {
-            logger.log("[check_for_updates] no plugins to check");
+            logger.log("[fetch_updates_from_network] no plugins to check");
         }
 
         if (has_theme_post_body) {
-            logger.log("[check_for_updates] adding {} theme(s) to request body", themes["post_body"].size());
+            logger.log("[fetch_updates_from_network] adding {} theme(s) to request body", themes["post_body"].size());
             request_body["themes"] = themes["post_body"];
             for (const auto& t : themes["post_body"]) {
-                logger.log("[check_for_updates]   theme: native='{}'", t.value("native", "?"));
+                logger.log("[fetch_updates_from_network]   theme: native='{}'", t.value("native", "?"));
             }
         } else {
-            logger.log("[check_for_updates] no themes to check");
+            logger.log("[fetch_updates_from_network] no themes to check");
         }
 
         if (request_body.empty()) {
-            logger.log("[check_for_updates] request body is empty — no themes or plugins installed, short-circuiting");
+            logger.log("[fetch_updates_from_network] no themes or plugins installed.");
             json result = {
                 { "themes",  {} },
                 { "plugins", {} }
@@ -183,76 +163,102 @@ std::optional<json> head::library_updater::check_for_updates(bool force)
         }
 
         std::string serialized = request_body.dump();
-        logger.log("[check_for_updates] POSTing to '{}' ({} bytes)", api_url, serialized.size());
-        logger.log("[check_for_updates] request body: {}", serialized);
+        logger.log("[fetch_updates_from_network] POSTing to '{}' ({} bytes)", api_url, serialized.size());
+        logger.log("[fetch_updates_from_network] request body: {}", serialized);
 
         auto response_str = Http::Post(api_url.c_str(), serialized);
-        logger.log("[check_for_updates] HTTP response received ({} bytes)", response_str.size());
-        logger.log("[check_for_updates] raw response: {}", response_str.size() <= 2048 ? response_str : response_str.substr(0, 2048) + "...(truncated)");
+        logger.log("[fetch_updates_from_network] HTTP response received ({} bytes)", response_str.size());
+        logger.log("[fetch_updates_from_network] raw response: {}", response_str.size() <= 128 ? response_str : response_str.substr(0, 128) + "...(truncated)");
 
         json resp;
         try {
             resp = json::parse(response_str);
-            logger.log("[check_for_updates] response parsed successfully");
+            logger.log("[fetch_updates_from_network] response parsed successfully");
         } catch (const std::exception& parse_err) {
-            logger.warn("[check_for_updates] failed to parse API response as JSON: {}", parse_err.what());
+            logger.warn("[fetch_updates_from_network] failed to parse API response as JSON: {}", parse_err.what());
             throw;
         }
 
         if (resp.contains("plugins")) {
-            logger.log("[check_for_updates] response contains {} plugin update(s)", resp["plugins"].is_array() ? resp["plugins"].size() : 0);
+            logger.log("[fetch_updates_from_network] response contains {} plugin update(s)", resp["plugins"].is_array() ? resp["plugins"].size() : 0);
             if (resp["plugins"].is_array()) {
                 for (const auto& p : resp["plugins"]) {
-                    logger.log("[check_for_updates]   plugin update: id='{}' name='{}' commit='{}'",
-                        p.value("id", "?"), p.value("name", "?"), p.value("commit", "?"));
+                    logger.log("[fetch_updates_from_network]   plugin update: id='{}' name='{}' commit='{}'", p.value("id", "?"), p.value("name", "?"), p.value("commit", "?"));
                 }
             }
         } else {
-            logger.log("[check_for_updates] response has no 'plugins' key");
+            logger.log("[fetch_updates_from_network] response has no 'plugins' key");
         }
 
         if (resp.contains("themes")) {
             bool has_error = resp["themes"].is_object() && resp["themes"].contains("error");
             bool is_empty = resp["themes"].empty();
-            logger.log("[check_for_updates] response contains themes key: empty={}, has_error={}, raw={}",
-                is_empty, has_error,
-                resp["themes"].dump().size() <= 512 ? resp["themes"].dump() : resp["themes"].dump().substr(0, 512) + "...");
+            std::string themes_raw = resp["themes"].dump();
+            logger.log("[fetch_updates_from_network] response themes: empty={}, has_error={}, raw={}", is_empty, has_error,
+                       themes_raw.size() <= 512 ? themes_raw : themes_raw.substr(0, 512) + "...");
 
             if (!is_empty && !has_error) {
-                logger.log("[check_for_updates] API returned {} theme(s), processing against local state...", resp["themes"].size());
+                logger.log("[fetch_updates_from_network] API returned {} theme(s), processing against local state...", resp["themes"].size());
                 for (const auto& t : resp["themes"]) {
-                    logger.log("[check_for_updates]   API theme: name='{}' commit='{}'",
-                        t.value("name", "?"), t.value("commit", "?"));
+                    logger.log("[fetch_updates_from_network]   API theme: name='{}' commit='{}'", t.value("name", "?"), t.value("commit", "?"));
                 }
-                logger.log("[check_for_updates] calling process_update with update_query: {}",
-                    themes.contains("update_query") ? themes["update_query"].dump() : "<missing>");
                 resp["themes"] = theme_updater->process_update(themes["update_query"], resp["themes"]);
-                logger.log("[check_for_updates] process_update done: {} theme(s) actually need updating", resp["themes"].size());
+                logger.log("[fetch_updates_from_network] process_update done: {} theme(s) need updating", resp["themes"].size());
                 for (const auto& t : resp["themes"]) {
-                    logger.log("[check_for_updates]   needs update: name='{}' native='{}'",
-                        t.value("name", "?"), t.value("native", "?"));
+                    logger.log("[fetch_updates_from_network]   needs update: name='{}' native='{}'", t.value("name", "?"), t.value("native", "?"));
                 }
             } else if (has_error) {
-                logger.warn("[check_for_updates] theme response contains error: {}", resp["themes"].value("error", "?"));
+                logger.warn("[fetch_updates_from_network] theme response contains error: {}", resp["themes"].value("error", "?"));
             }
         } else {
-            logger.log("[check_for_updates] response has no 'themes' key");
+            logger.log("[fetch_updates_from_network] response has no 'themes' key");
         }
 
-        logger.log("[check_for_updates] caching result and marking update check complete");
+        logger.log("[fetch_updates_from_network] caching result and marking update check complete");
         {
             std::lock_guard<std::mutex> lock(m_updates_mutex);
             cached_updates = resp;
             m_has_checked_for_updates = true;
         }
-        logger.log("[check_for_updates] done — final result: {}", resp.dump());
         return resp;
     } catch (const std::exception& e) {
-        logger.warn("[check_for_updates] exception caught: {}", e.what());
-        return json{
+        logger.warn("[fetch_updates_from_network] exception caught: {}", e.what());
+        json error_result = {
             { "themes", { { "error", e.what() } } }
         };
+        std::lock_guard<std::mutex> lock(m_updates_mutex);
+        cached_updates = error_result;
+        m_has_checked_for_updates = true;
+        return error_result;
     }
+}
+
+std::optional<json> head::library_updater::check_for_updates(bool force)
+{
+    logger.log("[check_for_updates] entry: force={}", force);
+
+    {
+        std::lock_guard<std::mutex> lock(m_updates_mutex);
+        if (!force && cached_updates.has_value()) {
+            logger.log("[check_for_updates] cache hit — returning without network call");
+            return cached_updates;
+        }
+        logger.log("[check_for_updates] cache miss (has_value={}, force={})", cached_updates.has_value(), force);
+    }
+
+    if (!force && m_update_future.valid()) {
+        logger.log("[check_for_updates] waiting for in-flight background update future...");
+        m_update_future.wait();
+        logger.log("[check_for_updates] background future finished, checking cache");
+        std::lock_guard<std::mutex> lock(m_updates_mutex);
+        if (cached_updates.has_value()) {
+            logger.log("[check_for_updates] background future populated the cache — returning that");
+            return cached_updates;
+        }
+        logger.log("[check_for_updates] background future finished but cache still empty, fetching directly");
+    }
+
+    return fetch_updates_from_network();
 }
 
 std::string head::library_updater::re_check_for_updates()
@@ -288,8 +294,7 @@ static thread_local double t_last_dispatched_progress = -1.0;
 void head::library_updater::dispatch_progress(const std::string& status, double progress, bool is_complete, bool success)
 {
     if (!m_ipc_main) {
-        logger.warn("[dispatch_progress] skipping: IPC bridge not ready (status='{}', progress={:.1f}, is_complete={}, success={})",
-            status, progress, is_complete, success);
+        logger.warn("[dispatch_progress] skipping: IPC bridge not ready (status='{}', progress={:.1f}, is_complete={}, success={})", status, progress, is_complete, success);
         return;
     }
 
@@ -302,13 +307,11 @@ void head::library_updater::dispatch_progress(const std::string& status, double 
         // Throttle: skip if progress hasn't moved ≥2% and it's been less than 250ms.
         // This prevents flooding the CDP channel during rapid download/extraction callbacks.
         if (delta < 2.0 && elapsed_ms < 250) {
-            logger.log("[dispatch_progress] throttled: delta={:.2f}% elapsed={}ms status='{}' progress={:.1f}",
-                delta, elapsed_ms, status, progress);
+            logger.log("[dispatch_progress] throttled: delta={:.2f}% elapsed={}ms status='{}' progress={:.1f}", delta, elapsed_ms, status, progress);
             return;
         }
 
-        logger.log("[dispatch_progress] sending: op_id={} status='{}' progress={:.1f}% delta={:.2f}% elapsed={}ms",
-            t_current_op_id, status, progress, delta, elapsed_ms);
+        logger.log("[dispatch_progress] sending: op_id={} status='{}' progress={:.1f}% delta={:.2f}% elapsed={}ms", t_current_op_id, status, progress, delta, elapsed_ms);
         t_last_dispatched_progress = progress;
         t_last_dispatch_time = now;
     } else {

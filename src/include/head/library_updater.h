@@ -85,5 +85,6 @@ class library_updater : public std::enable_shared_from_this<library_updater>
     std::shared_future<void> m_update_future;
 
     std::atomic<int> m_next_op_id{ 1 };
+    std::optional<json> fetch_updates_from_network();
 };
 } // namespace head
