@@ -1,0 +1,264 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2026 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+use crate::ffi_types::FfiType;
+use crate::format::section::SubEntry;
+use std::path::Path;
+
+pub fn check(
+    lua_entries: &[SubEntry],
+    config_dir: &Path,
+    frontend_entry: Option<&str>,
+    webkit_entry: Option<&str>,
+) -> anyhow::Result<Vec<String>> {
+    let lua = crate::lua_ffi::scan(lua_entries)?;
+    let ts = crate::ts_ffi::scan(config_dir, frontend_entry)?;
+    let webkit = crate::ts_ffi::scan(config_dir, webkit_entry)?;
+
+    let mut errors = 0usize;
+
+    for call in &ts.ffi_calls {
+        let lua_fn = lua.exported_fns.iter().find(|f| f.name == call.fn_name);
+
+        match lua_fn {
+            None => {
+                crate::log::build_error(
+                    &format!("FFI: `{}` is not exported from the backend", call.fn_name),
+                    &format!(
+                        "  → called in {}{}\n  → add `---@ffi` above `function {}(...)` in Lua\n",
+                        call.file,
+                        if call.line > 0 {
+                            format!(":{}", call.line)
+                        } else {
+                            String::new()
+                        },
+                        call.fn_name,
+                    ),
+                );
+                errors += 1;
+            }
+            Some(lua_fn) => {
+                // arity check for ts tuple length vs lua @param count
+                if !call.param_types.is_empty() && call.param_types.len() != lua_fn.params.len() {
+                    crate::log::build_error(
+                        &format!("FFI: arity mismatch for `{}`", call.fn_name),
+                        &format!(
+                            "  → TypeScript passes {} arg(s), Lua `{}` declares {} param(s)\n",
+                            call.param_types.len(),
+                            call.fn_name,
+                            lua_fn.params.len(),
+                        ),
+                    );
+                    errors += 1;
+                }
+
+                // return type compatibility
+                if let Some(lua_ret) = &lua_fn.return_type {
+                    if !matches!(call.return_type, FfiType::Unknown)
+                        && !call.return_type.compatible_with(lua_ret)
+                    {
+                        crate::log::build_error(
+                            &format!("FFI: return type mismatch for `{}`", call.fn_name),
+                            &format!(
+                                "  → TypeScript expects `{}`, Lua declares `---@return {}`\n",
+                                call.return_type, lua_ret,
+                            ),
+                        );
+                        errors += 1;
+                    }
+                }
+
+                // per-param type compatibility
+                for (i, (call_ty, (lua_param_name, lua_ty))) in call
+                    .param_types
+                    .iter()
+                    .zip(lua_fn.params.iter())
+                    .enumerate()
+                {
+                    if !matches!(call_ty, FfiType::Unknown) && !call_ty.compatible_with(lua_ty) {
+                        crate::log::build_error(
+                            &format!(
+                                "FFI: param type mismatch for `{}` arg {} (`{}`)",
+                                call.fn_name,
+                                i + 1,
+                                lua_param_name
+                            ),
+                            &format!(
+                                "  → TypeScript passes `{}`, Lua declares `---@param {} {}`\n",
+                                call_ty, lua_param_name, lua_ty,
+                            ),
+                        );
+                        errors += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    for call in &webkit.ffi_calls {
+        if let Some(frontend_name) = call.fn_name.strip_prefix("frontend:") {
+            if !ts.exposed_fns.iter().any(|f| f.name == frontend_name) {
+                crate::log::build_error(
+                    &format!("FFI: webkit calls `frontend:{}` but it is not exported from the frontend", frontend_name),
+                    &format!(
+                        "  → called in {}{}\n  → add `/** @ffi */ export function {}(...)` in TypeScript\n",
+                        call.file,
+                        if call.line > 0 { format!(":{}", call.line) } else { String::new() },
+                        frontend_name,
+                    ),
+                );
+                errors += 1;
+            }
+        } else {
+            let lua_fn = lua.exported_fns.iter().find(|f| f.name == call.fn_name);
+            match lua_fn {
+                None => {
+                    crate::log::build_error(
+                        &format!("FFI: webkit `{}` is not exported from the backend", call.fn_name),
+                        &format!(
+                            "  → called in {}{}\n  → add `---@ffi` above `function {}(...)` in Lua\n",
+                            call.file,
+                            if call.line > 0 { format!(":{}", call.line) } else { String::new() },
+                            call.fn_name,
+                        ),
+                    );
+                    errors += 1;
+                }
+                Some(lua_fn) => {
+                    if !call.param_types.is_empty() && call.param_types.len() != lua_fn.params.len()
+                    {
+                        crate::log::build_error(
+                            &format!("FFI: webkit arity mismatch for `{}`", call.fn_name),
+                            &format!(
+                                "  → webkit passes {} arg(s), Lua `{}` declares {} param(s)\n",
+                                call.param_types.len(),
+                                call.fn_name,
+                                lua_fn.params.len(),
+                            ),
+                        );
+                        errors += 1;
+                    }
+                    if let Some(lua_ret) = &lua_fn.return_type {
+                        if !matches!(call.return_type, FfiType::Unknown)
+                            && !call.return_type.compatible_with(lua_ret)
+                        {
+                            crate::log::build_error(
+                                &format!("FFI: webkit return type mismatch for `{}`", call.fn_name),
+                                &format!(
+                                    "  → webkit expects `{}`, Lua declares `---@return {}`\n",
+                                    call.return_type, lua_ret,
+                                ),
+                            );
+                            errors += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // call_frontend_method("name") in lua -> must match a /** @ffi */ ts fn
+    for lua_call in &lua.frontend_calls {
+        if !ts.exposed_fns.iter().any(|f| f.name == lua_call.fn_name) {
+            crate::log::warn(&format!(
+                "FFI: `{}` called from Lua ({}{}) but no `/** @ffi */` function found in TypeScript",
+                lua_call.fn_name,
+                lua_call.file,
+                if lua_call.line > 0 { format!(":{}", lua_call.line) } else { String::new() },
+            ));
+        }
+    }
+
+    if errors > 0 {
+        return Err(anyhow::anyhow!(
+            "FFI validation failed ({} error(s))",
+            errors
+        ));
+    }
+
+    // .d.ts generation
+    if !lua.exported_fns.is_empty() {
+        generate_dts(&lua.exported_fns, config_dir)?;
+    }
+
+    Ok(ts.exposed_fns.into_iter().map(|f| f.name).collect())
+}
+
+fn generate_dts(
+    exports: &[crate::lua_ffi::LuaExportedFn],
+    config_dir: &Path,
+) -> anyhow::Result<()> {
+    let dir = config_dir.join(".millennium");
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| anyhow::anyhow!("cannot create {}: {}", dir.display(), e))?;
+
+    let mut out = String::from(
+        "// Auto-generated by starlight - do not manually edit\n\
+         // Add to tsconfig.json \"include\" for type-safe FFI calls\n\n",
+    );
+
+    for func in exports {
+        let location = if func.line > 0 {
+            format!("{}:{}", func.file, func.line)
+        } else {
+            func.file.clone()
+        };
+
+        let params_str = func
+            .params
+            .iter()
+            .map(|(name, ty)| format!("{}: {}", name, ty.to_ts()))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let ret_str = func
+            .return_type
+            .as_ref()
+            .map(|t| t.to_ts())
+            .unwrap_or_else(|| "unknown".to_string());
+
+        out.push_str(&format!("/** {} */\n", location));
+        out.push_str(&format!(
+            "declare const {}: ({}) => Promise<{}>;\n",
+            func.name, params_str, ret_str
+        ));
+    }
+
+    let path = dir.join("backend.d.ts");
+    std::fs::write(&path, &out)
+        .map_err(|e| anyhow::anyhow!("cannot write {}: {}", path.display(), e))?;
+
+    crate::log::info(&format!(
+        "Generated {} with {} export(s)",
+        crate::log::dim(&path.display().to_string()),
+        exports.len()
+    ));
+
+    Ok(())
+}
