@@ -39,9 +39,9 @@ fn fnv1a_u32(state: u32, value: u32) -> u32 {
 }
 
 pub fn weave_parity(data: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(data.len() + (data.len() / PLG_STRIDE + 1) * 10);
+    let mut out = Vec::with_capacity(data.len() + (data.len() / PLG_STRIDE + 1) * 12);
     let mut rolling: u32 = PLG_PARITY_SEED;
-    let mut block_index: u16 = 0;
+    let mut block_index: u32 = 0;
 
     for chunk in data.chunks(PLG_STRIDE) {
         out.extend_from_slice(chunk);
@@ -62,18 +62,18 @@ pub fn verify_and_strip_parity(woven: &[u8]) -> anyhow::Result<Vec<u8>> {
 
     let mut out = Vec::new();
     let mut rolling: u32 = PLG_PARITY_SEED;
-    let mut expected_index: u16 = 0;
+    let mut expected_index: u32 = 0;
     let mut pos = 0;
 
     while pos < woven.len() {
         let remaining = woven.len() - pos;
         anyhow::ensure!(
-            remaining >= 10,
+            remaining >= 12,
             "truncated parity stream at block {}",
             expected_index
         );
 
-        let data_end = (pos + PLG_STRIDE).min(woven.len() - 10);
+        let data_end = (pos + PLG_STRIDE).min(woven.len() - 12);
         anyhow::ensure!(
             data_end > pos,
             "malformed parity stream: zero-length chunk at block {}",
@@ -81,11 +81,11 @@ pub fn verify_and_strip_parity(woven: &[u8]) -> anyhow::Result<Vec<u8>> {
         );
 
         let chunk = &woven[pos..data_end];
-        let parity_bytes = &woven[data_end..data_end + 10];
+        let parity_bytes = &woven[data_end..data_end + 12];
 
         let stored_xor = u32::from_le_bytes(parity_bytes[0..4].try_into().unwrap());
         let stored_roll = u32::from_le_bytes(parity_bytes[4..8].try_into().unwrap());
-        let stored_index = u16::from_le_bytes(parity_bytes[8..10].try_into().unwrap());
+        let stored_index = u32::from_le_bytes(parity_bytes[8..12].try_into().unwrap());
 
         let xor_check = chunk.iter().fold(0u32, |acc, &b| acc ^ b as u32);
         let expected_roll = fnv1a_u32(rolling ^ xor_check, xor_check);
@@ -110,7 +110,7 @@ pub fn verify_and_strip_parity(woven: &[u8]) -> anyhow::Result<Vec<u8>> {
         out.extend_from_slice(chunk);
         rolling = expected_roll;
         expected_index += 1;
-        pos = data_end + 10;
+        pos = data_end + 12;
     }
     Ok(out)
 }
