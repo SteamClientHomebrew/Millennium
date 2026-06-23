@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { Logger as ClientLogger } from "@steambrew/client";
+import { Logger as ClientLogger } from "@steambrew/sdk";
 
 const _logger = new ClientLogger("Frontend");
 

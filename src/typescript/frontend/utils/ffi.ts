@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ffi } from '@steambrew/client';
+import { ffi } from '@steambrew/sdk';
 import {
 	BackendOpResult,
 	InstallStartResponse,

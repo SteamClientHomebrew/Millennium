@@ -43,7 +43,7 @@ import {
 	Field,
 	ErrorBoundary,
 	findModuleDetailsByExport,
-} from '@steambrew/client';
+} from '@steambrew/sdk';
 import { ConditionsStore, ICondition, SliderConfig, ThemeColorOption, ThemeItem } from '../types';
 import { settingsClasses } from '../utils/classes';
 import { locale } from '../utils/localization-manager';

@@ -29,7 +29,7 @@
  */
 
 import { Component } from 'react';
-import { ConfirmModal, DialogButton, DialogControlsSection, joinClassNames, pluginSelf, showModal } from '@steambrew/client';
+import { ConfirmModal, DialogButton, DialogControlsSection, joinClassNames, pluginSelf, showModal } from '@steambrew/sdk';
 import { PluginComponent, PluginMetrics } from '../../types';
 import { locale } from '../../utils/localization-manager';
 import { settingsClasses } from '../../utils/classes';

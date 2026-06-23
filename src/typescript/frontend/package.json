@@ -5,8 +5,7 @@
         "typecheck": "tsc --noEmit"
     },
     "devDependencies": {
-        "@steambrew/client": "workspace:*",
-        "@steambrew/webkit": "workspace:*",
+        "@steambrew/sdk": "workspace:*",
         "@steambrew/ttc": "workspace:*",
         "@types/node": "^20.14.9",
         "@types/react": "19.1.1",

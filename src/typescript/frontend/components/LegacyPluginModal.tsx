@@ -1,4 +1,4 @@
-import { ConfirmModal, Field, Navigation, pluginSelf, showModal } from '@steambrew/client';
+import { ConfirmModal, Field, Navigation, pluginSelf, showModal } from '@steambrew/sdk';
 import { PluginComponent } from '../types';
 import { locale } from '../utils/localization-manager';
 

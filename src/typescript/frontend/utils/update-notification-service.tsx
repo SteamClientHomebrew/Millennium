@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { IconsModule, pluginSelf, sleep, toaster, Navigation } from '@steambrew/client';
+import { IconsModule, pluginSelf, sleep, toaster, Navigation } from '@steambrew/sdk';
 import { settingsManager } from './settings-manager';
 import { OnMillenniumUpdate } from '../types';
 import { MillenniumIcons } from '../components/Icons';

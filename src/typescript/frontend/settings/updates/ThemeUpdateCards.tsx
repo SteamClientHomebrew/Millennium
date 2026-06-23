@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { pluginSelf } from '@steambrew/client';
+import { pluginSelf } from '@steambrew/sdk';
 import { SettingsDialogSubHeader } from '../../components/SteamComponents';
 import { formatString, locale, SteamLocale, tryResolveLocale } from '../../utils/localization-manager';
 import { UpdateCard, UpdateItemType } from './UpdateCard';
