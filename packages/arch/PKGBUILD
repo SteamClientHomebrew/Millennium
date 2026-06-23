@@ -12,7 +12,6 @@ makedepends=('git' 'bun' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-l
 install=millennium.install
 source=("git+$url.git#commit=948d3bb57f811d4bd9a1f43963defe73253a05bf")
 sha256sums=('SKIP')
-options=(debug)
 
 _pkgdir="Millennium"
 
