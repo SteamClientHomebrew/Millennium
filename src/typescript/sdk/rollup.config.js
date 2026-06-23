@@ -9,8 +9,7 @@ import typescript from '@rollup/plugin-typescript';
 import externalGlobals from 'rollup-plugin-external-globals';
 import injectProcessEnv from 'rollup-plugin-inject-process-env';
 
-const clientVersion = JSON.parse(fs.readFileSync(new URL('../client/package.json', import.meta.url))).version;
-const browserVersion = JSON.parse(fs.readFileSync(new URL('../browser/package.json', import.meta.url))).version;
+const pkg = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url)));
 
 export default {
 	input: 'src/index.ts',
@@ -51,8 +50,8 @@ export default {
 			},
 		},
 		injectProcessEnv({
-			MILLENNIUM_FRONTEND_LIB_VERSION: clientVersion,
-			MILLENNIUM_BROWSER_LIB_VERSION: browserVersion,
+			MILLENNIUM_FRONTEND_LIB_VERSION: pkg.version,
+			MILLENNIUM_BROWSER_LIB_VERSION: pkg.version,
 			MILLENNIUM_LOADER_BUILD_DATE: new Date().toISOString(),
 		}),
 		resolve(),

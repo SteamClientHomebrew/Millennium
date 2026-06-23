@@ -10,10 +10,10 @@ declare global {
 	}
 }
 
-import { Logger } from '@steambrew/client/build/logger';
+import { Logger } from './sharedjscontext/logger';
 
 class Bootstrap {
-	logger: Logger;
+	logger!: Logger;
 	millenniumVersionToken: string | undefined = undefined;
 
 	init(versionToken: string) {
@@ -28,7 +28,7 @@ class Bootstrap {
 	}
 
 	async loadMillennium() {
-		const steambrewClientModule = await import('@steambrew/client');
+		const steambrewClientModule = await import('./sharedjscontext/index');
 		const millenniumApiModule = await import('./millennium-api');
 
 		/** Set Auth Token */
@@ -52,7 +52,7 @@ class Bootstrap {
 	async injectLegacyReactGlobals() {
 		if (window.SP_REACT) return; /** we're already setup */
 
-		const webpack = await import('@steambrew/client/build/webpack');
+		const webpack = await import('./sharedjscontext/webpack');
 
 		window.SP_REACT = webpack.findModule((m) => m.Component && m.PureComponent && m.useLayoutEffect);
 		window.SP_REACTDOM =
@@ -81,7 +81,7 @@ class Bootstrap {
 	}
 
 	waitForClientReady(): Promise<void> {
-		const checkReady = async (resolve: () => void, interval) => {
+		const checkReady = async (resolve: () => void, interval: ReturnType<typeof setInterval>) => {
 			// @ts-expect-error Part of the builtin Steam Client API.
 			if (!window.App?.BFinishedInitStageOne()) return;
 			clearInterval(interval);
@@ -115,8 +115,8 @@ class Bootstrap {
 		await Promise.all(shimList?.map((shim) => import(shim)) ?? []);
 	}
 
-	async startBrowser(enabledPlugins?: string[], legacyShimList?: string[], ctxShimList?: string[], ftpBasePath?: string) {
-		this.init(null);
+	async startBrowser(enabledPlugins?: string[], legacyShimList?: string[], ctxShimList?: string[], _ftpBasePath?: string) {
+		this.init('');
 		const millenniumApiModule = await import('./millennium-api');
 
 		window.MILLENNIUM_API = millenniumApiModule;
@@ -127,10 +127,10 @@ class Bootstrap {
 		await browserUtils.addPluginDOMBreadCrumbs(enabledPlugins);
 
 		/** Inject the JavaScript shims into the DOM */
-		await this.appendShimsToDOM(legacyShimList);
+		await this.appendShimsToDOM(legacyShimList ?? []);
 
 		/** Import the JavaScript shims in the current context */
-		await this.importShimsInContext(ctxShimList);
+		await this.importShimsInContext(ctxShimList ?? []);
 	}
 
 	async startClient(version: string, plugins?: string[]) {

@@ -3,7 +3,7 @@
 	"compilerOptions": {
 		"baseUrl": ".",
 		"paths": {
-			"@steambrew/client": ["../../src/typescript/sdk/packages/test/src/client-shim.ts"],
+			"@steambrew/sdk": ["../../src/typescript/tests/harness/client-shim.ts"],
 			"@/*": ["../../src/typescript/*"]
 		},
 		"types": ["bun"],

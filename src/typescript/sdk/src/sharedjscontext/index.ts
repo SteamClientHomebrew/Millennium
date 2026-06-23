@@ -5,7 +5,6 @@ export * from './custom-components';
 export * from './custom-hooks';
 export * from './deck-hooks';
 export * from './globals';
-export * from './millennium-api';
 export * from './modules';
 export * from './constSysfsExpr';
 export * from './utils';

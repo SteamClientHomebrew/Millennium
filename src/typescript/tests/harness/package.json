@@ -4,12 +4,12 @@
 	"description": "Test harness for the Millennium FFI boundary between TypeScript frontend and C++ backend.",
 	"license": "LGPL-2.1-only",
 	"type": "module",
-	"main": "./src/index.ts",
-	"types": "./src/index.ts",
+	"main": "./index.ts",
+	"types": "./index.ts",
 	"exports": {
-		".": "./src/index.ts",
-		"./client-shim": "./src/client-shim.ts",
-		"./setup": "./src/setup.ts"
+		".": "./index.ts",
+		"./client-shim": "./client-shim.ts",
+		"./setup": "./setup.ts"
 	},
 	"files": [
 		"/src"
@@ -19,14 +19,10 @@
 	},
 	"dependencies": {
 		"@happy-dom/global-registrator": "^15.11.7",
-		"@steambrew/api": "workspace:*",
-		"@steambrew/client": "workspace:*"
+		"@steambrew/sdk": "workspace:*"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.1.0",
 		"typescript": "^5.8.3"
-	},
-	"publishConfig": {
-		"access": "public"
 	}
 }

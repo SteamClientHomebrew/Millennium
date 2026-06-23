@@ -28,40 +28,24 @@
  * SOFTWARE.
  */
 
-import {
-    ffi as realFfi,
-    callable as realCallable,
-    Millennium as realMillennium,
-    BindPluginSettings as realBindPluginSettings,
-    subscribePluginConfig as realSubscribePluginConfig,
-    pluginSelf as realPluginSelf
-} from '@steambrew/api/src/millennium-api';
+import { mock } from 'bun:test';
+import { GlobalRegistrator } from '@happy-dom/global-registrator';
 
-let TEST_PLUGIN_NAME = 'core';
+GlobalRegistrator.register({ url: 'https://steamloopback.host/' });
 
-export function setTestPluginName(name: string): void {
-	TEST_PLUGIN_NAME = name;
+await import('@steambrew/sdk/src/millennium-api');
+
+mock.module('@steambrew/sdk', async () => {
+	const shim = await import('./client-shim');
+	return shim;
+});
+
+const { installFFIStub } = await import('./ffi-stub');
+const stub = installFFIStub();
+(globalThis as any).__steambrew_test_stub__ = stub;
+
+declare global {
+	var __steambrew_test_stub__: ReturnType<typeof installFFIStub>;
 }
 
-export function getTestPluginName(): string {
-	return TEST_PLUGIN_NAME;
-}
-
-export const ffi: <Args extends unknown[] = [], Ret = unknown>(route: string) => (...args: Args) => Promise<Ret> =
-	(route: string) => realFfi(TEST_PLUGIN_NAME, route) as any;
-
-export const callable: <Args extends [Record<string, unknown>] | [] = [], Ret = unknown>(route: string) => (...args: Args) => Promise<Ret> =
-	(route: string) => realCallable(TEST_PLUGIN_NAME, route) as any;
-
-export const Millennium = {
-	callServerMethod: (methodName: string, kwargs?: object) => realMillennium.callServerMethod(TEST_PLUGIN_NAME, methodName, kwargs),
-	findElement: realMillennium.findElement,
-	exposeObj: realMillennium.exposeObj,
-};
-
-export const BindPluginSettings = () => realBindPluginSettings(TEST_PLUGIN_NAME);
-
-export const subscribePluginConfig = (cb: (key: string, value: any) => void): (() => void) =>
-	realSubscribePluginConfig(TEST_PLUGIN_NAME, cb);
-
-export const pluginSelf = realPluginSelf;
+export {};
