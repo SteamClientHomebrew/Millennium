@@ -79,6 +79,9 @@ static std::string parse_lua_shim(const std::string& plg_path)
     const uint32_t shim_len =
         static_cast<uint32_t>(len_buf[0]) | (static_cast<uint32_t>(len_buf[1]) << 8) | (static_cast<uint32_t>(len_buf[2]) << 16) | (static_cast<uint32_t>(len_buf[3]) << 24);
 
+    static constexpr uint32_t SHIM_MAX_SIZE = 4u * 1024u * 1024u;
+    if (shim_len == 0 || shim_len > SHIM_MAX_SIZE) return {};
+
     std::string shim(shim_len, '\0');
     if (!f.read(shim.data(), shim_len)) return {};
     return shim;
@@ -595,14 +598,16 @@ int main(int argc, char* argv[])
             /* register non-entry files into package.preload */
             const std::filesystem::path backend_root = std::filesystem::path(g_backend_entry).parent_path();
 
-            auto lua_name_from_path = [&](const std::string& packed_name)
+            auto lua_name_from_path = [&](const std::string& packed_name) -> std::string
             {
                 std::filesystem::path rel = std::filesystem::path(packed_name).lexically_relative(backend_root);
                 rel.replace_extension();
                 std::string mod;
                 for (const auto& part : rel) {
+                    const std::string s = part.string();
+                    if (s.empty() || s == "." || s == "..") return {};
                     if (!mod.empty()) mod += '.';
-                    mod += part.string();
+                    mod += s;
                 }
                 return mod;
             };
@@ -612,6 +617,7 @@ int main(int argc, char* argv[])
             for (const auto& e : all_entries) {
                 if (e.name == g_backend_entry) continue;
                 const std::string mod = lua_name_from_path(e.name);
+                if (mod.empty()) continue;
                 const std::string chunk_label = "=(packed/" + e.name + ")";
                 if (luaL_loadbuffer(L, e.src.c_str(), e.src.size(), chunk_label.c_str()) == LUA_OK)
                     lua_setfield(L, -2, mod.c_str());
@@ -635,13 +641,13 @@ int main(int argc, char* argv[])
                 const char* err = lua_tostring(L, -1);
                 return lua_fail("packed entry load", err);
             }
-            if (lua_pcall(L, 0, LUA_MULTRET, 0) != LUA_OK) {
+            if (lua_pcall(L, 0, 1, 0) != LUA_OK) {
                 const char* err = lua_tostring(L, -1);
                 return lua_fail("packed entry exec", err);
             }
         } else {
             /* Legacy plugin: load from file path */
-            if (luaL_loadfile(L, g_backend_file.c_str()) != LUA_OK || lua_pcall(L, 0, LUA_MULTRET, 0) != LUA_OK) {
+            if (luaL_loadfile(L, g_backend_file.c_str()) != LUA_OK || lua_pcall(L, 0, 1, 0) != LUA_OK) {
                 const char* err = lua_tostring(L, -1);
                 return lua_fail(g_backend_file.c_str(), err);
             }
