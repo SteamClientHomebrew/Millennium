@@ -75,9 +75,19 @@ void webkit_world_mgr::initialize()
 
 static bool is_steam_owned_url(const std::string& url)
 {
-    if (url.find(std::string("https://") + k_steam_loopback + "/") == 0) return true;
+    /* extract just the hostname: skip scheme, stop at port / path / query */
+    auto scheme_end = url.find("://");
+    if (scheme_end == std::string::npos) return false;
+    auto host_start = scheme_end + 3;
+    auto host_end = url.find_first_of(":/?#", host_start);
+    std::string host = url.substr(host_start, host_end == std::string::npos ? std::string::npos : host_end - host_start);
+
+    if (host == k_steam_loopback) return true;
     for (const auto* tld : k_steam_tlds) {
-        if (url.find(std::string(".") + tld + "/") != std::string::npos) return true;
+        const size_t tld_len = std::strlen(tld);
+        if (host == tld) return true;
+        if (host.size() > tld_len + 1 && host[host.size() - tld_len - 1] == '.' && host.compare(host.size() - tld_len, tld_len, tld) == 0)
+            return true;
     }
     return false;
 }

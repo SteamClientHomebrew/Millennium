@@ -187,6 +187,7 @@ std::string Crypto::encrypt(const std::string& plaintext)
     std::array<uint8_t, 16> tag = {};
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) return "";
     EVP_EncryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, nullptr, nullptr);
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, nullptr);
     EVP_EncryptInit_ex(ctx, nullptr, nullptr, key.data(), iv.data());
@@ -227,6 +228,7 @@ std::string Crypto::decrypt(const std::string& ciphertext)
     std::vector<uint8_t> plain(payload_len);
 
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) return "";
     EVP_DecryptInit_ex(ctx, EVP_aes_256_gcm(), nullptr, nullptr, nullptr);
     EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, 12, nullptr);
     EVP_DecryptInit_ex(ctx, nullptr, nullptr, key.data(), iv.data());

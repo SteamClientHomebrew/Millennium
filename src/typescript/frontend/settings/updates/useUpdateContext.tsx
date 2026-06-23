@@ -140,7 +140,7 @@ export const refetchMillenniumUpdates = async (channel: MillenniumUpdateChannel)
  * Module-level fetchAvailableUpdates — survives unmount so background update
  * completions can refresh the list without calling setState on a dead component.
  */
-const _fetchAvailableUpdates = async (force: boolean = false): Promise<boolean> => {
+export const fetchAvailableUpdates = async (force: boolean = false): Promise<boolean> => {
 	try {
 		if (force || !pluginSelf.hasCheckedForUpdates) {
 			const isFirstCheck = !pluginSelf.hasCheckedForUpdates;
@@ -206,7 +206,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 		/* re-sync in case operations completed while unmounted. */
 		this.syncFromOpState();
 
-		_fetchAvailableUpdates();
+		fetchAvailableUpdates();
 	}
 
 	componentWillUnmount() {
@@ -252,7 +252,7 @@ export class UpdateContextProvider extends React.Component<UpdateContextProvider
 					setPluginProgress: opSetPluginProgress,
 					isAnyUpdating: this.isAnyUpdating,
 					hasAnyUpdates: this.hasAnyUpdates,
-					fetchAvailableUpdates: _fetchAvailableUpdates,
+					fetchAvailableUpdates: fetchAvailableUpdates,
 				}}
 			>
 				{this.props.children}
