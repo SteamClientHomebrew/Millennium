@@ -230,9 +230,9 @@ static std::string extract_primary_entry(const std::vector<star_sub_entry_t>& en
     return {};
 }
 
-static bool star_is_trusted(const uint8_t** star_hdr, const std::vector<uint8_t>& data)
+static bool star_is_trusted(const uint8_t* star_hdr, const std::vector<uint8_t>& data)
 {
-    const uint8_t star_flags = *(star_hdr[7]);
+    const uint8_t star_flags = star_hdr[7];
 
     bool is_trusted = false;
     if (star_flags & STAR_FLAG_SIGNED) {
@@ -281,7 +281,7 @@ std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::p
 
     const uint8_t* star_hdr = file_data.data() + star_start;
 
-    const bool is_trusted = star_is_trusted(&star_hdr, file_data);
+    const bool is_trusted = star_is_trusted(star_hdr, file_data);
 
     // Verify shim integrity when a shim prefix is present (hash covers raw shim bytes).
     if (star_start > 0) {
