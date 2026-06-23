@@ -277,9 +277,12 @@ pub(crate) fn build_error(header: &str, body: &str) {
         .unwrap_or_else(|e| e.into_inner());
     const TAG_THRESHOLD: usize = 15;
     let time = now_hms_us();
+    let label = "starlight";
+    let overflow = TAG_THRESHOLD.saturating_sub(label.len());
     println!(
-        "{} › {} › {}",
-        " ".repeat(TAG_THRESHOLD),
+        "{}{} › {} › {}",
+        " ".repeat(overflow),
+        Color::Rgb(255, 200, 50).apply(label),
         Level::Error.style_time(&time),
         Level::Error.style_message(header)
     );
