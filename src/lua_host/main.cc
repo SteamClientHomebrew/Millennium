@@ -62,6 +62,9 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#if defined(__linux__)
+#include <sys/prctl.h>
+#endif
 #endif
 
 rpc_client* g_rpc = nullptr;
@@ -422,6 +425,16 @@ int main(int argc, char* argv[])
     }
 
     const char* socket_path = argv[1];
+
+#if defined(__linux__)
+    /*
+     * the parent thread that called fork() may be an ephemeral MEP handler thread
+     * that exits after processing plugin.restart. prctl(PR_SET_PDEATHSIG) is tied
+     * to the forking thread (not the process), so when that thread exits we'd get
+     * a spurious SIGTERM. Clear it immediately, socket EOF is our death signal.
+     */
+    prctl(PR_SET_PDEATHSIG, 0);
+#endif
 
     plugin_ipc::socket_fd fd = connect_to_parent(socket_path);
     if (fd == plugin_ipc::INVALID_FD) {
