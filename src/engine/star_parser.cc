@@ -141,18 +141,18 @@ static std::vector<uint8_t> star_strip_parity(const std::vector<uint8_t>& woven)
     out.reserve(woven.size());
 
     uint32_t rolling = STAR_PARITY_SEED;
-    uint16_t expected_idx = 0;
+    uint32_t expected_idx = 0;
     size_t pos = 0;
 
     while (pos < woven.size()) {
-        if (woven.size() - pos <= 10) throw std::runtime_error("truncated parity stream at block " + std::to_string(expected_idx));
+        if (woven.size() - pos <= 12) throw std::runtime_error("truncated parity stream at block " + std::to_string(expected_idx));
 
-        size_t data_end = std::min(pos + STAR_STRIDE, woven.size() - 10);
+        size_t data_end = std::min(pos + STAR_STRIDE, woven.size() - 12);
 
         const uint8_t* pb = woven.data() + data_end;
         uint32_t stored_xor = read_u32_le(pb);
         uint32_t stored_roll = read_u32_le(pb + 4);
-        uint16_t stored_index = read_u16_le(pb + 8);
+        uint32_t stored_index = read_u32_le(pb + 8);
 
         uint32_t xor_check = 0;
         for (size_t i = pos; i < data_end; ++i)
@@ -167,7 +167,7 @@ static std::vector<uint8_t> star_strip_parity(const std::vector<uint8_t>& woven)
         out.insert(out.end(), woven.begin() + pos, woven.begin() + data_end);
         rolling = expected_roll;
         ++expected_idx;
-        pos = data_end + 10;
+        pos = data_end + 12;
     }
 
     return out;
@@ -175,8 +175,11 @@ static std::vector<uint8_t> star_strip_parity(const std::vector<uint8_t>& woven)
 
 static std::vector<uint8_t> star_decode_section(const std::vector<uint8_t>& file_data, size_t star_start, const star_section_t& sec)
 {
+    if (static_cast<size_t>(sec.offset) > file_data.size() - star_start)
+        throw std::runtime_error("section 0x" + std::to_string(sec.id) + " offset overflow");
     size_t abs_start = star_start + sec.offset;
-    if (abs_start + sec.length > file_data.size()) throw std::runtime_error("section 0x" + std::to_string(sec.id) + " extends beyond file");
+    if (static_cast<size_t>(sec.length) > file_data.size() - abs_start)
+        throw std::runtime_error("section 0x" + std::to_string(sec.id) + " extends beyond file");
 
     std::vector<uint8_t> blob(file_data.begin() + abs_start, file_data.begin() + abs_start + sec.length);
 
@@ -266,6 +269,10 @@ std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::p
     if (std::memcmp(file_data.data(), STAR_MAGIC, 4) != 0) {
         // Shimmed format: [shim_len u32][raw_shim][StarHeader]
         const uint32_t shim_len = read_u32_le(file_data.data());
+        if (static_cast<size_t>(shim_len) > file_data.size() - 4) {
+            LOG_ERROR("star: {} shim prefix extends beyond file", star_path.string());
+            return std::nullopt;
+        }
         star_start = 4 + static_cast<size_t>(shim_len);
 
         if (star_start + STAR_HEADER_SIZE > file_data.size()) {
@@ -385,6 +392,7 @@ std::string star_read_javascript(const std::filesystem::path& star_path, star_js
     if (file_data.size() < 8) return {};
     if (std::memcmp(file_data.data(), STAR_MAGIC, 4) != 0) {
         const uint32_t shim_len = read_u32_le(file_data.data());
+        if (static_cast<size_t>(shim_len) > file_data.size() - 4) return {};
         star_start = 4 + static_cast<size_t>(shim_len);
     }
 

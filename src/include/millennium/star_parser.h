@@ -48,6 +48,9 @@ inline std::vector<uint8_t> star_decompress(const uint8_t* src, size_t src_len)
 
     const uint32_t orig_size = static_cast<uint32_t>(src[0]) | (static_cast<uint32_t>(src[1]) << 8) | (static_cast<uint32_t>(src[2]) << 16) | (static_cast<uint32_t>(src[3]) << 24);
 
+    static constexpr uint32_t STAR_DECOMPRESS_MAX = 64u * 1024u * 1024u;
+    if (orig_size > STAR_DECOMPRESS_MAX) throw std::runtime_error("star_decompress: decompressed size exceeds 64 MB limit");
+
     std::vector<uint8_t> out(orig_size);
 
     const uint8_t* ip = src + 4;
