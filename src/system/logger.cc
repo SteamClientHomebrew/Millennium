@@ -141,9 +141,9 @@ void plugin_logger::log(const std::string& message, bool onlyBuffer, uint64_t ti
 
     if (!onlyBuffer) {
         std::cout << std::format("{} \033[1m\033[34m{}\033[0m\033[0m", get_local_time(), formatted) << message << "\n";
+        file << formatted << message << "\n";
+        file.flush();
     }
-    file << formatted << message << "\n";
-    file.flush();
 
     const log_entry entry{ message, log_level::info, timestamp_us ? timestamp_us : now_us(), std::move(src_file), src_line };
     logBuffer.push_back(entry);
@@ -155,9 +155,9 @@ void plugin_logger::warn(const std::string& message, bool onlyBuffer, uint64_t t
     const std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
     if (!onlyBuffer) {
         std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
+        file << formatted;
+        file.flush();
     }
-    file << formatted;
-    file.flush();
 
     const log_entry entry{ message, log_level::warn, timestamp_us ? timestamp_us : now_us(), std::move(src_file), src_line };
     logBuffer.push_back(entry);
@@ -169,9 +169,9 @@ void plugin_logger::error(const std::string& message, bool onlyBuffer, uint64_t 
     const std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
     if (!onlyBuffer) {
         std::cout << COL_RED << formatted << COL_RESET << '\n';
+        file << formatted;
+        file.flush();
     }
-    file << formatted;
-    file.flush();
 
     const log_entry entry{ message, log_level::error, timestamp_us ? timestamp_us : now_us(), std::move(src_file), src_line };
     logBuffer.push_back(entry);
