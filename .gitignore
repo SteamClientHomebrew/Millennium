@@ -29,7 +29,13 @@ scripts/RC*
 # macOS system files
 **/.DS_Store
 
+# Starlight: artifacts built by build.rs
+starlight/npm/bin/*.zip
+starlight/target-types/
+
 # Nix build files
 **/result
 __cmake_systeminformation/
 target/
+starlight/npm/bin/millennium/types/
+starlight/npm/binaries/
