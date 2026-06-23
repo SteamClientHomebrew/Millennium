@@ -50,20 +50,24 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use super::transforms::{
-    apply_transforms, CONSOLE_HOOK, FRONTEND_INJECT_ARGS, FRONTEND_INJECT_CONSTS, FRONTEND_RENAMES,
-    WEBKIT_INJECT_ARGS, WEBKIT_INJECT_CONSTS, WEBKIT_RENAMES,
+    apply_transforms, CONSOLE_HOOK, FRONTEND_INJECT_ARGS_SLICES, FRONTEND_INJECT_CONSTS,
+    FRONTEND_RENAMES, WEBKIT_INJECT_ARGS_SLICES, WEBKIT_INJECT_CONSTS, WEBKIT_RENAMES,
 };
 use super::wrapper::wrap;
 
 static FRONTEND_DEFAULTS: &[(&str, &str)] = &[
     ("@steambrew/client", "window.MILLENNIUM_API"),
+    ("@steambrew/millennium", "window.MILLENNIUM_API"),
     ("react", "window.SP_REACT"),
     ("react-dom", "window.SP_REACTDOM"),
     ("react-dom/client", "window.SP_REACTDOM"),
     ("react/jsx-runtime", "SP_JSX_FACTORY"),
 ];
 
-static WEBKIT_DEFAULTS: &[(&str, &str)] = &[("@steambrew/webkit", "window.MILLENNIUM_API")];
+static WEBKIT_DEFAULTS: &[(&str, &str)] = &[
+    ("@steambrew/webkit", "window.MILLENNIUM_API"),
+    ("@steambrew/millennium", "window.MILLENNIUM_API"),
+];
 
 pub enum BundleTarget {
     Frontend,
@@ -80,6 +84,7 @@ pub fn bundle(
     source_map_url: Option<&str>,
     inspect: &crate::config::InspectConfig,
     outro: Option<String>,
+    lua_ffi_names: &[String],
 ) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
     let rt = tokio::runtime::Runtime::new()
         .map_err(|e| anyhow::anyhow!("failed to create tokio runtime: {}", e))?;
@@ -93,6 +98,7 @@ pub fn bundle(
         source_map_url,
         inspect,
         outro,
+        lua_ffi_names,
     ))
 }
 
@@ -106,6 +112,7 @@ async fn async_bundle(
     source_map_url: Option<&str>,
     inspect: &crate::config::InspectConfig,
     outro: Option<String>,
+    lua_ffi_names: &[String],
 ) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
     let entry_path = if Path::new(entry).is_absolute() {
         entry.to_string()
@@ -201,20 +208,21 @@ async fn async_bundle(
     }
     anyhow::ensure!(!raw_js.is_empty(), "rolldown produced no .js output");
 
-    let (ia, rn, ic) = match target {
+    let (ia_slices, rn, ic) = match target {
         BundleTarget::Frontend => (
-            FRONTEND_INJECT_ARGS,
+            FRONTEND_INJECT_ARGS_SLICES,
             FRONTEND_RENAMES,
             FRONTEND_INJECT_CONSTS,
         ),
-        BundleTarget::Webkit => (WEBKIT_INJECT_ARGS, WEBKIT_RENAMES, WEBKIT_INJECT_CONSTS),
+        BundleTarget::Webkit => (WEBKIT_INJECT_ARGS_SLICES, WEBKIT_RENAMES, WEBKIT_INJECT_CONSTS),
     };
+    let ia: Vec<_> = ia_slices.iter().flat_map(|s| s.iter()).copied().collect();
     let sm = if !map_bytes.is_empty() {
         sourcemap::SourceMap::from_slice(&map_bytes).ok()
     } else {
         None
     };
-    let transformed = apply_transforms(&raw_js, ia, rn, ic, Some(&CONSOLE_HOOK), sm.as_ref());
+    let transformed = apply_transforms(&raw_js, &ia, rn, ic, Some(&CONSOLE_HOOK), sm.as_ref());
 
     let is_client = matches!(target, BundleTarget::Frontend);
     let wrapped = wrap(
@@ -223,6 +231,7 @@ async fn async_bundle(
         is_client,
         source_map_url,
         inspect,
+        lua_ffi_names,
     );
 
     let final_js = if mode == BuildMode::Release {

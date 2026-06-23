@@ -36,6 +36,7 @@ pub(crate) mod ffi_lint;
 pub(crate) mod ffi_types;
 mod format;
 pub(crate) mod log;
+pub(crate) mod lsp;
 pub(crate) mod lua_ffi;
 pub(crate) mod mep;
 mod minify;
@@ -95,6 +96,7 @@ enum Command {
     Verify { file: PathBuf },
     Inspect { file: PathBuf },
     Watch,
+    Lsp,
 }
 
 fn resolve_config(dir: Option<&Path>, config: &Path) -> PathBuf {
@@ -123,7 +125,7 @@ fn main() {
     let cfg_path = resolve_config(cli.dir.as_deref(), &cli.config);
 
     let result = match cli.command.unwrap_or(Command::Pack) {
-        Command::Pack => pack::pack(&cfg_path, cli.of.as_deref(), mode).map(|dev| {
+        Command::Pack => pack::pack(&cfg_path, cli.of.as_deref(), mode, None).map(|dev| {
             if let Some(d) = dev {
                 mep::restart_plugin(&d.plugin_name, &d.socket, d.reload_steamui_when.is_active());
             }
@@ -131,6 +133,11 @@ fn main() {
         Command::Verify { file } => verify::verify(&file),
         Command::Inspect { file } => verify::inspect(&file),
         Command::Watch => watch::watch(&cfg_path, cli.of.as_deref(), mode),
+        Command::Lsp => {
+            let plugin_dir = cfg_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+            crate::config::load(&cfg_path)
+                .and_then(|cfg| lsp::install_types(&plugin_dir, env!("CARGO_PKG_VERSION"), &cfg))
+        }
     };
 
     if let Err(e) = result {

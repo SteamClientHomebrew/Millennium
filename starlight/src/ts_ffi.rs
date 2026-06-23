@@ -419,6 +419,128 @@ fn byte_offset_to_line(source: &str, offset: usize) -> u32 {
         + 1
 }
 
+pub struct BackendCall {
+    pub method: String,
+    pub arg_count: usize,
+    pub file: String,
+    pub line: u32,
+}
+
+/// Scan TS files for `backend.METHOD(...)` call expressions.
+pub fn scan_backend_calls(config_dir: &Path, entry: Option<&str>) -> anyhow::Result<Vec<BackendCall>> {
+    let mut calls = Vec::new();
+    for path in find_ts_files(config_dir, entry) {
+        let source = match std::fs::read_to_string(&path) { Ok(s) => s, Err(_) => continue };
+        let rel = path.strip_prefix(config_dir).unwrap_or(&path).to_string_lossy().to_string();
+        let source_type = if path.extension().map_or(false, |e| e == "tsx") { SourceType::tsx() } else { SourceType::ts() };
+        let alloc = Allocator::default();
+        let ret = Parser::new(&alloc, &source, source_type).parse();
+        if ret.panicked { continue; }
+        collect_backend_calls(&ret.program.body, &source, &rel, &mut calls);
+    }
+    Ok(calls)
+}
+
+fn collect_backend_calls<'a>(stmts: &[Statement<'a>], source: &str, file: &str, out: &mut Vec<BackendCall>) {
+    for stmt in stmts {
+        collect_backend_calls_stmt(stmt, source, file, out);
+    }
+}
+
+fn collect_backend_calls_stmt<'a>(stmt: &Statement<'a>, source: &str, file: &str, out: &mut Vec<BackendCall>) {
+    match stmt {
+        Statement::ExpressionStatement(es) => collect_backend_calls_expr(&es.expression, source, file, out),
+        Statement::VariableDeclaration(vd) => {
+            for decl in &vd.declarations {
+                if let Some(init) = &decl.init {
+                    collect_backend_calls_expr(init, source, file, out);
+                }
+            }
+        }
+        Statement::ReturnStatement(rs) => {
+            if let Some(arg) = &rs.argument {
+                collect_backend_calls_expr(arg, source, file, out);
+            }
+        }
+        Statement::IfStatement(s) => {
+            collect_backend_calls_expr(&s.test, source, file, out);
+            collect_backend_calls_stmt(&s.consequent, source, file, out);
+            if let Some(alt) = &s.alternate { collect_backend_calls_stmt(alt, source, file, out); }
+        }
+        Statement::BlockStatement(b) => collect_backend_calls(&b.body, source, file, out),
+        Statement::FunctionDeclaration(fd) => collect_backend_calls(&fd.body.as_ref().map_or([].as_slice(), |b| b.statements.as_slice()), source, file, out),
+        _ => {}
+    }
+}
+
+fn collect_backend_calls_expr<'a>(expr: &Expression<'a>, source: &str, file: &str, out: &mut Vec<BackendCall>) {
+    match expr {
+        Expression::CallExpression(call) => {
+            // Detect `backend.METHOD(...)`
+            if let Expression::StaticMemberExpression(member) = &call.callee {
+                if let Expression::Identifier(obj) = &member.object {
+                    if obj.name == "backend" {
+                        let method = member.property.name.to_string();
+                        let arg_count = call.arguments.len();
+                        let line = byte_offset_to_line(source, call.span.start as usize);
+                        out.push(BackendCall { method, arg_count, file: file.to_string(), line });
+                    }
+                }
+            }
+            // Recurse into callee and args
+            collect_backend_calls_expr(&call.callee, source, file, out);
+            for arg in &call.arguments {
+                if let Some(e) = arg.as_expression() { collect_backend_calls_expr(e, source, file, out); }
+            }
+        }
+        Expression::AwaitExpression(a) => collect_backend_calls_expr(&a.argument, source, file, out),
+        Expression::ArrowFunctionExpression(af) => {
+            collect_backend_calls(&af.body.statements, source, file, out);
+        }
+        _ => {}
+    }
+}
+
+pub struct WebkitImport {
+    pub name: String,
+    pub file: String,
+    pub line: u32,
+}
+
+pub fn scan_webkit_imports(config_dir: &Path, webkit_entry: Option<&str>) -> anyhow::Result<Vec<WebkitImport>> {
+    const SDK_PACKAGES: &[&str] = &["@steambrew/millennium", "@steambrew/client", "@steambrew/webkit"];
+
+    let mut imports = Vec::new();
+    for path in find_ts_files(config_dir, webkit_entry) {
+        let source = match std::fs::read_to_string(&path) { Ok(s) => s, Err(_) => continue };
+        let rel = path.strip_prefix(config_dir).unwrap_or(&path).to_string_lossy().to_string();
+        let source_type = if path.extension().map_or(false, |e| e == "tsx") { SourceType::tsx() } else { SourceType::ts() };
+        let alloc = Allocator::default();
+        let ret = Parser::new(&alloc, &source, source_type).parse();
+        if ret.panicked { continue; }
+
+        for stmt in &ret.program.body {
+            if let Statement::ImportDeclaration(import) = stmt {
+                let src = import.source.value.as_str();
+                if !SDK_PACKAGES.contains(&src) { continue; }
+                let line_num = source[..import.span.start as usize].bytes().filter(|&b| b == b'\n').count() as u32 + 1;
+                if let Some(specifiers) = &import.specifiers {
+                    for spec in specifiers {
+                        if let ImportDeclarationSpecifier::ImportSpecifier(s) = spec {
+                            imports.push(WebkitImport {
+                                name: s.imported.name().to_string(),
+                                file: rel.clone(),
+                                line: line_num,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(imports)
+}
+
 fn find_ts_files(config_dir: &Path, frontend_entry: Option<&str>) -> Vec<std::path::PathBuf> {
     // scope to the frontend entry's parent directory so webkit/preload files
     // (which have different ffi semantics) don't get mixed in.

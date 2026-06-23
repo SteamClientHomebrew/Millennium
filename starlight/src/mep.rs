@@ -30,7 +30,7 @@
 use std::io::{self, Read, Write};
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
-    mpsc, Arc,
+    mpsc, Arc, Mutex,
 };
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -84,30 +84,82 @@ pub enum PrintMsg {
     InitDone,
 }
 
-fn do_print(e: &PrintEntry) {
+#[derive(Clone)]
+pub struct LogColors {
+    pub backend: crate::log::Color,
+    pub frontend: crate::log::Color,
+    pub webview: crate::log::Color,
+    pub backend_prefix: Option<String>,
+    pub frontend_prefix: Option<String>,
+    pub webview_prefix: Option<String>,
+}
+
+impl LogColors {
+    pub fn from_config(cfg: &crate::config::LoggerConfig) -> Self {
+        let rgb = |c: [u8; 3]| crate::log::Color::Rgb(c[0], c[1], c[2]);
+        Self {
+            backend: rgb(cfg.backend_col),
+            frontend: rgb(cfg.frontend_col),
+            webview: rgb(cfg.webview_col),
+            backend_prefix: cfg.backend_prefix.clone(),
+            frontend_prefix: cfg.frontend_prefix.clone(),
+            webview_prefix: cfg.webview_prefix.clone(),
+        }
+    }
+}
+
+impl Default for LogColors {
+    fn default() -> Self {
+        Self::from_config(&crate::config::LoggerConfig::default())
+    }
+}
+
+fn apply_prefix(template: &str, file: Option<&str>, line: Option<u32>) -> String {
+    if !template.contains("{file}") {
+        return template.to_owned();
+    }
+    let loc = match (file, line) {
+        (Some(f), Some(n)) if !f.is_empty() && n > 0 => format!("{}:L{}", f, n),
+        (Some(f), _) if !f.is_empty() => f.to_owned(),
+        _ => String::new(),
+    };
+    let expanded = template.replace("{file}", &loc);
+    // Collapse any whitespace artifacts from empty substitution
+    expanded.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn do_print(e: &PrintEntry, colors: &LogColors) {
     use crate::log::{self, Color};
 
     let ts = log::format_epoch_us(e.timestamp_us);
 
-    let tag: Option<(String, Color)> = match (&e.file, e.line) {
-        (Some(f), Some(n)) if !f.is_empty() && n > 0 => {
-            let color = match e.source.as_str() {
-                "backend" => Color::Magenta,
-                "webkit" => Color::Cyan,
-                _ => Color::Blue,
-            };
-            Some((format!("{}:L{}", f, n), color))
+    let (source_color, prefix_tmpl): (Color, Option<&str>) = match e.source.as_str() {
+        "backend" => (colors.backend, colors.backend_prefix.as_deref()),
+        "webkit" | "webview" => (colors.webview, colors.webview_prefix.as_deref()),
+        _ => (colors.frontend, colors.frontend_prefix.as_deref()),
+    };
+
+    let file = e.file.as_deref().filter(|f| !f.is_empty());
+    let line = e.line.filter(|&n| n > 0);
+
+    let tag: Option<(String, Color)> = match prefix_tmpl {
+        Some(tmpl) => {
+            let label = apply_prefix(tmpl, file, line);
+            if label.is_empty() { None } else { Some((label, source_color)) }
         }
-        _ => match e.source.as_str() {
-            "frontend" => Some(("frontend".to_owned(), Color::Blue)),
-            "webkit" => Some(("webkit".to_owned(), Color::Cyan)),
-            _ => None,
+        None => match (file, line) {
+            (Some(f), Some(n)) => Some((format!("{}:L{}", f, n), source_color)),
+            _ => match e.source.as_str() {
+                "frontend" => Some(("frontend".to_owned(), colors.frontend)),
+                "webkit" | "webview" => Some(("webview".to_owned(), colors.webview)),
+                _ => None,
+            },
         },
     };
 
     let entry = match tag {
-        Some((label, color)) => log::tag(label, color),
-        None => log::entry(),
+        Some((label, color)) => log::plugin_tag(label, color),
+        None => log::plugin_entry(),
     }
     .with_timestamp(ts);
 
@@ -118,7 +170,7 @@ fn do_print(e: &PrintEntry) {
     }
 }
 
-pub fn run_printer(rx: mpsc::Receiver<PrintMsg>) {
+pub fn run_printer(rx: mpsc::Receiver<PrintMsg>, colors: Arc<Mutex<LogColors>>) {
     let mut sort_buf: Vec<PrintEntry> = Vec::new();
     let mut init_phase = true;
 
@@ -147,8 +199,9 @@ pub fn run_printer(rx: mpsc::Receiver<PrintMsg>) {
                         }
                     }
                     burst.sort_by_key(|e| e.timestamp_us);
+                    let c = colors.lock().unwrap_or_else(|e| e.into_inner()).clone();
                     for e in &burst {
-                        do_print(e);
+                        do_print(e, &c);
                     }
                 }
             }
@@ -156,8 +209,9 @@ pub fn run_printer(rx: mpsc::Receiver<PrintMsg>) {
                 if init_phase {
                     init_phase = false;
                     sort_buf.sort_by_key(|e| e.timestamp_us);
+                    let c = colors.lock().unwrap_or_else(|e| e.into_inner()).clone();
                     for e in sort_buf.drain(..) {
-                        do_print(&e);
+                        do_print(&e, &c);
                     }
                 }
             }
@@ -229,9 +283,89 @@ pub fn wall_us() -> u64 {
         .as_micros() as u64
 }
 
+pub fn stream_crashes(plugin_name: String, socket: String, shutdown: Arc<AtomicBool>) {
+    sleep_interruptible(Duration::from_millis(500), &shutdown);
+    while !shutdown.load(Ordering::Relaxed) {
+        match try_crash_session(&plugin_name, &socket, &shutdown) {
+            Ok(()) => {}
+            Err(_) => {
+                sleep_interruptible(Duration::from_millis(500), &shutdown);
+            }
+        }
+    }
+}
+
+fn try_crash_session(plugin_name: &str, socket: &str, shutdown: &AtomicBool) -> anyhow::Result<()> {
+    #[derive(serde::Serialize)]
+    struct Empty {}
+
+    let req = Request {
+        id: "starlight-crash",
+        method: "plugin.crash",
+        params: Empty {},
+    };
+
+    let mut stream = connect(socket)?;
+    stream.set_write_timeout(Some(Duration::from_secs(5)))?;
+    stream.set_read_timeout(Some(Duration::from_millis(200)))?;
+    write_request(&mut stream, &req)?;
+
+    let frame = match await_frame(&mut stream, shutdown)? {
+        Some(f) => f,
+        None => return Ok(()),
+    };
+    let init: serde_json::Value = rmp_serde::from_slice(&frame)
+        .map_err(|e| anyhow::anyhow!("invalid crash subscribe response: {}", e))?;
+    if let Some(err) = init.get("error").and_then(|e| e.as_str()) {
+        return Err(anyhow::anyhow!("plugin.crash error: {}", err));
+    }
+
+    loop {
+        if shutdown.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+        match read_frame(&mut stream)? {
+            Some(frame) => {
+                if let Ok(val) = rmp_serde::from_slice::<serde_json::Value>(&frame) {
+                    if val.get("type").and_then(|t| t.as_str()) == Some("event") {
+                        if let Some(data) = val.get("data") {
+                            let crashed = data
+                                .get("plugin")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("");
+                            if crashed != plugin_name {
+                                continue;
+                            }
+                            let exit_code = data
+                                .get("exit_code")
+                                .and_then(|v| v.as_u64())
+                                .unwrap_or(0);
+                            let msg = if exit_code > 0 && exit_code < 32 {
+                                format!(
+                                    "Plugin '{}' crashed with signal {}, check crash dump for details",
+                                    plugin_name, exit_code
+                                )
+                            } else if exit_code != 0 {
+                                format!(
+                                    "Plugin '{}' exited with code 0x{:X}",
+                                    plugin_name, exit_code
+                                )
+                            } else {
+                                format!("Plugin '{}' exited unexpectedly", plugin_name)
+                            };
+                            crate::log::tag("CRASH", crate::log::Color::Red).error(&msg);
+                        }
+                    }
+                }
+            }
+            None => {}
+        }
+    }
+}
+
 pub fn restart_plugin(plugin_name: &str, socket: &str, reload_steamui: bool) {
     match try_restart(plugin_name, socket, reload_steamui) {
-        Ok(()) => crate::log::tag("HMR", crate::log::Color::BrightGreen)
+        Ok(()) => crate::log::tag("HMR", crate::log::Color::BabyBlue)
             .info(&format!("Restarted plugin '{}'", plugin_name)),
         Err(_) => {}
     }
@@ -288,8 +422,6 @@ pub fn stream_unified(
             Err(_) => {
                 if !shutdown.load(Ordering::Relaxed) {
                     if !waiting {
-                        crate::log::tag("MEP", crate::log::Color::Cyan)
-                            .info(&crate::log::dim("waiting for Millennium..."));
                         waiting = true;
                     }
                     sleep_interruptible(Duration::from_millis(200), &shutdown);

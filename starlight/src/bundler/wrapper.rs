@@ -35,6 +35,7 @@ pub fn wrap(
     is_client: bool,
     source_map_url: Option<&str>,
     inspect: &crate::config::InspectConfig,
+    lua_ffi_names: &[String],
 ) -> String {
     let code = strip_sourcemap(bundle_js).trim_end();
 
@@ -95,6 +96,16 @@ pub fn wrap(
         show_hidden = inspect.show_hidden,
     );
 
+    let ffi_stubs = if lua_ffi_names.is_empty() {
+        String::new()
+    } else {
+        let methods = lua_ffi_names
+            .iter()
+            .map(|name| format!("    {}: window.MILLENNIUM_API.ffi(pluginName, '{}'),\n", name, name))
+            .collect::<String>();
+        format!("const backend = {{\n{}}};\n", methods)
+    };
+
     let sourcemap_comment = match source_map_url {
         Some(url) => format!("\n//# sourceMappingURL={url}"),
         None => String::new(),
@@ -105,12 +116,18 @@ pub fn wrap(
          const pluginName = {plugin_name_json};\n\
          (window.PLUGIN_LIST ||= {{}})[pluginName] ||= {{}};\n\
          window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS ||= {{}};\n\
+         {ffi_stubs}\
          \n\
          {console_helper}\
          \n\
          let PluginEntryPointMain = function () {{\n\
          \tconst __exports = {{}};\n\
-         \t__exports.default = {iife};\n\
+         \tconst __bundle = {iife};\n\
+         \tif (__bundle && typeof __bundle === 'object' && 'default' in __bundle) {{\n\
+         \t\tObject.assign(__exports, __bundle);\n\
+         \t}} else {{\n\
+         \t\t__exports.default = __bundle;\n\
+         \t}}\n\
          \treturn __exports;\n\
          }};\n\
          \n\
@@ -133,6 +150,7 @@ pub fn wrap(
          }})();{sourcemap_comment}\n",
         is_client = is_client_str,
         plugin_name_json = plugin_name_json,
+        ffi_stubs = ffi_stubs,
         iife = iife_expr,
         post_message = post_message,
         sourcemap_comment = sourcemap_comment,

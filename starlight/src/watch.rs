@@ -32,7 +32,7 @@ use notify::{recommended_watcher, RecursiveMode, Watcher};
 use std::path::{Path, PathBuf};
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
-    mpsc, Arc,
+    mpsc, Arc, Mutex,
 };
 use std::time::{Duration, Instant};
 
@@ -43,7 +43,7 @@ pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> an
 
     let config_dir = config_path.parent().unwrap().to_path_buf();
     let out_owned = out_path.map(|p| p.to_path_buf());
-    let dev = run_pack(&config_path, out_owned.as_deref(), mode)
+    let dev = run_pack(&config_path, out_owned.as_deref(), mode, Some(""))
         .ok()
         .flatten();
 
@@ -57,8 +57,18 @@ pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> an
 
     let (tx, rx) = std::sync::mpsc::channel::<crate::mep::PrintMsg>();
 
+    let log_colors = Arc::new(Mutex::new(
+        crate::config::load(&config_path)
+            .map(|cfg| {
+                crate::log::set_global_tag_padding(cfg.logger.padding);
+                crate::mep::LogColors::from_config(&cfg.logger)
+            })
+            .unwrap_or_default(),
+    ));
+    let log_colors_printer = Arc::clone(&log_colors);
+
     let printer_thread = std::thread::spawn(move || {
-        crate::mep::run_printer(rx);
+        crate::mep::run_printer(rx, log_colors_printer);
     });
 
     let stream_thread = dev.as_ref().map(|d| {
@@ -70,6 +80,15 @@ pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> an
         let tx = tx.clone();
         std::thread::spawn(move || {
             crate::mep::stream_unified(plugin_name, socket, shutdown, reconnect, session_start, tx);
+        })
+    });
+
+    let crash_thread = dev.as_ref().map(|d| {
+        let plugin_name = d.plugin_name.clone();
+        let socket = d.socket.clone();
+        let shutdown = Arc::clone(&shutdown);
+        std::thread::spawn(move || {
+            crate::mep::stream_crashes(plugin_name, socket, shutdown);
         })
     });
 
@@ -87,8 +106,6 @@ pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> an
     watcher
         .watch(&config_dir, RecursiveMode::Recursive)
         .map_err(|e| anyhow::anyhow!("watch error: {}", e))?;
-
-    crate::log::info("Press CTRL^C to exit...");
 
     loop {
         let mut changed: Vec<PathBuf> = match fs_rx.recv() {
@@ -114,8 +131,32 @@ pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> an
             }
         }
 
-        crate::log::info("change detected");
-        match run_pack(&config_path, out_owned.as_deref(), mode) {
+        // ignore changes starlight itself writes
+        let millennium_dir = config_dir.join(".millennium");
+        changed.retain(|p| {
+            !p.starts_with(&millennium_dir)
+                && p.extension().map_or(true, |e| e != "star")
+        });
+        if changed.is_empty() {
+            continue;
+        }
+
+        // hot reload logger config whenever millennium.toml changes
+        if changed.iter().any(|p| p == &config_path) {
+            if let Ok(new_cfg) = crate::config::load(&config_path) {
+                crate::log::set_global_tag_padding(new_cfg.logger.padding);
+                let new_colors = crate::mep::LogColors::from_config(&new_cfg.logger);
+                *log_colors.lock().unwrap_or_else(|e| e.into_inner()) = new_colors;
+                crate::log::tag("Config", crate::log::Color::BabyBlue)
+                    .info("Reloaded millennium.toml");
+            }
+        }
+
+        let label = changed
+            .first()
+            .and_then(|p| p.file_name())
+            .map(|n| n.to_string_lossy().into_owned());
+        match run_pack(&config_path, out_owned.as_deref(), mode, label.as_deref()) {
             Err(()) => {}
             Ok(new_dev) => {
                 let effective_dev = new_dev.as_ref().or(dev.as_ref());
@@ -131,16 +172,20 @@ pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> an
         }
     }
 
-    stop(shutdown, stream_thread, printer_thread)
+    stop(shutdown, stream_thread, crash_thread, printer_thread)
 }
 
 fn stop(
     shutdown: Arc<AtomicBool>,
     stream_thread: Option<std::thread::JoinHandle<()>>,
+    crash_thread: Option<std::thread::JoinHandle<()>>,
     printer_thread: std::thread::JoinHandle<()>,
 ) -> anyhow::Result<()> {
     shutdown.store(true, Ordering::Relaxed);
     if let Some(t) = stream_thread {
+        let _ = t.join();
+    }
+    if let Some(t) = crash_thread {
         let _ = t.join();
     }
     let _ = printer_thread.join();
@@ -151,8 +196,9 @@ fn run_pack(
     config_path: &Path,
     out_path: Option<&Path>,
     mode: BuildMode,
+    watcher_label: Option<&str>,
 ) -> Result<Option<DevRuntime>, ()> {
-    match crate::pack::pack(config_path, out_path, mode) {
+    match crate::pack::pack(config_path, out_path, mode, watcher_label) {
         Ok(dev) => Ok(dev),
         Err(e) => {
             if e.downcast_ref::<crate::bundler::js::BundleCompileError>()

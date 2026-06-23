@@ -26,7 +26,10 @@ if (!fs.existsSync(bin)) {
 }
 
 try {
-  execFileSync(bin, process.argv.slice(2), { stdio: "inherit" });
+  execFileSync(bin, process.argv.slice(2), {
+    stdio: "inherit",
+    env: { ...process.env, STARLIGHT_TYPES_DIR: path.join(__dirname, "millennium", "types") },
+  });
 } catch (e) {
   process.exit(e.status ?? 1);
 }

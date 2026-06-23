@@ -53,6 +53,7 @@ pub fn pack(
     config_path: &Path,
     out_path: Option<&Path>,
     mode: BuildMode,
+    watcher_label: Option<&str>,
 ) -> anyhow::Result<Option<crate::config::DevRuntime>> {
     let start = std::time::Instant::now();
     let config_path = config_path
@@ -60,6 +61,10 @@ pub fn pack(
         .map_err(|_| anyhow::anyhow!("config not found: {}", config_path.display()))?;
     let config_dir = config_path.parent().unwrap();
     let cfg = crate::config::load(&config_path)?;
+
+    if let Err(e) = crate::lsp::install_types(config_dir, env!("CARGO_PKG_VERSION"), &cfg) {
+        crate::log::warn(&format!("lsp: failed to install types: {}", e));
+    }
 
     let out_path = match out_path {
         Some(p) => p.to_path_buf(),
@@ -85,15 +90,18 @@ pub fn pack(
     let mut raw_sections: Vec<(u8, Vec<u8>)> = vec![(SECTION_METADATA, metadata_blob)];
 
     let mut ffi_exposed: Vec<String> = Vec::new();
+    let mut lua_ffi_names: Vec<String> = Vec::new();
 
     if let Some(backend_cfg) = &cfg.backend {
         let mut entries = lua::collect(&backend_cfg.sources, config_dir)?;
-        ffi_exposed = crate::ffi_lint::check(
+        let lint = crate::ffi_lint::check(
             &entries,
             config_dir,
             cfg.frontend.as_ref().map(|f| f.entry.as_str()),
             cfg.webkit.as_ref().map(|w| w.entry.as_str()),
         )?;
+        ffi_exposed = lint.0;
+        lua_ffi_names = lint.1;
         if mode == BuildMode::Release {
             for entry in &mut entries {
                 entry.data = crate::minify::minify_lua(&entry.data);
@@ -132,6 +140,7 @@ pub fn pack(
             map_url.as_deref(),
             &cfg.inspect,
             outro,
+            &lua_ffi_names,
         )?;
 
         if let (Some(path), false) = (&map_disk_path, map_bytes.is_empty()) {
@@ -170,6 +179,7 @@ pub fn pack(
             map_url.as_deref(),
             &cfg.inspect,
             None,
+            &lua_ffi_names,
         )?;
 
         if let (Some(path), false) = (&map_disk_path, map_bytes.is_empty()) {
@@ -242,7 +252,7 @@ pub fn pack(
 
     let elapsed = start.elapsed();
     let mode_str = if mode == BuildMode::Debug {
-        "debug [unoptimized + debuginfo]"
+        "debug"
     } else {
         "release"
     };
@@ -251,19 +261,25 @@ pub fn pack(
     } else {
         crate::log::orange("not signed")
     };
-    crate::log::info(&format!(
-        "{} {} in {:.2}s {}{}{}",
-        crate::log::green("Finished"),
-        crate::log::underline(mode_str),
+    let out_filename = out_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("output.star");
+    let finished = format!(
+        "{} {} {} in {:.2}s {}{}{}",
+        crate::log::green("Compiled"),
+        out_filename,
+        mode_str,
         elapsed.as_secs_f64(),
-        crate::log::dim(&format!(
-            "({:.2}kB, {} sections, ",
-            out.len() as f64 / 1024.0,
-            section_count
-        )),
+        crate::log::dim(&format!("({:.2}kB, ", out.len() as f64 / 1024.0)),
         sign_str,
         crate::log::dim(&format!(" v{})", cfg.plugin.version)),
-    ));
+    );
+    match watcher_label {
+        None => crate::log::entry().info(&finished),
+        Some("") => crate::log::tag("HMR", crate::log::Color::BabyBlue).info(&finished),
+        Some(_) => crate::log::tag("HMR", crate::log::Color::BabyBlue).info(&finished),
+    }
 
     let dev = cfg.dev.as_ref().map(|dev| crate::config::DevRuntime {
         plugin_name: dev

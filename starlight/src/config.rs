@@ -39,6 +39,43 @@ pub struct PlgConfig {
     pub dev: Option<DevConfig>,
     #[serde(default)]
     pub inspect: InspectConfig,
+    #[serde(default)]
+    pub logger: LoggerConfig,
+}
+
+fn default_backend_col() -> [u8; 3] { [160, 90, 180] }
+fn default_frontend_col() -> [u8; 3] { [90, 148, 200] }
+fn default_webview_col() -> [u8; 3] { [65, 165, 160] }
+fn default_padding() -> i32 { -15 }
+
+#[derive(Deserialize)]
+pub struct LoggerConfig {
+    #[serde(default = "default_backend_col")]
+    pub backend_col: [u8; 3],
+    #[serde(default = "default_frontend_col")]
+    pub frontend_col: [u8; 3],
+    #[serde(default = "default_webview_col")]
+    pub webview_col: [u8; 3],
+    /// Negative = right-align (pad left), positive = left-align (pad right), 0 = no padding.
+    #[serde(default = "default_padding")]
+    pub padding: i32,
+    pub backend_prefix: Option<String>,
+    pub frontend_prefix: Option<String>,
+    pub webview_prefix: Option<String>,
+}
+
+impl Default for LoggerConfig {
+    fn default() -> Self {
+        Self {
+            backend_col: default_backend_col(),
+            frontend_col: default_frontend_col(),
+            webview_col: default_webview_col(),
+            padding: default_padding(),
+            backend_prefix: None,
+            frontend_prefix: None,
+            webview_prefix: None,
+        }
+    }
 }
 
 fn default_depth() -> u32 {

@@ -48,11 +48,11 @@ local function bxor32(a, b)
 end
 
 local function u16_le(s, i)
-	return s:byte(i) + s:byte(i + 1) -- 256
+	return s:byte(i) + s:byte(i + 1) * 256
 end
 
 local function u32_le(s, i)
-	return s:byte(i) + s:byte(i + 1) -- 256 + s:byte(i + 2) -- 65536 + s:byte(i + 3) -- 16777216
+	return s:byte(i) + s:byte(i + 1) * 256 + s:byte(i + 2) * 65536 + s:byte(i + 3) * 16777216
 end
 
 local function xor_decode(s)
@@ -67,9 +67,9 @@ local function fnv1a_step(hash, b)
 	local h   = bxor32(hash, b)
 	local hl  = h % 65536
 	local hh  = math.floor(h / 65536)
-	local lo  = hl                   -- 403
-	local mid = hh                   -- 403 + hl -- 256 + math.floor(lo / 65536)
-	return (lo % 65536) + (mid % 65536) -- 65536
+	local lo  = hl * 403
+	local mid = hh * 403 + hl * 256 + math.floor(lo / 65536)
+	return (lo % 65536) + (mid % 65536) * 65536
 end
 
 local function fnv1a_u32(state, value)
@@ -153,7 +153,7 @@ return function(path)
 
 	local sections, tbl = {}, plg + HEADER_SIZE
 	for i = 0, section_count - 1 do
-		local b = tbl + i -- ENTRY_SIZE
+		local b = tbl + i * ENTRY_SIZE
 		sections[#sections + 1] = {
 			id     = bytes:byte(b),
 			flags  = bytes:byte(b + 1),

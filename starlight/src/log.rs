@@ -28,10 +28,18 @@
  * SOFTWARE.
  */
 use owo_colors::OwoColorize;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{
+    atomic::{AtomicI32, Ordering},
+    Mutex, OnceLock,
+};
 use std::time::SystemTime;
 
 static STDOUT_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+static GLOBAL_TAG_PADDING: AtomicI32 = AtomicI32::new(-15);
+
+pub fn set_global_tag_padding(v: i32) {
+    GLOBAL_TAG_PADDING.store(v, Ordering::Relaxed);
+}
 
 fn is_tty() -> bool {
     static TTY: OnceLock<bool> = OnceLock::new();
@@ -60,14 +68,6 @@ pub fn dim(s: &str) -> String {
     }
 }
 
-pub fn underline(s: &str) -> String {
-    if colors_enabled() {
-        s.underline().to_string()
-    } else {
-        s.to_owned()
-    }
-}
-
 pub fn orange(s: &str) -> String {
     if colors_enabled() {
         s.truecolor(255, 165, 0).to_string()
@@ -78,7 +78,7 @@ pub fn orange(s: &str) -> String {
 
 pub fn dim_orange(s: &str) -> String {
     if colors_enabled() {
-        s.truecolor(160, 80, 0).to_string()
+        s.truecolor(230, 140, 30).to_string()
     } else {
         s.to_owned()
     }
@@ -91,9 +91,11 @@ pub enum Color {
     Yellow,
     Orange,
     BrightGreen,
+    BabyBlue,
     Blue,
     Magenta,
     Cyan,
+    Rgb(u8, u8, u8),
 }
 
 impl Color {
@@ -106,9 +108,11 @@ impl Color {
             Color::Yellow => s.yellow().to_string(),
             Color::Orange => orange(s),
             Color::BrightGreen => s.bright_green().to_string(),
+            Color::BabyBlue => s.truecolor(100, 210, 255).to_string(),
             Color::Blue => s.blue().to_string(),
             Color::Magenta => s.magenta().to_string(),
             Color::Cyan => s.cyan().to_string(),
+            Color::Rgb(r, g, b) => s.truecolor(r, g, b).to_string(),
         }
     }
 }
@@ -127,7 +131,7 @@ impl Level {
         match self {
             Level::Info => s.dimmed().to_string(),
             Level::Warn => dim_orange(s),
-            Level::Error => s.red().to_string(),
+            Level::Error => s.truecolor(255, 80, 80).to_string(),
         }
     }
 
@@ -138,7 +142,7 @@ impl Level {
         match self {
             Level::Info => s.to_owned(),
             Level::Warn => s.to_owned(),
-            Level::Error => s.red().to_string(),
+            Level::Error => s.truecolor(255, 80, 80).to_string(),
         }
     }
 }
@@ -151,19 +155,19 @@ pub struct LogEntry {
 }
 
 pub fn entry() -> LogEntry {
-    LogEntry {
-        tag: None,
-        timestamp: None,
-        overwrite: false,
-    }
+    LogEntry { tag: None, timestamp: None, overwrite: false }
 }
 
 pub fn tag(label: impl Into<String>, color: Color) -> LogEntry {
-    LogEntry {
-        tag: Some((label.into(), color)),
-        timestamp: None,
-        overwrite: false,
-    }
+    LogEntry { tag: Some((label.into(), color)), timestamp: None, overwrite: false }
+}
+
+pub fn plugin_entry() -> LogEntry {
+    LogEntry { tag: None, timestamp: None, overwrite: false }
+}
+
+pub fn plugin_tag(label: impl Into<String>, color: Color) -> LogEntry {
+    LogEntry { tag: Some((label.into(), color)), timestamp: None, overwrite: false }
 }
 
 impl LogEntry {
@@ -200,8 +204,8 @@ impl LogEntry {
             print!("\x1b[1A\r\x1b[K");
         }
 
-        let tag_visible_len = self.tag.as_ref().map(|(s, _)| s.len() + 3).unwrap_or(0);
-        let pad = " ".repeat(time.len() + 3 + tag_visible_len);
+        let pad_setting = GLOBAL_TAG_PADDING.load(Ordering::Relaxed);
+        let col_w = pad_setting.unsigned_abs() as usize;
         let time_str = level.style_time(&time);
 
         let mut lines = message.split('\n');
@@ -209,19 +213,30 @@ impl LogEntry {
 
         match &self.tag {
             Some((label, color)) => {
-                println!(
-                    "{} › {} › {}",
-                    time_str,
-                    color.apply(label),
-                    level.style_message(first)
-                );
+                let visible_w = label.len().max(col_w);
+                let overflow = visible_w - label.len();
+                let (pre, post) = if pad_setting > 0 {
+                    (String::new(), " ".repeat(overflow))   // left-align: pad right
+                } else {
+                    (" ".repeat(overflow), String::new())   // right-align: pad left
+                };
+                let pad = " ".repeat(visible_w + 3 + time.len() + 3);
+                println!("{}{}{} › {} › {}", pre, color.apply(label), post, time_str, level.style_message(first));
+                for line in lines {
+                    println!("{}{}", pad, level.style_message(line));
+                }
             }
             None => {
-                println!("{} › {}", time_str, level.style_message(first));
+                let pad = " ".repeat(col_w + if col_w > 0 { 3 } else { 0 } + time.len() + 3);
+                if col_w > 0 {
+                    println!("{} › {} › {}", " ".repeat(col_w), time_str, level.style_message(first));
+                } else {
+                    println!("{} › {}", time_str, level.style_message(first));
+                }
+                for line in lines {
+                    println!("{}{}", pad, level.style_message(line));
+                }
             }
-        }
-        for line in lines {
-            println!("{}{}", pad, level.style_message(line));
         }
     }
 }
@@ -260,9 +275,11 @@ pub(crate) fn build_error(header: &str, body: &str) {
         .get_or_init(|| Mutex::new(()))
         .lock()
         .unwrap_or_else(|e| e.into_inner());
+    const TAG_THRESHOLD: usize = 15;
     let time = now_hms_us();
     println!(
-        "{} › {}",
+        "{} › {} › {}",
+        " ".repeat(TAG_THRESHOLD),
         Level::Error.style_time(&time),
         Level::Error.style_message(header)
     );
