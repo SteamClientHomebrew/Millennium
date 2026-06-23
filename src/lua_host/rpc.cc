@@ -149,7 +149,7 @@ void rpc_client::resume_coroutine(lua_State* co)
     int rc = lua_resume(co, 0);
     if (rc != LUA_OK && rc != LUA_YIELD) {
         const char* err = lua_tostring(co, -1);
-        fprintf(stderr, "[lua-host] coroutine error: %s\n", err ? err : "unknown");
+        log_lua_error("coroutine error", err);
         lua_pop(co, 1);
     }
 }
@@ -226,6 +226,7 @@ void rpc_client::run(request_handler handler)
         }
 
         /* handle IPC message if ready */
+        if (pfds[0].revents & (POLLHUP | POLLERR)) break;
         if (!(pfds[0].revents & POLLIN)) {
             drain_pending_coroutines();
             continue;

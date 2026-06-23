@@ -39,15 +39,19 @@
 #include "rpc.h"
 #include "crash_handler.h"
 #include "lua_api.h"
+#include "millennium/star_parser.h"
+#include "millennium/plugin_manager.h"
 #include "millennium/types.h"
 #include "millennium/plugin_ipc.h"
 
+#include <format>
 #include <lua.hpp>
 #include <nlohmann/json.hpp>
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <string>
 
 #ifdef _WIN32
@@ -62,10 +66,39 @@
 
 rpc_client* g_rpc = nullptr;
 
+static std::string parse_lua_shim(const std::string& plg_path)
+{
+    std::ifstream f(plg_path, std::ios::binary);
+    if (!f) return {};
+
+    uint8_t len_buf[4];
+    if (!f.read(reinterpret_cast<char*>(len_buf), 4)) return {};
+    const uint32_t shim_len =
+        static_cast<uint32_t>(len_buf[0]) | (static_cast<uint32_t>(len_buf[1]) << 8) | (static_cast<uint32_t>(len_buf[2]) << 16) | (static_cast<uint32_t>(len_buf[3]) << 24);
+
+    std::string shim(shim_len, '\0');
+    if (!f.read(shim.data(), shim_len)) return {};
+    return shim;
+}
+
+static int lua_millennium_decompress(lua_State* L)
+{
+    size_t src_len;
+    const char* src = luaL_checklstring(L, 1, &src_len);
+    try {
+        auto out = star_decompress(reinterpret_cast<const uint8_t*>(src), src_len);
+        lua_pushlstring(L, reinterpret_cast<const char*>(out.data()), out.size());
+        return 1;
+    } catch (const std::exception& e) {
+        return luaL_error(L, "MILLENNIUM_DECOMPRESS: %s", e.what());
+    }
+}
+
 static lua_State* g_L = nullptr;
 static std::string g_plugin_name;
 std::string g_backend_dir;
 static std::string g_backend_file;
+bool g_plugin_is_v2 = false;
 
 static plugin_ipc::socket_fd connect_to_parent(const char* socket_path)
 {
@@ -183,7 +216,7 @@ static void send_patches_to_parent(lua_State* L)
 
             g_rpc->call(plugin_ipc::child_method::PATCHES, params);
         } catch (const std::exception& e) {
-            fprintf(stderr, "[lua-host] failed to send patches: %s\n", e.what());
+            log_runtime_error(std::string("failed to send patches: ") + e.what());
         }
     }
 }
@@ -320,7 +353,7 @@ static json handle_frontend_loaded(lua_State* L)
 
     if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
         const char* err = lua_tostring(L, -1);
-        fprintf(stderr, "[lua-host] on_frontend_loaded error: %s\n", err ? err : "unknown");
+        log_lua_error("on_frontend_loaded error", err);
         lua_pop(L, 1);
     }
 
@@ -350,7 +383,7 @@ static json handle_shutdown(lua_State* L)
         if (lua_isfunction(L, -1)) {
             if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
                 const char* err = lua_tostring(L, -1);
-                fprintf(stderr, "[lua-host] on_unload error: %s\n", err ? err : "unknown");
+                log_lua_error("on_unload error", err);
                 lua_pop(L, 1);
             }
         } else {
@@ -419,6 +452,8 @@ int main(int argc, char* argv[])
     g_plugin_name = init_params.value("plugin_name", "");
     g_backend_dir = init_params.value("backend_dir", "");
     g_backend_file = init_params.value("backend_file", "");
+    g_plugin_is_v2 = (init_params.value("plugin_format", plugin_manager::plugin_format::loose_files) == plugin_manager::plugin_format::star);
+    std::string g_backend_entry = init_params.value("backend_entry", "");
     std::string steam_path = init_params.value("steam_path", "");
     std::string crash_dump_dir = init_params.value("crash_dump_dir", "");
     unsigned int steam_pid = init_params.value("steam_pid", 0u);
@@ -441,6 +476,9 @@ int main(int argc, char* argv[])
 
     g_L = L;
     luaL_openlibs(L);
+
+    lua_pushcfunction(L, lua_millennium_decompress);
+    lua_setglobal(L, "MILLENNIUM_DECOMPRESS");
 
     lua_pushstring(L, g_plugin_name.c_str());
     lua_setglobal(L, "MILLENNIUM_PLUGIN_SECRET_NAME");
@@ -471,19 +509,130 @@ int main(int argc, char* argv[])
 
     lua_pop(L, 2);
 
-    if (luaL_dofile(L, g_backend_file.c_str()) != LUA_OK) {
-        const char* err = lua_tostring(L, -1);
-        fprintf(stderr, "[lua-host] Lua error loading %s: %s\n", g_backend_file.c_str(), err ? err : "unknown");
-
-        json err_resp = {
-            { "type",  plugin_ipc::TYPE_RESPONSE    },
-            { "id",    init_id                      },
-            { "error", err ? err : "Lua load error" }
+    {
+        auto lua_fail = [&](const char* ctx, const char* err) -> int
+        {
+            log_lua_error(ctx, err);
+            json err_resp = {
+                { "type",  plugin_ipc::TYPE_RESPONSE },
+                { "id",    init_id                   },
+                { "error", err ? err : ctx           }
+            };
+            plugin_ipc::write_msg(fd, err_resp);
+            lua_close(L);
+            plugin_ipc::close_fd(fd);
+            return 1;
         };
-        plugin_ipc::write_msg(fd, err_resp);
-        lua_close(L);
-        plugin_ipc::close_fd(fd);
-        return 1;
+
+        if (g_plugin_is_v2) {
+            /* bootstrap shim from .star header, parse backend section, run main.lua */
+            std::string shim_lua = parse_lua_shim(g_backend_file);
+            if (shim_lua.empty()) return lua_fail("shim extraction", "failed to extract shim from .star file");
+
+            if (luaL_loadbuffer(L, shim_lua.c_str(), shim_lua.size(), std::format("=({})", g_plugin_name).c_str()) != LUA_OK) {
+                const char* err = lua_tostring(L, -1);
+                return lua_fail("shim load", err);
+            }
+            if (lua_pcall(L, 0, 1, 0) != LUA_OK) {
+                const char* err = lua_tostring(L, -1);
+                return lua_fail("shim exec", err);
+            }
+
+            /* call parse_fn(plg_path) to get the section table */
+            lua_pushstring(L, g_backend_file.c_str());
+            if (lua_pcall(L, 1, 1, 0) != LUA_OK) {
+                const char* err = lua_tostring(L, -1);
+                return lua_fail("shim parse", err);
+            }
+
+            lua_getfield(L, -1, "backend");
+            if (!lua_isfunction(L, -1)) {
+                lua_pop(L, 2);
+                return lua_fail("shim backend", "sections.backend is not a function");
+            }
+            if (lua_pcall(L, 0, 1, 0) != LUA_OK) {
+                const char* err = lua_tostring(L, -1);
+                lua_pop(L, 1);
+                return lua_fail("shim backend()", err);
+            }
+
+            /* collect all backend sub-entries */
+            struct lua_entry_t
+            {
+                std::string name, src;
+            };
+            std::vector<lua_entry_t> all_entries;
+
+            int entries_idx = lua_gettop(L);
+            size_t entry_count = lua_objlen(L, entries_idx);
+
+            for (size_t i = 1; i <= entry_count; ++i) {
+                lua_rawgeti(L, entries_idx, static_cast<int>(i));
+                lua_getfield(L, -1, "name");
+                lua_getfield(L, -2, "data");
+                const char* raw_name = lua_tostring(L, -2);
+                size_t dlen = 0;
+                const char* dptr = lua_tolstring(L, -1, &dlen);
+                if (raw_name && dptr) all_entries.push_back({ std::string(raw_name), std::string(dptr, dlen) });
+                lua_pop(L, 3);
+            }
+
+            lua_pop(L, 2); /* pop entries + sections */
+
+            /* register non-entry files into package.preload */
+            const std::filesystem::path backend_root = std::filesystem::path(g_backend_entry).parent_path();
+
+            auto lua_name_from_path = [&](const std::string& packed_name)
+            {
+                std::filesystem::path rel = std::filesystem::path(packed_name).lexically_relative(backend_root);
+                rel.replace_extension();
+                std::string mod;
+                for (const auto& part : rel) {
+                    if (!mod.empty()) mod += '.';
+                    mod += part.string();
+                }
+                return mod;
+            };
+
+            lua_getglobal(L, "package");
+            lua_getfield(L, -1, "preload");
+            for (const auto& e : all_entries) {
+                if (e.name == g_backend_entry) continue;
+                const std::string mod = lua_name_from_path(e.name);
+                const std::string chunk_label = "=(packed/" + e.name + ")";
+                if (luaL_loadbuffer(L, e.src.c_str(), e.src.size(), chunk_label.c_str()) == LUA_OK)
+                    lua_setfield(L, -2, mod.c_str());
+                else
+                    lua_pop(L, 1); /* discard error and skip */
+            }
+            lua_pop(L, 2); /* pop preload + package */
+
+            std::string main_lua_src;
+            for (const auto& e : all_entries) {
+                if (e.name == g_backend_entry) {
+                    main_lua_src = e.src;
+                    break;
+                }
+            }
+
+            if (main_lua_src.empty()) return lua_fail("shim backend", ("entry not found in backend section: " + g_backend_entry).c_str());
+
+            const std::string chunk_name = "=(packed/" + g_backend_entry + ")";
+            if (luaL_loadbuffer(L, main_lua_src.c_str(), main_lua_src.size(), chunk_name.c_str()) != LUA_OK) {
+                const char* err = lua_tostring(L, -1);
+                return lua_fail("packed entry load", err);
+            }
+            if (lua_pcall(L, 0, LUA_MULTRET, 0) != LUA_OK) {
+                const char* err = lua_tostring(L, -1);
+                return lua_fail("packed entry exec", err);
+            }
+        } else {
+            /* Legacy plugin: load from file path */
+            if (luaL_loadfile(L, g_backend_file.c_str()) != LUA_OK || lua_pcall(L, 0, LUA_MULTRET, 0) != LUA_OK) {
+                const char* err = lua_tostring(L, -1);
+                return lua_fail(g_backend_file.c_str(), err);
+            }
+        }
     }
 
     /* save the returned table as MILLENNIUM_PLUGIN_DEFINITION */
@@ -512,7 +661,7 @@ int main(int argc, char* argv[])
     if (lua_isfunction(L, -1)) {
         if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
             const char* err = lua_tostring(L, -1);
-            fprintf(stderr, "[lua-host] on_load error: %s\n", err ? err : "unknown");
+            log_lua_error("on_load error", err);
             lua_pop(L, 1);
         }
     } else {

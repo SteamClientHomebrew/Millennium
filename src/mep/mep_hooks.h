@@ -58,6 +58,8 @@ namespace mep
  *   plugin.ffi.unsubscribe         — cancel a plugin.ffi subscription
  *   plugin.console                 — subscribe to a plugin's console (CDP) stream
  *   plugin.console.unsubscribe     — cancel a plugin.console subscription
+ *   plugin.stream                  — subscribe to a plugin's unified (backend+frontend) log stream
+ *   plugin.stream.unsubscribe      — cancel a plugin.stream subscription
  *   file.list                      — enumerate file patterns from loopback patch SHM
  *   file.content                   — read a file's content from the filesystem
  *   millennium.version             — Millennium build metadata

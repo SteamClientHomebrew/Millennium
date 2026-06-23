@@ -281,7 +281,7 @@ void dispatch_config_change(lua_State* L, const std::string& key, const json& va
 
         if (lua_pcall(L, 2, 0, 0) != 0) {
             const char* err = lua_tostring(L, -1);
-            fprintf(stderr, "[lua-host] config on_change callback error: %s\n", err ? err : "unknown");
+            log_lua_error("config on_change callback error", err);
             lua_pop(L, 1);
         }
     }

@@ -3,7 +3,7 @@
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -29,51 +29,16 @@
  */
 
 #pragma once
-#include "nlohmann/json.hpp" // IWYU pragma: keep
-#include "millennium/types.h"
+#include "millennium/plugin_manager.h"
 #include <filesystem>
-#include <vector>
+#include <optional>
 
-class plugin_manager
+std::optional<plugin_manager::plugin_t> parse_plg_file(const std::filesystem::path& plg_path);
+
+enum class plg_js_section
 {
-  public:
-    static constexpr const char* plugin_config_file = "plugin.json";
-
-    enum class plugin_format
-    {
-        loose_files,
-        star
-    };
-
-    struct plugin_t
-    {
-        std::string plugin_name;
-        json plugin_json;
-        std::filesystem::path plugin_base_dir;
-        std::filesystem::path plugin_backend_dir;
-        std::filesystem::path plugin_frontend_dir;
-        std::filesystem::path plugin_webkit_path;
-        bool is_internal = false;
-
-        plugin_format format = plugin_format::loose_files;
-        bool is_trusted = false;
-        bool has_frontend_js = false;
-        bool has_webkit_js = false;
-        std::string backend_entry;
-    };
-
-    std::vector<plugin_t> get_all_plugins();
-    std::vector<plugin_t> get_enabled_backends();
-    std::vector<plugin_t> get_enabled_plugins();
-    std::vector<std::string> get_enabled_plugin_names();
-
-    bool is_enabled(std::string pluginName);
-    bool set_plugin_enabled(std::string pluginName, bool enabled);
-    int init();
-
-    plugin_manager();
-
-  private:
-    void lint_plugin(json json, std::string pluginName);
-    plugin_t get_plugin_internal_metadata(json json, std::filesystem::directory_entry entry);
+    frontend,
+    webkit
 };
+
+std::string plg_extract_js(const std::filesystem::path& plg_path, plg_js_section section);

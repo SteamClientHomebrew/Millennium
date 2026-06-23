@@ -51,11 +51,16 @@ const std::vector<std::regex> g_js_hook_blacklist = {
 };
 
 const std::vector<std::regex> g_js_and_css_hook_blacklist = {
+    /** Ignore paypal related content */
     std::regex(R"(https?://(?:[\w-]+\.)*paypal\.com/[^\s"']*)"),
     std::regex(R"(https?://(?:[\w-]+\.)*paypalobjects\.com/[^\s"']*)"),
     std::regex(R"(https?://(?:[\w-]+\.)*recaptcha\.net/[^\s"']*)"),
+
+    /** Ignore youtube related content */
     std::regex(R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)"),
     std::regex(R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)"),
+
+    /** Ignore Chrome Web Store (causes a webhelper crash on Fetch.fulfillRequest) */
     std::regex(R"(https?://(?:[\w-]+\.)*chromewebstore\.google\.com/[^\s"']*)"),
 };
 // clang-format on
@@ -70,6 +75,18 @@ json make_headers(const std::vector<std::pair<std::string, std::string>>& header
         });
     }
     return j_headers;
+}
+
+void network_hook_ctl::register_virtual_resource(const std::string& url, std::function<std::string()> producer)
+{
+    std::unique_lock lock(m_virtual_res_mtx);
+    m_virtual_resources[url] = std::move(producer);
+}
+
+void network_hook_ctl::unregister_virtual_resource(const std::string& url)
+{
+    std::unique_lock lock(m_virtual_res_mtx);
+    m_virtual_resources.erase(url);
 }
 
 std::vector<network_hook_ctl::hook_item> network_hook_ctl::get_hook_list() const
@@ -145,15 +162,33 @@ void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message
 
     const std::string strRequestFile = message["request"]["url"];
 
-    /** Handle internal virtual FS request (pull virtfs from memory) */
-    auto it = INTERNAL_FTP_CALL_DATA.find(strRequestFile);
-    if (it != INTERNAL_FTP_CALL_DATA.end()) {
-        fileType = mime::file_type::JS;
-        fileContent = Base64Encode(it->second());
-
+    /** Handle packed plugin virtual resources */
+    {
+        std::shared_lock lock(m_virtual_res_mtx);
+        auto it = m_virtual_resources.find(strRequestFile);
+        if (it != m_virtual_resources.end()) {
+            try {
+                fileType = mime::file_type::JS;
+                fileContent = Base64Encode(it->second());
+            } catch (const std::exception& ex) {
+                LOG_ERROR("virtual resource '{}' producer threw: {}", strRequestFile, ex.what());
+            } catch (...) {
+                LOG_ERROR("virtual resource '{}' producer threw unknown exception", strRequestFile);
+            }
+        }
     }
+
+    /** Handle internal virtual FS request (pull virtfs from memory) */
+    if (fileContent.empty()) {
+        auto it = INTERNAL_FTP_CALL_DATA.find(strRequestFile);
+        if (it != INTERNAL_FTP_CALL_DATA.end()) {
+            fileType = mime::file_type::JS;
+            fileContent = Base64Encode(it->second());
+        }
+    }
+
     /** Handle normal disk request */
-    else {
+    if (fileContent.empty()) {
         std::filesystem::path localFilePath = this->path_from_url(strRequestFile);
         std::ifstream localFileStream(localFilePath);
 
@@ -202,12 +237,19 @@ void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message
 void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& message)
 {
     const std::string requestId = message.value("requestId", std::string{});
-    const http_code statusCode = message["responseStatusCode"].get<http_code>();
     const std::string requestUrl = message["request"]["url"].get<std::string>();
 
     const nlohmann::json params = {
         { "requestId", message["requestId"] }
     };
+
+    const std::string resourceType = message.value("resourceType", std::string{});
+    if (resourceType != "Document") {
+        m_cdp->send_host("Fetch.continueResponse", params);
+        return;
+    }
+
+    const http_code statusCode = message["responseStatusCode"].get<http_code>();
 
     /** check if the request URL is a do-not-hook URL. */
     for (const auto& pattern : g_js_and_css_hook_blacklist) {
@@ -269,9 +311,9 @@ network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(cons
         anyHookMatched = true;
 
         if (hook.hook.type == TagTypes::STYLESHEET)
-            result.add_stylesheet(m_themes_url + utils::url::encode_url(hook.hook.path));
+            result.add_stylesheet(m_themes_url + utils::url::plat_encode_url(hook.hook.path));
         else if (hook.hook.type == TagTypes::JAVASCRIPT)
-            result.add_script_module(m_themes_url + utils::url::encode_url(hook.hook.path));
+            result.add_script_module(m_themes_url + utils::url::plat_encode_url(hook.hook.path));
     }
 
     if (anyHookMatched && m_dynamic_css_provider) {
@@ -287,6 +329,7 @@ std::string network_hook_ctl::inject_into_document_head(const std::string& origi
 {
     const size_t headPos = original.find("</head>");
     if (headPos == std::string::npos) {
+        logger.warn("Failed to find </head> in document.");
         return original;
     }
     return original.substr(0, headPos) + content + original.substr(headPos);

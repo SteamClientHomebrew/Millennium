@@ -54,6 +54,7 @@ set(SOURCE_FILES
     engine/millennium_updater.cc
     engine/plugin_loader.cc
     engine/plugin_manager.cc
+    engine/star_parser.cc
     engine/plugin_webkit_store.cc
     engine/plugin_webkit_world_mgr.cc
     engine/thread_pool.cc

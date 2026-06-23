@@ -35,6 +35,38 @@
 
 extern rpc_client* g_rpc;
 extern std::string g_backend_dir;
+extern bool g_plugin_is_v2;
+
+static void push_json_to_lua(lua_State* L, const nlohmann::json& j)
+{
+    if (j.is_null()) {
+        lua_pushnil(L);
+    } else if (j.is_boolean()) {
+        lua_pushboolean(L, j.get<bool>());
+    } else if (j.is_number_integer()) {
+        lua_pushinteger(L, j.get<lua_Integer>());
+    } else if (j.is_number_float()) {
+        lua_pushnumber(L, j.get<double>());
+    } else if (j.is_string()) {
+        lua_pushstring(L, j.get<std::string>().c_str());
+    } else if (j.is_array()) {
+        lua_newtable(L);
+        int idx = 1;
+        for (const auto& elem : j) {
+            push_json_to_lua(L, elem);
+            lua_rawseti(L, -2, idx++);
+        }
+    } else if (j.is_object()) {
+        lua_newtable(L);
+        for (auto it = j.begin(); it != j.end(); ++it) {
+            lua_pushstring(L, it.key().c_str());
+            push_json_to_lua(L, it.value());
+            lua_rawset(L, -3);
+        }
+    } else {
+        lua_pushnil(L);
+    }
+}
 
 static int RPC_CallFrontendMethod(lua_State* L)
 {
@@ -76,9 +108,10 @@ static int RPC_CallFrontendMethod(lua_State* L)
         }
 
         const json rpc_params = {
-            { "methodName", methodName },
-            { "params",     params     },
-            { "caller",     caller     }
+            { "methodName",      methodName     },
+            { "params",          params         },
+            { "caller",          caller         },
+            { "return_by_value", g_plugin_is_v2 }
         };
 
         nlohmann::json result = g_rpc->call(plugin_ipc::child_method::CALL_FRONTEND_METHOD, rpc_params);
@@ -115,6 +148,15 @@ static int RPC_CallFrontendMethod(lua_State* L)
         if (type == "number") {
             lua_pushnumber(L, response["value"].get<double>());
             return 1;
+        }
+        if (type == "object") {
+            if (response.contains("value")) {
+                push_json_to_lua(L, response["value"]);
+                return 1;
+            }
+            lua_pushnil(L);
+            lua_pushstring(L, "object return value is not JSON-serializable");
+            return 2;
         }
 
         lua_pushnil(L);

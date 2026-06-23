@@ -66,12 +66,11 @@ nlohmann::json head::Plugins::FindAllPlugins(std::shared_ptr<plugin_manager> plu
         }
 
         result.push_back({
-            { "path",              plugin.plugin_base_dir.generic_string() },
-            { "enabled",           enabled                                 },
-            { "status",            status                                  },
-            { "crash",             crash_info                              },
-            { "isChromeExtension", false                                   },
-            { "data",              plugin.plugin_json                      }
+            { "path",    plugin.plugin_base_dir.generic_string() },
+            { "enabled", enabled                                 },
+            { "status",  status                                  },
+            { "crash",   crash_info                              },
+            { "data",    plugin.plugin_json                      }
         });
     }
 

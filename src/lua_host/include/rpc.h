@@ -87,3 +87,6 @@ class rpc_client
     /* fd -> coroutine blocked on that fd becoming readable */
     std::unordered_map<uintptr_t, lua_State*> m_fd_watches;
 };
+
+void log_runtime_error(const std::string& message);
+void log_lua_error(const char* context, const char* lua_err);
