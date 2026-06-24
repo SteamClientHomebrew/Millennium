@@ -40,7 +40,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   update-pkg:
-    name: Bump npm/package.json
+    name: Bump versions
     needs: get-version
     if: needs.get-version.outputs.will_release == 'true'
     runs-on: ubuntu-latest
@@ -51,20 +51,19 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
+      - name: Bump Cargo.toml
+        run: sed -i 's/^version = ".*"/version = "${{ needs.get-version.outputs.version }}"/' starlight/Cargo.toml
 
-      - name: Update version
+      - name: Bump npm/package.json
         run: npm version ${{ needs.get-version.outputs.version }} --no-git-tag-version --allow-same-version
-        working-directory: npm
+        working-directory: starlight/npm
 
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add starlight/npm/package.json
-          git diff --cached --quiet || git commit -m "chore: bump npm package to ${{ needs.get-version.outputs.version }} [skip ci]"
+          git add starlight/Cargo.toml starlight/npm/package.json
+          git diff --cached --quiet || git commit -m "chore: bump starlight to ${{ needs.get-version.outputs.version }} [skip ci]"
           git push
 
   build:
@@ -95,15 +94,16 @@ jobs:
           key: ${{ matrix.target }}
 
       - name: Build
-        run: cd starlight && cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }}
+        working-directory: starlight
 
       - name: Stage binary (Unix)
         if: runner.os != 'Windows'
-        run: cd starlight && cp target/${{ matrix.target }}/release/starlight ${{ matrix.bin }}
+        run: cp starlight/target/${{ matrix.target }}/release/starlight ${{ matrix.bin }}
 
       - name: Stage binary (Windows)
         if: runner.os == 'Windows'
-        run: cd starlight && cp target/${{ matrix.target }}/release/starlight.exe ${{ matrix.bin }}
+        run: cp starlight/target/${{ matrix.target }}/release/starlight.exe ${{ matrix.bin }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -130,17 +130,23 @@ jobs:
         with:
           node-version: "24"
 
-      - uses: actions/download-artifact@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Download binaries
+        uses: actions/download-artifact@v4
         with:
-          path: npm/binaries
+          path: starlight/npm/binaries
           merge-multiple: true
 
       - name: Mark Unix binaries executable
-        run: chmod +x npm/binaries/starlight-linux-x64
+        run: chmod +x starlight/npm/binaries/starlight-linux-x64
+
+      - name: Build type bundles
+        run: bun starlight/build.ts --types-only
 
       - name: Publish
         run: npm publish --access public
-        working-directory: npm
+        working-directory: starlight/npm
 
       - name: Run semantic-release
         uses: cycjimmy/semantic-release-action@v4
