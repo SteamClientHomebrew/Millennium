@@ -10,7 +10,7 @@ license=('MIT')
 depends=('steam')
 makedepends=('git' 'bun' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-libs' 'lib32-openssl' 'lib32-libidn2' 'lib32-xz' 'lib32-zstd' 'lib32-brotli' 'lib32-libnghttp2' 'lib32-libpsl' 'libx11' 'libxtst')
 install=millennium.install
-source=("git+$url.git#commit=948d3bb57f811d4bd9a1f43963defe73253a05bf")
+source=("git+$url.git#commit=6ca76735b93d622d10483491b9365b722743d670")
 sha256sums=('SKIP')
 
 _pkgdir="Millennium"
