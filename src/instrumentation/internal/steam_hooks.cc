@@ -59,6 +59,8 @@ int g_cdp_pipe_generation = 0;
 #ifdef _WIN32
 HANDLE g_cdp_pipe_read = INVALID_HANDLE_VALUE;
 HANDLE g_cdp_pipe_write = INVALID_HANDLE_VALUE;
+HANDLE g_cdp_child_read = INVALID_HANDLE_VALUE;
+HANDLE g_cdp_child_write = INVALID_HANDLE_VALUE;
 #elif __linux__
 int g_cdp_pipe_read_fd = -1;
 int g_cdp_pipe_write_fd = -1;
@@ -231,6 +233,8 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 
             g_cdp_pipe_read = hParentRead;
             g_cdp_pipe_write = hParentWrite;
+            g_cdp_child_read = hChildRead;
+            g_cdp_child_write = hChildWrite;
 
             logger.log("CDP pipes created (child read={}, child write={}, parent read={}, parent write={})", reinterpret_cast<uintptr_t>(hChildRead),
                        reinterpret_cast<uintptr_t>(hChildWrite), reinterpret_cast<uintptr_t>(hParentRead), reinterpret_cast<uintptr_t>(hParentWrite));
@@ -319,9 +323,35 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
     if (g_cdp_pipes_ready.load(std::memory_order_acquire) && lpCommandLine) {
         std::wstring cmd(lpCommandLine);
         if (cmd.find(L"steamwebhelper") != std::wstring::npos) {
-            BOOL prev = bInheritHandles;
-            bInheritHandles = TRUE;
-            logger.log("CreateProcessInternalW hook fired for steamwebhelper (bInheritHandles: {} -> TRUE, dwCreationFlags: 0x{:X})", prev, dwCreationFlags);
+            logger.log("CreateProcessInternalW hook fired for steamwebhelper (bInheritHandles: {} -> TRUE, dwCreationFlags: 0x{:X})", bInheritHandles, dwCreationFlags);
+
+            HANDLE inherit_handles[] = { g_cdp_child_read, g_cdp_child_write };
+
+            SIZE_T attr_size = 0;
+            InitializeProcThreadAttributeList(nullptr, 1, 0, &attr_size);
+            auto attr_buf = std::make_unique<char[]>(attr_size);
+            auto attr_list = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attr_buf.get());
+
+            if (InitializeProcThreadAttributeList(attr_list, 1, 0, &attr_size) &&
+                UpdateProcThreadAttribute(attr_list, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, inherit_handles, sizeof(inherit_handles), nullptr, nullptr))
+            {
+                STARTUPINFOEXW siex{};
+                siex.StartupInfo = *lpStartupInfo;
+                siex.StartupInfo.cb = sizeof(STARTUPINFOEXW);
+                siex.lpAttributeList = attr_list;
+
+                BOOL result = orig(hUserToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+                                   TRUE, dwCreationFlags | EXTENDED_STARTUPINFO_PRESENT, lpEnvironment, lpCurrentDirectory,
+                                   reinterpret_cast<LPSTARTUPINFOW>(&siex), lpProcessInformation, hNewToken);
+
+                DeleteProcThreadAttributeList(attr_list);
+                return result;
+            }
+
+            DeleteProcThreadAttributeList(attr_list);
+            LOG_ERROR("Failed to build PROC_THREAD_ATTRIBUTE_HANDLE_LIST (error {}), falling back to full inherit.", GetLastError());
+            return orig(hUserToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+                        TRUE, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation, hNewToken);
         }
     }
 
