@@ -1,4 +1,4 @@
-# Maintainers: SteamClientHomebrew <https://github.com/SteamClientHomebrew>
+# Maintainer: SteamClientHomebrew <noreply@steambrew.app>
 
 pkgname="millennium"
 pkgver=3.3.0
@@ -12,7 +12,6 @@ makedepends=('git' 'bun' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'lib32-gcc-l
 install=millennium.install
 source=("git+$url.git#commit=6ca76735b93d622d10483491b9365b722743d670")
 sha256sums=('SKIP')
-options=(debug)
 
 _pkgdir="Millennium"
 
