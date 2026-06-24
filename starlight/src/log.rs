@@ -241,6 +241,7 @@ impl LogEntry {
     }
 }
 
+#[allow(dead_code)]
 pub fn info(message: &str) {
     entry().info(message)
 }

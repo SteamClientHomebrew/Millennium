@@ -1,6 +1,6 @@
 use std::fs::{self, File};
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use std::process::Command;
 
 fn zip_dir(src: &Path, dest: &Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -39,12 +39,11 @@ fn zip_files_with_names(entries: &[(&Path, &str)], dest: &Path) -> Result<(), Bo
 }
 
 fn main() {
-    let manifest_dir = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
-    let repo_root = manifest_dir.parent().unwrap();
+    let repo_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let sdk_dir = repo_root.join("src/typescript/sdk");
     let sdk_src = sdk_dir.join("src");
     let lua_types_src = repo_root.join("src/lua_host/api/types");
-    let bin_dir = manifest_dir.join("npm/bin/millennium/types");
+    let bin_dir = repo_root.join("npm/bin/millennium/types");
 
     println!("cargo:rerun-if-changed={}", sdk_src.display());
     println!("cargo:rerun-if-changed={}", lua_types_src.display());
