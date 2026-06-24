@@ -54,6 +54,7 @@ function buildTypes() {
 	mkdirSync(typesDir, { recursive: true });
 
 	console.log("[build] compiling TypeScript SDK types");
+	run(["bun", "install"], { cwd: sdkDir });
 	rmSync(apiOut, { recursive: true, force: true });
 	run(["bun", "x", "tsc", "-p", "tsconfig.api.json"], { cwd: sdkDir });
 
