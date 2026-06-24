@@ -81,7 +81,7 @@ let
 
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = "sha256-eVk0KVSIMTGPC0DbdenO/ZCY/fiD1Q9RXj3yKqsHz0Y=";
+    outputHash = "sha256-07kSANQ5uLwsLX+wuS0Cq2YSeTqkSVnUBGqadP0Uj4Y=";
   };
 
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
