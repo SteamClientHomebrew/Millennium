@@ -4,71 +4,55 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write # Required for OIDC
+  id-token: write
   contents: read
 
 jobs:
   get-version:
-    name: Get Next Version
+    name: Resolve Version
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: write
-      pull-requests: write
     outputs:
-      version: ${{ steps.sr.outputs.new_release_version }}
-      will_release: ${{ steps.sr.outputs.new_release_published }}
+      version: ${{ steps.resolve.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
 
-      - name: Dry-run semantic-release
-        id: sr
-        uses: cycjimmy/semantic-release-action@v4
-        with:
-          dry_run: true
-          extra_plugins: |
-            @semantic-release/changelog
-            @semantic-release/git
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  update-pkg:
-    name: Bump versions
-    needs: get-version
-    if: needs.get-version.outputs.will_release == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Bump Cargo.toml
-        run: sed -i 's/^version = ".*"/version = "${{ needs.get-version.outputs.version }}"/' starlight/Cargo.toml
-
-      - name: Bump npm/package.json
-        run: npm version ${{ needs.get-version.outputs.version }} --no-git-tag-version --allow-same-version
-        working-directory: starlight/npm
-
-      - name: Commit
+      - name: Resolve version
+        id: resolve
         run: |
+          CARGO_VER=$(grep '^version' starlight/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if npm view @steambrew/starlight@$CARGO_VER version 2>/dev/null | grep -qF "$CARGO_VER"; then
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CARGO_VER"
+            VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+            echo "config version $CARGO_VER already published — bumping patch to $VERSION"
+          else
+            VERSION="$CARGO_VER"
+            echo "using config version $VERSION"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Write version to files
+        run: |
+          VERSION=${{ steps.resolve.outputs.version }}
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" starlight/Cargo.toml
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add starlight/Cargo.toml starlight/npm/package.json
-          git diff --cached --quiet || git commit -m "chore: bump starlight to ${{ needs.get-version.outputs.version }} [skip ci]"
+          git diff --cached --quiet || git commit -m "chore: release starlight v$VERSION [skip ci]"
           git push
+        working-directory: starlight/npm
 
   build:
     name: Build (${{ matrix.bin }})
-    needs: update-pkg
+    needs: get-version
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -116,13 +100,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: write
-      pull-requests: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -147,12 +128,3 @@ jobs:
       - name: Publish
         run: npm publish --access public
         working-directory: starlight/npm
-
-      - name: Run semantic-release
-        uses: cycjimmy/semantic-release-action@v4
-        with:
-          extra_plugins: |
-            @semantic-release/changelog
-            @semantic-release/git
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
