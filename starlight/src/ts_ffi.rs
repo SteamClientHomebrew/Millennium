@@ -508,7 +508,7 @@ pub struct WebkitImport {
 }
 
 pub fn scan_webkit_imports(config_dir: &Path, webkit_entry: Option<&str>) -> anyhow::Result<Vec<WebkitImport>> {
-    const SDK_PACKAGES: &[&str] = &["@steambrew/millennium", "@steambrew/client", "@steambrew/webkit"];
+    const SDK_PACKAGES: &[&str] = &["millennium"];
 
     let mut imports = Vec::new();
     for path in find_ts_files(config_dir, webkit_entry) {

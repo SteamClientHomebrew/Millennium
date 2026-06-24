@@ -41,7 +41,7 @@ fn write_tsconfig_paths(tsconfig_path: &Path, ts_dir: &str) -> anyhow::Result<()
     compiler_options.insert("baseUrl".to_string(), serde_json::json!("."));
     compiler_options.insert(
         "paths".to_string(),
-        serde_json::json!({ "@steambrew/millennium": [ts_dir] }),
+        serde_json::json!({ "millennium": [ts_dir] }),
     );
 
     compiler_options.insert(
@@ -85,7 +85,7 @@ fn patch_tsconfig(plugin_dir: &Path, cfg: &crate::config::PlgConfig) -> anyhow::
                     compiler_options.insert("baseUrl".to_string(), serde_json::json!(".."));
                     compiler_options.insert(
                         "paths".to_string(),
-                        serde_json::json!({ "@steambrew/millennium": [".millennium/lsp/webkit-ts"] }),
+                        serde_json::json!({ "millennium": [".millennium/lsp/webkit-ts"] }),
                     );
                     fs::write(&webkit_tsconfig, serde_json::to_string_pretty(&json)?)?;
                 }

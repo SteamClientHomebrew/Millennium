@@ -205,7 +205,7 @@ pub fn check(
                     crate::log::build_error(
                         &format!("webkit: `{}` is not available in a webview context", imp.name),
                         &format!(
-                            "  -> imported in {}:{}\n  -> `{}` is a frontend-only export from @steambrew/millennium\n  -> only millennium-api exports are available in webview\n",
+                            "  -> imported in {}:{}\n  -> `{}` is a frontend-only export from 'millennium'\n  -> only millennium-api exports are available in webview\n",
                             imp.file, imp.line, imp.name,
                         ),
                     );
