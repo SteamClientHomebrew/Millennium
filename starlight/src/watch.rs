@@ -43,7 +43,7 @@ pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> an
 
     let config_dir = config_path.parent().unwrap().to_path_buf();
     let out_owned = out_path.map(|p| p.to_path_buf());
-    let dev = run_pack(&config_path, out_owned.as_deref(), mode, Some(""))
+    let dev = run_pack(&config_path, out_owned.as_deref(), mode)
         .ok()
         .flatten();
 
@@ -152,11 +152,7 @@ pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> an
             }
         }
 
-        let label = changed
-            .first()
-            .and_then(|p| p.file_name())
-            .map(|n| n.to_string_lossy().into_owned());
-        match run_pack(&config_path, out_owned.as_deref(), mode, label.as_deref()) {
+        match run_pack(&config_path, out_owned.as_deref(), mode) {
             Err(()) => {}
             Ok(new_dev) => {
                 let effective_dev = new_dev.as_ref().or(dev.as_ref());
@@ -195,10 +191,9 @@ fn stop(
 fn run_pack(
     config_path: &Path,
     out_path: Option<&Path>,
-    mode: BuildMode,
-    watcher_label: Option<&str>,
+    mode: BuildMode
 ) -> Result<Option<DevRuntime>, ()> {
-    match crate::pack::pack(config_path, out_path, mode, watcher_label) {
+    match crate::pack::pack(config_path, out_path, mode) {
         Ok(dev) => Ok(dev),
         Err(e) => {
             if e.downcast_ref::<crate::bundler::js::BundleCompileError>()

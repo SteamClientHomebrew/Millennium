@@ -52,8 +52,7 @@ const SHIM_RAW: &[u8] = include_bytes!("shim.lua");
 pub fn pack(
     config_path: &Path,
     out_path: Option<&Path>,
-    mode: BuildMode,
-    watcher_label: Option<&str>,
+    mode: BuildMode
 ) -> anyhow::Result<Option<crate::config::DevRuntime>> {
     let start = std::time::Instant::now();
     let config_path = config_path
@@ -275,11 +274,7 @@ pub fn pack(
         sign_str,
         crate::log::dim(&format!(" v{})", cfg.plugin.version)),
     );
-    match watcher_label {
-        None => crate::log::entry().info(&finished),
-        Some("") => crate::log::tag("HMR", crate::log::Color::BabyBlue).info(&finished),
-        Some(_) => crate::log::tag("HMR", crate::log::Color::BabyBlue).info(&finished),
-    }
+    crate::log::tag("starlight", crate::log::Color::Rgb(255, 200, 50)).info(&finished);
 
     let dev = cfg.dev.as_ref().map(|dev| crate::config::DevRuntime {
         plugin_name: dev

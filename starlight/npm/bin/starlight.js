@@ -10,18 +10,21 @@ const platform = os.platform(); // 'win32', 'linux', 'darwin'
 const arch = os.arch(); // 'x64', 'arm64'
 const ext = platform === "win32" ? ".exe" : "";
 
-const bin = path.join(
+const packagedBin = path.join(
   __dirname,
   "..",
   "binaries",
   `starlight-${platform}-${arch}${ext}`,
 );
 
-if (!fs.existsSync(bin)) {
-  console.error(`starlight: no binary for ${platform}/${arch} at ${bin}`);
-  console.error(
-    "Pre-built binaries are distributed via CI. To build from source: cargo build --release",
-  );
+const localBin = [
+  path.join(__dirname, "..", "..", "target", "debug", `starlight${ext}`),
+].find(fs.existsSync);
+
+const bin = fs.existsSync(packagedBin) ? packagedBin : localBin;
+
+if (!bin) {
+  console.error(`starlight: no binary for ${platform}/${arch}`);
   process.exit(1);
 }
 

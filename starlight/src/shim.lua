@@ -84,14 +84,14 @@ local function strip_parity(woven)
 	if #woven == 0 then return "" end
 	local out, rolling, idx, pos = {}, PARITY_SEED, 0, 1
 	while pos <= #woven do
-		assert(#woven - pos + 1 >= 10, "truncated parity stream at block " .. idx)
-		local de     = math.min(pos + STRIDE - 1, #woven - 10)
+		assert(#woven - pos + 1 >= 12, "truncated parity stream at block " .. idx)
+		local de     = math.min(pos + STRIDE - 1, #woven - 12)
 		local chunk  = woven:sub(pos, de)
-		local pb     = woven:sub(de + 1, de + 10)
+		local pb     = woven:sub(de + 1, de + 12)
 
 		local s_xor  = u32_le(pb, 1)
 		local s_roll = u32_le(pb, 5)
-		local s_idx  = u16_le(pb, 9)
+		local s_idx  = u32_le(pb, 9)
 
 		local xc     = 0
 		for j = 1, #chunk do xc = bxor32(xc, chunk:byte(j)) end
@@ -103,7 +103,7 @@ local function strip_parity(woven)
 		assert(s_idx == idx, "parity block reordered at block " .. idx)
 
 		out[#out + 1] = chunk
-		rolling, idx, pos = e_roll, idx + 1, de + 11
+		rolling, idx, pos = e_roll, idx + 1, de + 13
 	end
 	return table.concat(out)
 end

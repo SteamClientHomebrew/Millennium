@@ -99,7 +99,7 @@ pub enum Color {
 }
 
 impl Color {
-    fn apply(self, s: &str) -> String {
+	pub fn apply(self, s: &str) -> String {
         if !colors_enabled() {
             return s.to_owned();
         }

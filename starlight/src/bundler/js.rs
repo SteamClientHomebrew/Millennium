@@ -56,8 +56,7 @@ use super::transforms::{
 use super::wrapper::wrap;
 
 static FRONTEND_DEFAULTS: &[(&str, &str)] = &[
-    ("@steambrew/client", "window.MILLENNIUM_API"),
-    ("@steambrew/millennium", "window.MILLENNIUM_API"),
+    ("millennium", "window.MILLENNIUM_API"),
     ("react", "window.SP_REACT"),
     ("react-dom", "window.SP_REACTDOM"),
     ("react-dom/client", "window.SP_REACTDOM"),
@@ -65,8 +64,7 @@ static FRONTEND_DEFAULTS: &[(&str, &str)] = &[
 ];
 
 static WEBKIT_DEFAULTS: &[(&str, &str)] = &[
-    ("@steambrew/webkit", "window.MILLENNIUM_API"),
-    ("@steambrew/millennium", "window.MILLENNIUM_API"),
+    ("millennium", "window.MILLENNIUM_API"),
 ];
 
 pub enum BundleTarget {
