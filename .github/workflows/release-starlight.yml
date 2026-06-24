@@ -1,0 +1,152 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write # Required for OIDC
+  contents: read
+
+jobs:
+  get-version:
+    name: Get Next Version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      version: ${{ steps.sr.outputs.new_release_version }}
+      will_release: ${{ steps.sr.outputs.new_release_published }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Dry-run semantic-release
+        id: sr
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          dry_run: true
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-pkg:
+    name: Bump npm/package.json
+    needs: get-version
+    if: needs.get-version.outputs.will_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Update version
+        run: npm version ${{ needs.get-version.outputs.version }} --no-git-tag-version --allow-same-version
+        working-directory: npm
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add starlight/npm/package.json
+          git diff --cached --quiet || git commit -m "chore: bump npm package to ${{ needs.get-version.outputs.version }} [skip ci]"
+          git push
+
+  build:
+    name: Build (${{ matrix.bin }})
+    needs: update-pkg
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            bin: starlight-linux-x64
+
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            bin: starlight-win32-x64.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build
+        run: cd starlight && cargo build --release --target ${{ matrix.target }}
+
+      - name: Stage binary (Unix)
+        if: runner.os != 'Windows'
+        run: cd starlight && cp target/${{ matrix.target }}/release/starlight ${{ matrix.bin }}
+
+      - name: Stage binary (Windows)
+        if: runner.os == 'Windows'
+        run: cd starlight && cp target/${{ matrix.target }}/release/starlight.exe ${{ matrix.bin }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.bin }}
+          path: ${{ matrix.bin }}
+
+  publish:
+    name: Release & Publish
+    needs: [get-version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: npm/binaries
+          merge-multiple: true
+
+      - name: Mark Unix binaries executable
+        run: chmod +x npm/binaries/starlight-linux-x64
+
+      - name: Publish
+        run: npm publish --access public
+        working-directory: npm
+
+      - name: Run semantic-release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
