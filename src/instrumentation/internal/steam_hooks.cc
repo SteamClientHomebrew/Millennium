@@ -205,6 +205,7 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
     bool is_developer_mode = CommandLineArguments::has_argument("-dev");
 
     cmd_line.ensure_param("--enable-unsafe-extension-debugging");
+    cmd_line.ensure_param("--disable-blink-features", "AutomationControlled");
 
     if (is_developer_mode) {
         cmd_line.ensure_param("--remote-allow-origins", "*");
