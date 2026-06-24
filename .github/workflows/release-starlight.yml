@@ -1,0 +1,10 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "starlight release workflow — full implementation on starlight-v2-support"
