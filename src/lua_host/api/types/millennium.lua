@@ -114,4 +114,36 @@ function millennium.is_plugin_enabled(pluginName) end
 ---@return number status -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2, -2 if there was an error parsing or comparing versions.
 function millennium.cmp_version(version1, version2) end
 
+---Asset sub-module for reading files bundled into the .star at compile time.
+---Data is never preloaded; every call opens the .star file and reads only the requested entry.
+---@class millennium.assets
+millennium.assets = {}
+
+---Read the raw bytes of a bundled asset.
+---Decompresses on the fly. Returns nil if path is not found.
+---@param path string Asset path as it appears in the .star (e.g. "assets/icon.png")
+---@return string|nil data Raw file contents, or nil if not found
+function millennium.assets.read(path) end
+
+---Return the uncompressed size of a bundled asset without reading its data.
+---@param path string Asset path
+---@return integer|nil bytes Uncompressed size in bytes, or nil if not found
+function millennium.assets.size(path) end
+
+---Return the base name (last path component) of a path.
+---@param path string Asset path or directory path
+---@return string name The final path component, with no trailing slash
+function millennium.assets.name(path) end
+
+---Return whether a path points to a "file" or "directory" inside the asset bundle.
+---@param path string Asset path (no trailing slash)
+---@return "file"|"directory"|nil kind Type of entry, or nil if not found
+function millennium.assets.type(path) end
+
+---List the direct children of a directory inside the asset bundle.
+---File entries are returned as plain names; directory entries have a trailing "/".
+---@param dir? string Directory path (default: "" for root). Trailing slash is stripped automatically.
+---@return string[] children Sorted list of direct children
+function millennium.assets.list(dir) end
+
 return millennium

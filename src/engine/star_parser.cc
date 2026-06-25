@@ -3,7 +3,7 @@
  *   _____ _ _ _             _
  *  |     |_| | |___ ___ ___|_|_ _ _____
  *  | | | | | | | -_|   |   | | | |     |
- *  |_|_|_|_|_|___|_|_|_|_|_|_|___|_|_|_|
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
  *
  * ==================================================
  *
@@ -58,16 +58,30 @@ static constexpr uint8_t SEC_METADATA = 0x01;
 static constexpr uint8_t SEC_BACKEND = 0x02;
 static constexpr uint8_t SEC_FRONTEND = 0x03;
 static constexpr uint8_t SEC_WEBKIT = 0x04;
+static constexpr uint8_t SEC_ASSETS = 0x05;
 
+/**
+ * starlight flag to let millennium know *not* to read a section.
+ * this has many use cases, but was implemented for plugin resources.
+ * millennium shouldn't read userdata when parsing the star. If it does, and the star is
+ * large: under memory pressure we might crash. its also just not needed I/O
+ */
+static constexpr uint32_t META_FLAG_DEFERRED = 0x0001u; ///< skip in bounded read; read on demand
+static constexpr uint32_t META_FLAG_REQUIRED = 0x0002u; ///< refuse to load if section ID unknown
+
+static constexpr uint8_t FORMAT_VERSION = 2;
 static constexpr size_t STAR_HEADER_SIZE = 12;
-static constexpr size_t STAR_ENTRY_SIZE = 14;
+static constexpr size_t STAR_ENTRY_SIZE = 256;
+static constexpr uint32_t MAX_SHIM_SIZE = 4u * 1024u * 1024u;            // 4 MB
+static constexpr uint64_t MAX_SECTION_SIZE = 256ull * 1024ull * 1024ull; // 256 MB
 
 struct star_section_t
 {
     uint8_t id;
-    uint8_t flags;
-    uint32_t offset;
-    uint32_t length;
+    uint8_t encode_flags; /* COMPRESSED=0x80, OBFUSCATED=0x40 */
+    uint32_t meta_flags;  /* DEFERRED=0x01, REQUIRED=0x02 */
+    uint64_t offset;      /* bytes from star_start */
+    uint64_t length;      /* encoded on-disk byte count */
     uint32_t crc32;
 };
 
@@ -85,6 +99,12 @@ static uint32_t read_u32_le(const uint8_t* p)
 static uint16_t read_u16_le(const uint8_t* p)
 {
     return static_cast<uint16_t>(p[0]) | (static_cast<uint16_t>(p[1]) << 8);
+}
+
+static uint64_t read_u64_le(const uint8_t* p)
+{
+    return static_cast<uint64_t>(p[0]) | (static_cast<uint64_t>(p[1]) << 8) | (static_cast<uint64_t>(p[2]) << 16) | (static_cast<uint64_t>(p[3]) << 24) |
+           (static_cast<uint64_t>(p[4]) << 32) | (static_cast<uint64_t>(p[5]) << 40) | (static_cast<uint64_t>(p[6]) << 48) | (static_cast<uint64_t>(p[7]) << 56);
 }
 
 static void star_xor_decode(std::vector<uint8_t>& data)
@@ -175,19 +195,27 @@ static std::vector<uint8_t> star_strip_parity(const std::vector<uint8_t>& woven)
 
 static std::vector<uint8_t> star_decode_section(const std::vector<uint8_t>& file_data, size_t star_start, const star_section_t& sec)
 {
-    if (static_cast<size_t>(sec.offset) > file_data.size() - star_start)
-        throw std::runtime_error("section 0x" + std::to_string(sec.id) + " offset overflow");
-    size_t abs_start = star_start + sec.offset;
-    if (static_cast<size_t>(sec.length) > file_data.size() - abs_start)
-        throw std::runtime_error("section 0x" + std::to_string(sec.id) + " extends beyond file");
+    const size_t abs_start = star_start + static_cast<size_t>(sec.offset);
 
-    std::vector<uint8_t> blob(file_data.begin() + abs_start, file_data.begin() + abs_start + sec.length);
+    if (sec.encode_flags == 0) {
+        /* raw section, no encoding; return bytes directly */
+        if (abs_start > file_data.size() || static_cast<size_t>(sec.length) > file_data.size() - abs_start) {
+            throw std::runtime_error(std::format("section 0x{} out of bounds", sec.id));
+        }
 
-    if (sec.flags & FLAG_OBFUSCATED) star_xor_decode(blob);
+        return std::vector<uint8_t>(file_data.begin() + abs_start, file_data.begin() + abs_start + static_cast<size_t>(sec.length));
+    }
+
+    if (static_cast<size_t>(sec.offset) > file_data.size() - star_start) throw std::runtime_error("section 0x" + std::to_string(sec.id) + " offset overflow");
+    if (static_cast<size_t>(sec.length) > file_data.size() - abs_start) throw std::runtime_error("section 0x" + std::to_string(sec.id) + " extends beyond file");
+
+    std::vector<uint8_t> blob(file_data.begin() + abs_start, file_data.begin() + abs_start + static_cast<size_t>(sec.length));
+
+    if (sec.encode_flags & FLAG_OBFUSCATED) star_xor_decode(blob);
 
     auto stripped = star_strip_parity(blob);
 
-    if (sec.flags & FLAG_COMPRESSED) return star_decompress(stripped.data(), stripped.size());
+    if (sec.encode_flags & FLAG_COMPRESSED) return star_decompress(stripped.data(), stripped.size());
 
     return stripped;
 }
@@ -250,71 +278,126 @@ static bool star_is_trusted(const uint8_t* star_hdr, const std::vector<uint8_t>&
     return is_trusted;
 }
 
-std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::path& star_path)
+/**
+ * helper: open a .star, read only the non-deferred sections + signature into a bounded buffer.
+ * this prevents crafted large files from causing OOM when loading plugins.
+ */
+struct star_bounded_t
 {
-    size_t star_start = 0;
+    size_t star_start;
     std::vector<star_section_t> sections;
+    std::vector<uint8_t> file_data;
+};
 
-    std::ifstream f(star_path, std::ios::binary);
+static std::optional<star_bounded_t> star_load_bounded(const std::filesystem::path& path)
+{
+    std::ifstream f(path, std::ios::binary);
     if (!f) return std::nullopt;
 
-    std::vector<uint8_t> file_data((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-    f.close();
+    f.seekg(0, std::ios::end);
+    const size_t file_size = static_cast<size_t>(f.tellg());
+    f.seekg(0, std::ios::beg);
 
-    if (file_data.size() < 8) {
-        LOG_ERROR("star: {} is too short to be a valid .star file", star_path.string());
-        return std::nullopt;
-    }
+    if (file_size < 8) return std::nullopt;
 
-    if (std::memcmp(file_data.data(), STAR_MAGIC, 4) != 0) {
-        // Shimmed format: [shim_len u32][raw_shim][StarHeader]
-        const uint32_t shim_len = read_u32_le(file_data.data());
-        if (static_cast<size_t>(shim_len) > file_data.size() - 4) {
-            LOG_ERROR("star: {} shim prefix extends beyond file", star_path.string());
-            return std::nullopt;
-        }
+    uint8_t prefix[4];
+    if (!f.read(reinterpret_cast<char*>(prefix), 4)) return std::nullopt;
+
+    size_t star_start = 0;
+    if (std::memcmp(prefix, STAR_MAGIC, 4) != 0) {
+        const uint32_t shim_len = read_u32_le(prefix);
+        if (shim_len > MAX_SHIM_SIZE || 4 + static_cast<size_t>(shim_len) > file_size) return std::nullopt;
         star_start = 4 + static_cast<size_t>(shim_len);
+        f.seekg(static_cast<std::streamoff>(star_start));
+    } else {
+        f.seekg(0);
+    }
 
-        if (star_start + STAR_HEADER_SIZE > file_data.size()) {
-            LOG_ERROR("star: {} shim prefix extends beyond file", star_path.string());
+    if (star_start + STAR_HEADER_SIZE > file_size) return std::nullopt;
+
+    uint8_t hdr[STAR_HEADER_SIZE];
+    if (!f.read(reinterpret_cast<char*>(hdr), STAR_HEADER_SIZE)) return std::nullopt;
+    if (std::memcmp(hdr, STAR_MAGIC, 4) != 0) return std::nullopt;
+    if (hdr[4] != FORMAT_VERSION) return std::nullopt;
+
+    const uint8_t section_count = hdr[6];
+    static constexpr uint8_t MAX_SECTIONS = 32;
+    if (section_count > MAX_SECTIONS) return std::nullopt;
+
+    const size_t table_bytes = static_cast<size_t>(section_count) * STAR_ENTRY_SIZE;
+    if (star_start + STAR_HEADER_SIZE + table_bytes > file_size) return std::nullopt;
+
+    std::vector<uint8_t> tbl(table_bytes);
+    if (!f.read(reinterpret_cast<char*>(tbl.data()), table_bytes)) return std::nullopt;
+
+    std::vector<star_section_t> sections;
+    sections.reserve(section_count);
+    uint64_t max_eager_end = 0;
+
+    for (uint8_t i = 0; i < section_count; ++i) {
+        const uint8_t* e = tbl.data() + i * STAR_ENTRY_SIZE;
+        star_section_t s;
+        s.id = e[0];
+        s.encode_flags = e[1];
+        s.meta_flags = read_u32_le(e + 4);
+        s.offset = read_u64_le(e + 8);
+        s.length = read_u64_le(e + 16);
+        s.crc32 = read_u32_le(e + 24);
+
+        /* unknown required section -> fuck off */
+        if ((s.meta_flags & META_FLAG_REQUIRED) && s.id != SEC_METADATA && s.id != SEC_BACKEND && s.id != SEC_FRONTEND && s.id != SEC_WEBKIT && s.id != SEC_ASSETS) {
+            LOG_ERROR("star: {} contains required unknown section 0x{:02x}", path.string(), s.id);
             return std::nullopt;
+        }
+
+        sections.push_back(s);
+
+        if (!(s.meta_flags & META_FLAG_DEFERRED)) {
+            if (s.length > MAX_SECTION_SIZE) {
+                LOG_ERROR("star: {} section 0x{:02x} exceeds 256 MB size limit", path.string(), s.id);
+                return std::nullopt;
+            }
+            const uint64_t end = s.offset + s.length;
+            if (end > max_eager_end) max_eager_end = end;
         }
     }
 
-    if (std::memcmp(file_data.data() + star_start, STAR_MAGIC, 4) != 0) {
-        LOG_ERROR("star: {} has invalid magic bytes", star_path.string());
+    /* read only the non-deferred portion plus the trailing signature slot. */
+    const size_t read_limit = std::min(file_size, star_start + static_cast<size_t>(max_eager_end) + 64u);
+    f.seekg(0, std::ios::beg);
+    std::vector<uint8_t> file_data(read_limit);
+    if (!f.read(reinterpret_cast<char*>(file_data.data()), static_cast<std::streamsize>(read_limit))) return std::nullopt;
+
+    return star_bounded_t{ star_start, std::move(sections), std::move(file_data) };
+}
+
+std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::path& star_path)
+{
+    auto loaded = star_load_bounded(star_path);
+    if (!loaded) {
+        LOG_ERROR("star: {} failed bounded load", star_path.string());
         return std::nullopt;
     }
 
+    const size_t star_start = loaded->star_start;
+    auto& file_data = loaded->file_data;
+    auto& sections = loaded->sections;
+
+    if (file_data.size() < star_start + STAR_HEADER_SIZE) return std::nullopt;
     const uint8_t* star_hdr = file_data.data() + star_start;
 
     const bool is_trusted = star_is_trusted(star_hdr, file_data);
 
-    // Verify shim integrity when a shim prefix is present (hash covers raw shim bytes).
+    /* verify shim integrity if shim prefix is present. */
     if (star_start > 0) {
         const uint32_t stored_hash = read_u32_le(star_hdr + 8);
         const uint32_t shim_len = read_u32_le(file_data.data());
         const uint32_t computed = fnv1a_hash_bytes(file_data.data() + 4, shim_len);
 
         if (computed != stored_hash) {
-            LOG_ERROR("star: {} shim integrity check failed (stored {:08x}, computed {:08x}) — file may be tampered", star_path.string(), stored_hash, computed);
+            LOG_ERROR("star: {} shim integrity check failed (stored {:08x}, computed {:08x})", star_path.string(), stored_hash, computed);
             return std::nullopt;
         }
-    }
-
-    uint8_t section_count = star_hdr[6];
-    size_t table_end = STAR_HEADER_SIZE + static_cast<size_t>(section_count) * STAR_ENTRY_SIZE;
-
-    if (star_start + table_end > file_data.size()) {
-        LOG_ERROR("star: {} section table extends beyond file", star_path.string());
-        return std::nullopt;
-    }
-
-    sections.reserve(section_count);
-
-    for (uint8_t i = 0; i < section_count; ++i) {
-        const uint8_t* e = star_hdr + STAR_HEADER_SIZE + i * STAR_ENTRY_SIZE;
-        sections.push_back({ e[0], e[1], read_u32_le(e + 2), read_u32_le(e + 6), read_u32_le(e + 10) });
     }
 
     auto find_section = [&](uint8_t id) -> const star_section_t*
@@ -348,7 +431,6 @@ std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::p
     const std::string plugin_name = metadata["name"].get<std::string>();
 
     bool has_backend = find_section(SEC_BACKEND) != nullptr;
-
     bool has_frontend_js = find_section(SEC_FRONTEND) != nullptr;
     bool has_webkit_js = find_section(SEC_WEBKIT) != nullptr;
 
@@ -383,35 +465,15 @@ std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::p
 
 std::string star_read_javascript(const std::filesystem::path& star_path, star_js_section section)
 {
-    std::ifstream f(star_path, std::ios::binary);
-    if (!f) return {};
-
-    std::vector<uint8_t> file_data((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-
-    size_t star_start = 0;
-    if (file_data.size() < 8) return {};
-    if (std::memcmp(file_data.data(), STAR_MAGIC, 4) != 0) {
-        const uint32_t shim_len = read_u32_le(file_data.data());
-        if (static_cast<size_t>(shim_len) > file_data.size() - 4) return {};
-        star_start = 4 + static_cast<size_t>(shim_len);
-    }
-
-    if (star_start + STAR_HEADER_SIZE > file_data.size()) return {};
-
-    const uint8_t* star_hdr = file_data.data() + star_start;
-    const uint8_t sec_count = star_hdr[6];
-    const size_t table_end = STAR_HEADER_SIZE + static_cast<size_t>(sec_count) * STAR_ENTRY_SIZE;
-
-    if (star_start + table_end > file_data.size()) return {};
+    auto loaded = star_load_bounded(star_path);
+    if (!loaded) return {};
 
     const uint8_t target_id = (section == star_js_section::frontend) ? SEC_FRONTEND : SEC_WEBKIT;
 
-    for (uint8_t i = 0; i < sec_count; ++i) {
-        const uint8_t* e = star_hdr + STAR_HEADER_SIZE + i * STAR_ENTRY_SIZE;
-        if (e[0] != target_id) continue;
-        star_section_t sec{ e[0], e[1], read_u32_le(e + 2), read_u32_le(e + 6), read_u32_le(e + 10) };
+    for (const auto& sec : loaded->sections) {
+        if (sec.id != target_id) continue;
         try {
-            auto decoded = star_decode_section(file_data, star_start, sec);
+            auto decoded = star_decode_section(loaded->file_data, loaded->star_start, sec);
             auto entries = star_parse_sub_entries(decoded);
             return extract_primary_entry(entries, "bundle.js");
         } catch (const std::exception& ex) {
@@ -420,4 +482,105 @@ std::string star_read_javascript(const std::filesystem::path& star_path, star_js
         break;
     }
     return {};
+}
+
+std::unordered_map<std::string, AssetEntry> star_read_asset_index(const std::filesystem::path& star_path)
+{
+    std::unordered_map<std::string, AssetEntry> result;
+
+    std::ifstream f(star_path, std::ios::binary);
+    if (!f) return result;
+
+    f.seekg(0, std::ios::end);
+    const size_t file_size = static_cast<size_t>(f.tellg());
+    f.seekg(0, std::ios::beg);
+
+    if (file_size < 8) return result;
+
+    uint8_t prefix[4];
+    if (!f.read(reinterpret_cast<char*>(prefix), 4)) return result;
+
+    size_t star_start = 0;
+    if (std::memcmp(prefix, STAR_MAGIC, 4) != 0) {
+        const uint32_t shim_len = read_u32_le(prefix);
+        if (shim_len > MAX_SHIM_SIZE || 4 + static_cast<size_t>(shim_len) > file_size) return result;
+        star_start = 4 + static_cast<size_t>(shim_len);
+        f.seekg(static_cast<std::streamoff>(star_start));
+    } else {
+        f.seekg(0);
+    }
+
+    if (star_start + STAR_HEADER_SIZE > file_size) return result;
+    uint8_t hdr[STAR_HEADER_SIZE];
+    if (!f.read(reinterpret_cast<char*>(hdr), STAR_HEADER_SIZE)) return result;
+    if (std::memcmp(hdr, STAR_MAGIC, 4) != 0) return result;
+    if (hdr[4] != FORMAT_VERSION) return result;
+
+    const uint8_t section_count = hdr[6];
+    if (section_count > 32) return result;
+
+    const size_t table_bytes = static_cast<size_t>(section_count) * STAR_ENTRY_SIZE;
+    if (star_start + STAR_HEADER_SIZE + table_bytes > file_size) return result;
+
+    std::vector<uint8_t> tbl(table_bytes);
+    if (!f.read(reinterpret_cast<char*>(tbl.data()), table_bytes)) return result;
+
+    /* find assets section */
+    const uint8_t* asset_entry_raw = nullptr;
+    for (uint8_t i = 0; i < section_count; ++i) {
+        const uint8_t* e = tbl.data() + i * STAR_ENTRY_SIZE;
+        if (e[0] == SEC_ASSETS) {
+            asset_entry_raw = e;
+            break;
+        }
+    }
+    if (!asset_entry_raw) return result;
+
+    const uint8_t asset_encode_flags = asset_entry_raw[1];
+    const uint64_t asset_offset = read_u64_le(asset_entry_raw + 8);
+    const uint64_t asset_length = read_u64_le(asset_entry_raw + 16);
+
+    /* assets section must be raw (encode_flags == 0) */
+    if (asset_encode_flags != 0) return result;
+    if (asset_length == 0) return result;
+
+    const size_t assets_abs_start = star_start + static_cast<size_t>(asset_offset);
+    if (assets_abs_start + 4 > file_size) return result;
+
+    f.seekg(static_cast<std::streamoff>(assets_abs_start));
+
+    uint8_t count_buf[4];
+    if (!f.read(reinterpret_cast<char*>(count_buf), 4)) return result;
+    const uint32_t count = read_u32_le(count_buf);
+
+    /* walk sub-entry headers; read only header bytes, skip data bodies */
+    for (uint32_t i = 0; i < count; ++i) {
+        uint8_t sub_hdr[6];
+        if (!f.read(reinterpret_cast<char*>(sub_hdr), 6)) break;
+
+        const uint16_t name_len = read_u16_le(sub_hdr);
+        const uint32_t data_len = read_u32_le(sub_hdr + 2);
+
+        /* read name */
+        std::string name(name_len, '\0');
+        if (!f.read(name.data(), name_len)) break;
+
+        const size_t data_offset = static_cast<size_t>(f.tellg());
+
+        /* first 4 bytes of the compressed block = uncompressed size (lz4 prepend) */
+        size_t uncompressed_length = 0;
+        if (data_len >= 4) {
+            uint8_t sz_buf[4];
+            if (f.read(reinterpret_cast<char*>(sz_buf), 4)) {
+                uncompressed_length = static_cast<size_t>(read_u32_le(sz_buf));
+                f.seekg(static_cast<std::streamoff>(data_len - 4), std::ios::cur);
+            }
+        } else if (data_len > 0) {
+            f.seekg(static_cast<std::streamoff>(data_len), std::ios::cur);
+        }
+
+        result[name] = AssetEntry{ data_offset, static_cast<size_t>(data_len), uncompressed_length };
+    }
+
+    return result;
 }

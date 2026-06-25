@@ -36,7 +36,8 @@ use crate::format::{
     parity::weave_parity,
     section::{
         serialize_sub_entries, PluginMetadata, SubEntry, FLAG_COMPRESSED, FLAG_OBFUSCATED,
-        SECTION_BACKEND, SECTION_FRONTEND, SECTION_METADATA, SECTION_WEBKIT,
+        META_FLAG_DEFERRED, SECTION_ASSETS, SECTION_BACKEND, SECTION_FRONTEND, SECTION_METADATA,
+        SECTION_WEBKIT,
     },
 };
 use crate::{
@@ -52,7 +53,7 @@ const SHIM_RAW: &[u8] = include_bytes!("shim.lua");
 pub fn pack(
     config_path: &Path,
     out_path: Option<&Path>,
-    mode: BuildMode
+    mode: BuildMode,
 ) -> anyhow::Result<Option<crate::config::DevRuntime>> {
     let start = std::time::Instant::now();
     let config_path = config_path
@@ -66,8 +67,12 @@ pub fn pack(
     }
 
     let out_path = match out_path {
-        Some(p) => p.to_path_buf(),
-        None => config_dir.join("plugin.star"),
+        Some(p) => p.to_path_buf().join(format!("{}.star", cfg.plugin.id)),
+        None => match cfg.compiler.as_ref().and_then(|c| c.output_path.as_deref()) {
+            Some("auto") => resolve_auto_output(&cfg.plugin.id)?,
+            Some(p) => PathBuf::from(p),
+            None => config_dir.join(format!("{}.star", cfg.plugin.id)),
+        },
     };
 
     let metadata = PluginMetadata {
@@ -85,6 +90,10 @@ pub fn pack(
     };
     let metadata_blob = rmp_serde::to_vec_named(&metadata)
         .map_err(|e| anyhow::anyhow!("msgpack serialization failed: {}", e))?;
+
+    // collect assets before building section table (need to know count)
+    let asset_sub_entries = collect_assets(config_dir, &cfg.assets.resources)?;
+    let has_assets = !asset_sub_entries.is_empty();
 
     let mut raw_sections: Vec<(u8, Vec<u8>)> = vec![(SECTION_METADATA, metadata_blob)];
 
@@ -199,34 +208,61 @@ pub fn pack(
     let encoded: Vec<(u8, u8, Vec<u8>)> = raw_sections
         .iter()
         .map(|(id, blob)| {
-            let (bytes, flags) = encode_section(blob);
-            (*id, flags, bytes)
+            let (bytes, encode_flags) = encode_section(blob);
+            (*id, encode_flags, bytes)
         })
         .collect();
 
-    let section_count = encoded.len() as u8;
-    let header_region = HEADER_SIZE + section_count as usize * SECTION_ENTRY_SIZE;
+    // assets section is included in section count and table but NOT in encoded vec
+    let section_count = encoded.len() + if has_assets { 1 } else { 0 };
+    let header_region = HEADER_SIZE + section_count * SECTION_ENTRY_SIZE;
 
-    let mut offset = header_region as u32;
+    // build non-asset section entries with sequential offsets
+    let mut offset: u64 = header_region as u64;
     let mut section_entries: Vec<SectionEntry> = Vec::new();
-    for (id, flags, bytes) in &encoded {
+    for (id, encode_flags, bytes) in &encoded {
         section_entries.push(SectionEntry {
             id: *id,
-            flags: *flags,
+            encode_flags: *encode_flags,
+            meta_flags: 0,
             offset,
-            length: bytes.len() as u32,
+            length: bytes.len() as u64,
             crc32: crc32fast::hash(bytes),
         });
-        offset += bytes.len() as u32;
+        offset += bytes.len() as u64;
     }
+    // `offset` is now the end of all non-asset section data (relative to star_start)
+
+    // serialize asset sub-entries now so we know the size for the section entry
+    let asset_blob: Vec<u8> = if has_assets {
+        serialize_sub_entries(&asset_sub_entries)
+    } else {
+        Vec::new()
+    };
 
     let shim = crate::minify::minify_lua(SHIM_RAW);
-
     let shim_len = shim.len() as u32;
+
+    // asset data is placed after the signature; compute how large the sig gap will be
+    let will_sign = std::env::var("STARLIGHT_SIGNING_KEY").is_ok();
+    let sig_gap: u64 = if will_sign { 64 } else { 0 };
+
+    if has_assets {
+        section_entries.push(SectionEntry {
+            id: SECTION_ASSETS,
+            encode_flags: 0,
+            meta_flags: META_FLAG_DEFERRED,
+            // offset is relative to star_start; asset data begins after non-asset data + sig
+            offset: offset + sig_gap,
+            length: asset_blob.len() as u64,
+            crc32: crc32fast::hash(&asset_blob),
+        });
+    }
+
     let mut out: Vec<u8> = Vec::new();
     out.extend_from_slice(&shim_len.to_le_bytes());
     out.extend_from_slice(&shim);
-    out.extend_from_slice(&StarHeader::new(section_count, &shim).to_bytes());
+    out.extend_from_slice(&StarHeader::new(section_count as u8, &shim).to_bytes());
     for entry in &section_entries {
         out.extend_from_slice(&entry.to_bytes());
     }
@@ -234,6 +270,7 @@ pub fn pack(
         out.extend_from_slice(bytes);
     }
 
+    // sign covers shim + header + section_table + non-asset section data (not asset blob)
     let signed = match crate::signing::try_sign_star(&out)? {
         Some(sig) => {
             out.extend_from_slice(&sig);
@@ -245,6 +282,11 @@ pub fn pack(
             false
         }
     };
+
+    // asset data goes lastl; outside the signed region and never read by bounded parsers
+    if has_assets {
+        out.extend_from_slice(&asset_blob);
+    }
 
     std::fs::write(&out_path, &out)
         .map_err(|e| anyhow::anyhow!("cannot write {}: {}", out_path.display(), e))?;
@@ -261,18 +303,19 @@ pub fn pack(
         crate::log::orange("not signed")
     };
     let out_filename = out_path
-        .file_name()
+        .file_stem()
         .and_then(|n| n.to_str())
-        .unwrap_or("output.star");
+        .unwrap_or("output");
+    let out_display = out_path.display().to_string();
     let finished = format!(
         "{} {} {} in {:.2}s {}{}{}",
         crate::log::green("Compiled"),
         out_filename,
         mode_str,
         elapsed.as_secs_f64(),
-        crate::log::dim(&format!("({:.2}kB, ", out.len() as f64 / 1024.0)),
+        crate::log::dim(&format!("({}, ", fmt_size(out.len()))),
         sign_str,
-        crate::log::dim(&format!(" v{})", cfg.plugin.version)),
+        crate::log::dim(&format!(" v{}) → {}", cfg.plugin.version, out_display)),
     );
     crate::log::tag("starlight", crate::log::Color::Rgb(255, 200, 50)).info(&finished);
 
@@ -291,6 +334,22 @@ pub fn pack(
     });
 
     Ok(dev)
+}
+
+fn fmt_size(bytes: usize) -> String {
+    const GB: f64 = 1024.0 * 1024.0 * 1024.0;
+    const MB: f64 = 1024.0 * 1024.0;
+    const KB: f64 = 1024.0;
+    let b = bytes as f64;
+    if b >= GB {
+        format!("{:.2}GB", b / GB)
+    } else if b >= MB {
+        format!("{:.2}MB", b / MB)
+    } else if b >= KB {
+        format!("{:.2}kB", b / KB)
+    } else {
+        format!("{}B", bytes)
+    }
 }
 
 fn now_secs() -> u64 {
@@ -316,9 +375,192 @@ fn prepare_sourcemap_dir(out_dir: &Path, prefix: &str) -> anyhow::Result<PathBuf
     Ok(dir)
 }
 
+fn resolve_auto_output(plugin_id: &str) -> anyhow::Result<PathBuf> {
+    let filename = format!("{}.star", plugin_id);
+
+    #[cfg(target_os = "linux")]
+    {
+        let base = std::env::var("HOME")
+            .map(PathBuf::from)
+            .map_err(|_| anyhow::anyhow!("auto: $HOME is not set"))?;
+        let path = base.join(".local/share/millennium/plugins").join(&filename);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                anyhow::anyhow!(
+                    "auto: cannot create plugins dir {}: {}",
+                    parent.display(),
+                    e
+                )
+            })?;
+        }
+        return Ok(path);
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use winreg::enums::*;
+        use winreg::RegKey;
+
+        let steam_path = RegKey::predef(HKEY_LOCAL_MACHINE)
+            .open_subkey("SOFTWARE\\Valve\\Steam")
+            .or_else(|_| {
+                RegKey::predef(HKEY_LOCAL_MACHINE)
+                    .open_subkey("SOFTWARE\\WOW6432Node\\Valve\\Steam")
+            })
+            .or_else(|_| RegKey::predef(HKEY_CURRENT_USER).open_subkey("SOFTWARE\\Valve\\Steam"))
+            .and_then(|key| key.get_value::<String, _>("InstallPath"))
+            .map_err(|_| anyhow::anyhow!("auto: Steam installation not found in registry"))?;
+
+        let path = PathBuf::from(steam_path)
+            .join("millennium/plugins")
+            .join(&filename);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                anyhow::anyhow!(
+                    "auto: cannot create plugins dir {}: {}",
+                    parent.display(),
+                    e
+                )
+            })?;
+        }
+        return Ok(path);
+    }
+
+    #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+    anyhow::bail!("auto output_path is not supported on this platform")
+}
+
 fn encode_section(blob: &[u8]) -> (Vec<u8>, u8) {
     let compressed = lz4_flex::block::compress_prepend_size(blob);
     let mut woven = weave_parity(&compressed);
     xor_obfuscate(&mut woven);
     (woven, FLAG_OBFUSCATED | FLAG_COMPRESSED)
+}
+
+/// Collect asset files from `resources` patterns into sub-entries with per-file lz4 compression.
+/// Returns an empty vec if there are no resources configured.
+fn collect_assets(config_dir: &Path, resources: &[String]) -> anyhow::Result<Vec<SubEntry>> {
+    if resources.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let canonical_root = config_dir
+        .canonicalize()
+        .map_err(|e| anyhow::anyhow!("assets: cannot canonicalize plugin dir: {}", e))?;
+
+    let mut map: indexmap::IndexMap<String, Vec<u8>> = indexmap::IndexMap::new();
+
+    for pattern in resources {
+        let is_glob = pattern.contains('*') || pattern.contains('?') || pattern.contains('[');
+
+        if is_glob {
+            let full_pattern = config_dir.join(pattern).to_string_lossy().into_owned();
+            let matches: Vec<_> = glob::glob(&full_pattern)
+                .map_err(|e| anyhow::anyhow!("assets: invalid glob '{}': {}", pattern, e))?
+                .filter_map(|r| r.ok())
+                .collect();
+
+            if matches.is_empty() {
+                crate::log::warn(&format!("assets: glob '{}' matched no files", pattern));
+            }
+
+            for path in matches {
+                if path
+                    .symlink_metadata()
+                    .map(|m| m.file_type().is_symlink())
+                    .unwrap_or(false)
+                {
+                    continue;
+                }
+                if path.is_dir() {
+                    collect_dir_assets(&path, &canonical_root, &mut map)?;
+                } else if path.is_file() {
+                    add_asset_file(&path, &canonical_root, &mut map)?;
+                }
+            }
+        } else {
+            let path = config_dir.join(pattern);
+            if !path.exists() {
+                anyhow::bail!("assets: '{}' not found", pattern);
+            }
+            if path.is_dir() {
+                collect_dir_assets(&path, &canonical_root, &mut map)?;
+            } else {
+                add_asset_file(&path, &canonical_root, &mut map)?;
+            }
+        }
+    }
+
+    Ok(map
+        .into_iter()
+        .map(|(name, raw)| SubEntry {
+            name,
+            data: lz4_flex::block::compress_prepend_size(&raw),
+        })
+        .collect())
+}
+
+fn collect_dir_assets(
+    dir: &Path,
+    root: &Path,
+    map: &mut indexmap::IndexMap<String, Vec<u8>>,
+) -> anyhow::Result<()> {
+    for entry in std::fs::read_dir(dir)
+        .map_err(|e| anyhow::anyhow!("assets: cannot read dir {}: {}", dir.display(), e))?
+    {
+        let entry = entry.map_err(|e| anyhow::anyhow!("assets: dir entry error: {}", e))?;
+        let path = entry.path();
+        let meta = entry
+            .metadata()
+            .map_err(|e| anyhow::anyhow!("assets: cannot stat {}: {}", path.display(), e))?;
+        if meta.file_type().is_symlink() {
+            continue;
+        }
+        if meta.is_dir() {
+            collect_dir_assets(&path, root, map)?;
+        } else if meta.is_file() {
+            add_asset_file(&path, root, map)?;
+        }
+    }
+    Ok(())
+}
+
+fn add_asset_file(
+    path: &Path,
+    root: &Path,
+    map: &mut indexmap::IndexMap<String, Vec<u8>>,
+) -> anyhow::Result<()> {
+    if path
+        .symlink_metadata()
+        .map(|m| m.file_type().is_symlink())
+        .unwrap_or(false)
+    {
+        crate::log::warn(&format!("assets: skipping symlink '{}'", path.display()));
+        return Ok(());
+    }
+
+    let canonical = path
+        .canonicalize()
+        .map_err(|e| anyhow::anyhow!("assets: cannot canonicalize {}: {}", path.display(), e))?;
+
+    if !canonical.starts_with(root) {
+        crate::log::warn(&format!(
+            "assets: skipping '{}' (resolves outside plugin directory)",
+            path.display()
+        ));
+        return Ok(());
+    }
+
+    let rel = canonical.strip_prefix(root).unwrap();
+    let name = rel
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join("/");
+
+    let data = std::fs::read(&canonical)
+        .map_err(|e| anyhow::anyhow!("assets: cannot read {}: {}", canonical.display(), e))?;
+
+    map.insert(name, data);
+    Ok(())
 }

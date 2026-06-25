@@ -49,7 +49,11 @@ fn write_tsconfig_paths(tsconfig_path: &Path, ts_dir: &str) -> anyhow::Result<()
         serde_json::json!([".millennium/types", "node_modules/@types"]),
     );
 
-    fs::write(tsconfig_path, serde_json::to_string_pretty(&json)?)?;
+    let new_content = serde_json::to_string_pretty(&json)?;
+    let current = fs::read_to_string(tsconfig_path).unwrap_or_default();
+    if new_content != current {
+        fs::write(tsconfig_path, &new_content)?;
+    }
     Ok(())
 }
 
@@ -87,7 +91,11 @@ fn patch_tsconfig(plugin_dir: &Path, cfg: &crate::config::PlgConfig) -> anyhow::
                         "paths".to_string(),
                         serde_json::json!({ "millennium": [".millennium/lsp/webkit-ts"] }),
                     );
-                    fs::write(&webkit_tsconfig, serde_json::to_string_pretty(&json)?)?;
+                    let new_content = serde_json::to_string_pretty(&json)?;
+                    let current = fs::read_to_string(&webkit_tsconfig).unwrap_or_default();
+                    if new_content != current {
+                        fs::write(&webkit_tsconfig, &new_content)?;
+                    }
                 }
             }
         }
@@ -125,7 +133,11 @@ fn patch_luarc(plugin_dir: &Path) -> anyhow::Result<()> {
         workspace["library"] = serde_json::json!([".millennium/lsp/lua-types"]);
     }
 
-    fs::write(&luarc_path, serde_json::to_string_pretty(&json)?)?;
+    let new_content = serde_json::to_string_pretty(&json)?;
+    let current = fs::read_to_string(&luarc_path).unwrap_or_default();
+    if new_content != current {
+        fs::write(&luarc_path, &new_content)?;
+    }
     Ok(())
 }
 
@@ -158,7 +170,11 @@ fn patch_package_json(plugin_dir: &Path) -> anyhow::Result<()> {
         scripts["prepare"] = serde_json::json!("starlight lsp");
     }
 
-    fs::write(&pkg_path, serde_json::to_string_pretty(&json)?)?;
+    let new_content = serde_json::to_string_pretty(&json)?;
+    let current = fs::read_to_string(&pkg_path).unwrap_or_default();
+    if new_content != current {
+        fs::write(&pkg_path, &new_content)?;
+    }
     Ok(())
 }
 
@@ -167,37 +183,36 @@ pub fn install_types(plugin_dir: &Path, starlight_version: &str, cfg: &crate::co
     let lsp_dir = plugin_dir.join(".millennium/lsp");
     let version_file = lsp_dir.join("version");
 
-    if version_file.exists() {
-        if fs::read_to_string(&version_file).map(|v| v.trim().to_string()).unwrap_or_default() == starlight_version {
-            return Ok(());
+    let needs_extract = !version_file.exists()
+        || fs::read_to_string(&version_file).map(|v| v.trim().to_string()).unwrap_or_default() != starlight_version;
+
+    if needs_extract {
+        let types_dir = types_dir();
+
+        // full client types (millennium-api + sharedjscontext)
+        let client_zip = types_dir.join("types.zip");
+        if client_zip.exists() {
+            extract_zip(&fs::read(&client_zip)?, &lsp_dir.join("ts"))?;
+        } else {
+            crate::log::warn(&format!("lsp: types.zip not found at {}, skipping", client_zip.display()));
         }
+
+        // webkit-restricted types (millennium-api only)
+        let webkit_zip = types_dir.join("webkit-types.zip");
+        if webkit_zip.exists() {
+            extract_zip(&fs::read(&webkit_zip)?, &lsp_dir.join("webkit-ts"))?;
+        } else {
+            crate::log::warn(&format!("lsp: webkit-types.zip not found at {}, skipping", webkit_zip.display()));
+        }
+
+        // lua types
+        let lua_zip = types_dir.join("lua-types.zip");
+        if lua_zip.exists() {
+            extract_zip(&fs::read(&lua_zip)?, &lsp_dir.join("lua-types"))?;
+        }
+
+        fs::write(&version_file, starlight_version)?;
     }
-
-    let types_dir = types_dir();
-
-    // full client types (millennium-api + sharedjscontext)
-    let client_zip = types_dir.join("types.zip");
-    if client_zip.exists() {
-        extract_zip(&fs::read(&client_zip)?, &lsp_dir.join("ts"))?;
-    } else {
-        crate::log::warn(&format!("lsp: types.zip not found at {}, skipping", client_zip.display()));
-    }
-
-    // webkit-restricted types (millennium-api only)
-    let webkit_zip = types_dir.join("webkit-types.zip");
-    if webkit_zip.exists() {
-        extract_zip(&fs::read(&webkit_zip)?, &lsp_dir.join("webkit-ts"))?;
-    } else {
-        crate::log::warn(&format!("lsp: webkit-types.zip not found at {}, skipping", webkit_zip.display()));
-    }
-
-    // lua types
-    let lua_zip = types_dir.join("lua-types.zip");
-    if lua_zip.exists() {
-        extract_zip(&fs::read(&lua_zip)?, &lsp_dir.join("lua-types"))?;
-    }
-
-    fs::write(&version_file, starlight_version)?;
 
     patch_tsconfig(plugin_dir, cfg)?;
     patch_luarc(plugin_dir)?;

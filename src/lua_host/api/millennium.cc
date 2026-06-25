@@ -31,11 +31,19 @@
 #include "rpc.h"
 #include "lua_api.h"
 #include "millennium/types.h"
+#include "millennium/star_parser.h"
 #include <lua.hpp>
+#include <algorithm>
+#include <fstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 extern rpc_client* g_rpc;
 extern std::string g_backend_dir;
+extern std::string g_backend_file;
 extern bool g_plugin_is_v2;
+extern std::unordered_map<std::string, AssetEntry> g_asset_index;
 
 static void push_json_to_lua(lua_State* L, const nlohmann::json& j)
 {
@@ -326,6 +334,135 @@ static int RPC_YieldReadable(lua_State* L)
     return lua_yield(L, 0);
 }
 
+static int assets_read(lua_State* L)
+{
+    const char* path = luaL_checkstring(L, 1);
+    auto it = g_asset_index.find(path);
+    if (it == g_asset_index.end()) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    const AssetEntry& entry = it->second;
+    std::ifstream f(g_backend_file, std::ios::binary);
+    if (!f) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    f.seekg(static_cast<std::streamoff>(entry.file_offset));
+    std::vector<uint8_t> compressed(entry.compressed_length);
+    if (!f.read(reinterpret_cast<char*>(compressed.data()), static_cast<std::streamsize>(entry.compressed_length))) {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    try {
+        auto decompressed = star_decompress(compressed.data(), compressed.size());
+        lua_pushlstring(L, reinterpret_cast<const char*>(decompressed.data()), decompressed.size());
+    } catch (const std::exception& e) {
+        return luaL_error(L, "assets.read: decompress failed: %s", e.what());
+    }
+    return 1;
+}
+
+static int assets_size(lua_State* L)
+{
+    const char* path = luaL_checkstring(L, 1);
+    auto it = g_asset_index.find(path);
+    if (it == g_asset_index.end()) {
+        lua_pushnil(L);
+        return 1;
+    }
+    lua_pushinteger(L, static_cast<lua_Integer>(it->second.uncompressed_length));
+    return 1;
+}
+
+static int assets_name(lua_State* L)
+{
+    const char* path_raw = luaL_checkstring(L, 1);
+    std::string path(path_raw);
+
+    while (!path.empty() && path.back() == '/')
+        path.pop_back();
+
+    const auto pos = path.rfind('/');
+    const std::string name = (pos == std::string::npos) ? path : path.substr(pos + 1);
+    lua_pushstring(L, name.c_str());
+    return 1;
+}
+
+static int assets_type(lua_State* L)
+{
+    const char* path_raw = luaL_checkstring(L, 1);
+    std::string path(path_raw);
+    /* exact match -> file */
+    if (g_asset_index.count(path)) {
+        lua_pushstring(L, "file");
+        return 1;
+    }
+    /* any key with path+"/" prefix -> directory */
+    const std::string dir_prefix = path + "/";
+    for (const auto& kv : g_asset_index) {
+        if (kv.first.substr(0, dir_prefix.size()) == dir_prefix) {
+            lua_pushstring(L, "directory");
+            return 1;
+        }
+    }
+    lua_pushnil(L);
+    return 1;
+}
+
+static int assets_list(lua_State* L)
+{
+    const char* dir_raw = luaL_optstring(L, 1, "");
+    std::string dir(dir_raw);
+    while (!dir.empty() && dir.back() == '/')
+        dir.pop_back();
+
+    const std::string prefix = dir.empty() ? "" : (dir + "/");
+
+    std::vector<std::string> children;
+    for (const auto& kv : g_asset_index) {
+        const std::string& key = kv.first;
+        if (!prefix.empty() && key.substr(0, prefix.size()) != prefix) continue;
+        const std::string rel = key.substr(prefix.size());
+        const auto slash = rel.find('/');
+        if (slash == std::string::npos) {
+            children.push_back(rel);
+        } else {
+            const std::string child_dir = rel.substr(0, slash + 1);
+            if (std::find(children.begin(), children.end(), child_dir) == children.end()) children.push_back(child_dir);
+        }
+    }
+
+    std::sort(children.begin(), children.end());
+
+    lua_newtable(L);
+    int idx = 1;
+    for (const auto& name : children) {
+        lua_pushstring(L, name.c_str());
+        lua_rawseti(L, -2, idx++);
+    }
+    return 1;
+}
+
+static const luaL_Reg assets_lib[] = {
+    { "read", assets_read },
+    { "size", assets_size },
+    { "name", assets_name },
+    { "type", assets_type },
+    { "list", assets_list },
+    { NULL,   NULL        }
+};
+
+void register_assets_module(lua_State* L)
+{
+    lua_newtable(L);
+    luaL_setfuncs(L, assets_lib, 0);
+    lua_setfield(L, -2, "assets");
+}
+
 static const luaL_Reg millennium_lib[] = {
     { "ready",                 RPC_EmitReadyMessage    },
     { "add_browser_css",       RPC_AddBrowserCss       },
@@ -346,5 +483,6 @@ extern "C" int luaopen_millennium_lib(lua_State* L)
 {
     luaL_newlib(L, millennium_lib);
     register_config_module(L);
+    register_assets_module(L);
     return 1;
 }

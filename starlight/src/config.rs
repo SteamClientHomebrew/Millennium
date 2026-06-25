@@ -37,16 +37,42 @@ pub struct PlgConfig {
     pub frontend: Option<FrontendConfig>,
     pub webkit: Option<WebkitConfig>,
     pub dev: Option<DevConfig>,
+    pub compiler: Option<CompilerConfig>,
+    #[serde(default)]
+    pub assets: AssetsConfig,
     #[serde(default)]
     pub inspect: InspectConfig,
     #[serde(default)]
     pub logger: LoggerConfig,
 }
 
-fn default_backend_col() -> [u8; 3] { [160, 90, 180] }
-fn default_frontend_col() -> [u8; 3] { [90, 148, 200] }
-fn default_webview_col() -> [u8; 3] { [65, 165, 160] }
-fn default_padding() -> i32 { -15 }
+#[derive(Deserialize, Default)]
+pub struct AssetsConfig {
+    /// Paths or glob patterns (relative to millennium.toml) to bundle into the .star.
+    /// Directories are walked recursively. Literal paths that don't exist are fatal errors.
+    #[serde(default)]
+    pub resources: Vec<String>,
+}
+
+#[derive(Deserialize)]
+pub struct CompilerConfig {
+    /// "auto" = detect Millennium install and write into its plugins dir.
+    /// Any other value = used verbatim as the output path.
+    pub output_path: Option<String>,
+}
+
+fn default_backend_col() -> [u8; 3] {
+    [160, 90, 180]
+}
+fn default_frontend_col() -> [u8; 3] {
+    [90, 148, 200]
+}
+fn default_webview_col() -> [u8; 3] {
+    [65, 165, 160]
+}
+fn default_padding() -> i32 {
+    -15
+}
 
 #[derive(Deserialize)]
 pub struct LoggerConfig {

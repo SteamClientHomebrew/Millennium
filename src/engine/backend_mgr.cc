@@ -33,6 +33,7 @@
 #include "millennium/life_cycle.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_ipc.h"
+#include "millennium/star_parser.h"
 #include "state/shared_memory.h"
 
 #include <format>
@@ -165,6 +166,18 @@ bool backend_manager::spawn_plugin(plugin_manager::plugin_t& plugin)
         if (!plugin.backend_entry.empty()) {
             init_params["backend_entry"] = plugin.backend_entry;
         }
+
+        const auto asset_index = star_read_asset_index(plugin.plugin_base_dir);
+        nlohmann::json index_json = nlohmann::json::array();
+        for (const auto& [name, entry] : asset_index) {
+            index_json.push_back({
+                { "name",                name                        },
+                { "file_offset",         entry.file_offset           },
+                { "compressed_length",   entry.compressed_length     },
+                { "uncompressed_length", entry.uncompressed_length   },
+            });
+        }
+        init_params["asset_index"] = std::move(index_json);
     }
 
     init_params["plugin_format"] = plugin.format;

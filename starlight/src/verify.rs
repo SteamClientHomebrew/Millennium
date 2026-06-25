@@ -37,7 +37,8 @@ use crate::format::{
     parity::verify_and_strip_parity,
     section::{
         parse_sub_entries, section_name, PluginMetadata, FLAG_COMPRESSED, FLAG_OBFUSCATED,
-        SECTION_BACKEND, SECTION_FRONTEND, SECTION_METADATA, SECTION_WEBKIT,
+        META_FLAG_DEFERRED, SECTION_ASSETS, SECTION_BACKEND, SECTION_FRONTEND, SECTION_METADATA,
+        SECTION_WEBKIT,
     },
 };
 
@@ -67,7 +68,7 @@ pub fn verify(path: &Path) -> anyhow::Result<()> {
             entry.crc32,
             crc
         );
-        let decoded = decode_section(blob, entry.flags)?;
+        let decoded = decode_section(blob, entry.encode_flags)?;
         print_section(entry, &decoded)?;
     }
 
@@ -98,7 +99,7 @@ pub fn inspect(path: &Path) -> anyhow::Result<()> {
                 continue;
             }
         };
-        let decoded = match decode_section_best_effort(blob, entry.flags) {
+        let decoded = match decode_section_best_effort(blob, entry.encode_flags) {
             Ok(d) => d,
             Err(e) => {
                 eprintln!("  [section {:02x}] decode error: {}", entry.id, e);
@@ -124,7 +125,7 @@ pub fn query(path: &Path, q: &str) -> anyhow::Result<()> {
             .find(|e| e.id == SECTION_METADATA)
             .ok_or_else(|| anyhow::anyhow!("no metadata section in {}", path.display()))?;
         let blob = read_section_blob(&data, plg_start, entry)?;
-        let decoded = decode_section_best_effort(blob, entry.flags)?;
+        let decoded = decode_section_best_effort(blob, entry.encode_flags)?;
         let meta: PluginMetadata = rmp_serde::from_slice(&decoded)
             .map_err(|e| anyhow::anyhow!("metadata parse error: {}", e))?;
         println!("{}", meta.starlight_version);
@@ -158,7 +159,7 @@ pub fn query(path: &Path, q: &str) -> anyhow::Result<()> {
         .ok_or_else(|| anyhow::anyhow!("section '{}' not found in {}", q, path.display()))?;
 
     let blob = read_section_blob(&data, plg_start, entry)?;
-    let decoded = decode_section_best_effort(blob, entry.flags)?;
+    let decoded = decode_section_best_effort(blob, entry.encode_flags)?;
 
     match target_id {
         SECTION_METADATA => {
@@ -214,20 +215,39 @@ fn parse_header(data: &[u8]) -> anyhow::Result<(StarHeader, Vec<SectionEntry>, u
     );
     let header = StarHeader::from_bytes(plg[0..HEADER_SIZE].try_into().unwrap())?;
 
-    // verify Ed25519 signature before any further parsing.
+    let table_end = HEADER_SIZE + header.section_count as usize * SECTION_ENTRY_SIZE;
+    anyhow::ensure!(
+        plg.len() >= table_end,
+        "file too short to contain section table"
+    );
+
+    let entries =
+        SectionEntry::read_table(&plg[HEADER_SIZE..table_end], header.section_count as usize)?;
+
+    // The signature (if present) covers everything up to max_eager_end, not the end of the file.
+    // Assets and other deferred sections live after the signature.
     if header.star_flags & STAR_FLAG_SIGNED != 0 {
         const SIG_LEN: usize = 64;
+
+        let max_eager_end: usize = entries
+            .iter()
+            .filter(|e| e.meta_flags & META_FLAG_DEFERRED == 0)
+            .map(|e| e.offset as usize + e.length as usize)
+            .max()
+            .unwrap_or(0);
+
+        let sig_start = plg_start + max_eager_end;
         anyhow::ensure!(
-            data.len() >= SIG_LEN,
+            data.len() >= sig_start + SIG_LEN,
             "STAR_FLAG_SIGNED is set but file is too short to contain a signature"
         );
-        let payload = &data[..data.len() - SIG_LEN];
-        let sig_bytes = &data[data.len() - SIG_LEN..];
-        let sig_arr: &[u8; SIG_LEN] = sig_bytes.try_into().unwrap();
+
+        let payload = &data[..sig_start];
+        let sig_bytes: &[u8; SIG_LEN] = data[sig_start..sig_start + SIG_LEN].try_into().unwrap();
         let vk_bytes = crate::signing::get_verifying_key_bytes()?;
 
         anyhow::ensure!(
-            crate::signing::verify_star(payload, sig_arr, &vk_bytes),
+            crate::signing::verify_star(payload, sig_bytes, &vk_bytes),
             "Ed25519 signature verification failed — file has been tampered with or signed with a different key"
         );
     }
@@ -244,25 +264,6 @@ fn parse_header(data: &[u8]) -> anyhow::Result<(StarHeader, Vec<SectionEntry>, u
         );
     }
 
-    let table_end = HEADER_SIZE + header.section_count as usize * SECTION_ENTRY_SIZE;
-    anyhow::ensure!(
-        plg.len() >= table_end,
-        "file too short to contain section table"
-    );
-
-    let effective_len = if header.star_flags & STAR_FLAG_SIGNED != 0 {
-        data.len() - 64
-    } else {
-        data.len()
-    };
-    let plg_effective = &data[plg_start..effective_len];
-    anyhow::ensure!(
-        plg_effective.len() >= table_end,
-        "file too short to contain section table"
-    );
-
-    let entries =
-        SectionEntry::read_table(&plg[HEADER_SIZE..table_end], header.section_count as usize)?;
     Ok((header, entries, plg_start))
 }
 
@@ -283,29 +284,35 @@ fn read_section_blob<'a>(
     Ok(&data[start..end])
 }
 
-fn decode_section(blob: &[u8], flags: u8) -> anyhow::Result<Vec<u8>> {
+fn decode_section(blob: &[u8], encode_flags: u8) -> anyhow::Result<Vec<u8>> {
+    if encode_flags == 0 {
+        return Ok(blob.to_vec());
+    }
     let mut data = blob.to_vec();
-    if flags & FLAG_OBFUSCATED != 0 {
+    if encode_flags & FLAG_OBFUSCATED != 0 {
         xor_deobfuscate(&mut data);
     }
     let stripped = verify_and_strip_parity(&data)?;
-    if flags & FLAG_COMPRESSED != 0 {
+    if encode_flags & FLAG_COMPRESSED != 0 {
         return lz4_flex::block::decompress_size_prepended(&stripped)
             .map_err(|e| anyhow::anyhow!("lz4 decompress failed: {}", e));
     }
     Ok(stripped)
 }
 
-fn decode_section_best_effort(blob: &[u8], flags: u8) -> anyhow::Result<Vec<u8>> {
+fn decode_section_best_effort(blob: &[u8], encode_flags: u8) -> anyhow::Result<Vec<u8>> {
+    if encode_flags == 0 {
+        return Ok(blob.to_vec());
+    }
     let mut data = blob.to_vec();
-    if flags & FLAG_OBFUSCATED != 0 {
+    if encode_flags & FLAG_OBFUSCATED != 0 {
         xor_deobfuscate(&mut data);
     }
     let stripped = match verify_and_strip_parity(&data) {
         Ok(s) => s,
         Err(_) => data,
     };
-    if flags & FLAG_COMPRESSED != 0 {
+    if encode_flags & FLAG_COMPRESSED != 0 {
         return lz4_flex::block::decompress_size_prepended(&stripped)
             .map_err(|e| anyhow::anyhow!("lz4 decompress failed: {}", e));
     }
@@ -314,11 +321,12 @@ fn decode_section_best_effort(blob: &[u8], flags: u8) -> anyhow::Result<Vec<u8>>
 
 fn print_section(entry: &SectionEntry, decoded: &[u8]) -> anyhow::Result<()> {
     println!(
-        "\n  [{:02x}] {} ({} bytes on disk, flags={:02x})",
+        "\n  [{:02x}] {} ({} bytes on disk, encode={:02x} meta={:08x})",
         entry.id,
         section_name(entry.id),
         entry.length,
-        entry.flags
+        entry.encode_flags,
+        entry.meta_flags,
     );
     if entry.id == SECTION_METADATA {
         let meta: PluginMetadata = rmp_serde::from_slice(decoded)
@@ -339,6 +347,15 @@ fn print_section(entry: &SectionEntry, decoded: &[u8]) -> anyhow::Result<()> {
         println!("      {} file(s):", entries.len());
         for e in &entries {
             println!("        {} ({} bytes)", e.name, e.data.len());
+        }
+    } else if entry.id == SECTION_ASSETS {
+        let sub = parse_sub_entries(decoded)?;
+        println!("      {} asset(s):", sub.len());
+        for e in &sub {
+            let uncompressed = lz4_flex::block::decompress_size_prepended(&e.data)
+                .map(|v| v.len())
+                .unwrap_or(0);
+            println!("        {} ({} B compressed → {} B)", e.name, e.data.len(), uncompressed);
         }
     }
     Ok(())

@@ -53,6 +53,7 @@
 #include <cstring>
 #include <fstream>
 #include <string>
+#include <unordered_map>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -103,8 +104,9 @@ static int lua_millennium_decompress(lua_State* L)
 static lua_State* g_L = nullptr;
 static std::string g_plugin_name;
 std::string g_backend_dir;
-static std::string g_backend_file;
+std::string g_backend_file;
 bool g_plugin_is_v2 = false;
+std::unordered_map<std::string, AssetEntry> g_asset_index;
 
 static plugin_ipc::socket_fd connect_to_parent(const char* socket_path)
 {
@@ -594,6 +596,14 @@ int main(int argc, char* argv[])
             }
 
             lua_pop(L, 2); /* pop entries + sections */
+
+            for (const auto& e : init_params.value("asset_index", json::array())) {
+                AssetEntry ae;
+                ae.file_offset         = e.value("file_offset",         size_t{0});
+                ae.compressed_length   = e.value("compressed_length",   size_t{0});
+                ae.uncompressed_length = e.value("uncompressed_length", size_t{0});
+                g_asset_index[e.value("name", "")] = ae;
+            }
 
             /* register non-entry files into package.preload */
             const std::filesystem::path backend_root = std::filesystem::path(g_backend_entry).parent_path();

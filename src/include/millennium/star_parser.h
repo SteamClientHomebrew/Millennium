@@ -32,6 +32,8 @@
 #include "millennium/plugin_manager.h"
 #include <filesystem>
 #include <optional>
+#include <string>
+#include <unordered_map>
 
 enum class star_js_section
 {
@@ -39,8 +41,17 @@ enum class star_js_section
     webkit
 };
 
+struct AssetEntry
+{
+    size_t file_offset;
+    size_t compressed_length;
+    size_t uncompressed_length;
+};
+
 std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::path& star_path);
 std::string star_read_javascript(const std::filesystem::path& star_path, star_js_section section);
+
+std::unordered_map<std::string, AssetEntry> star_read_asset_index(const std::filesystem::path& star_path);
 
 inline std::vector<uint8_t> star_decompress(const uint8_t* src, size_t src_len)
 {

@@ -33,11 +33,16 @@ pub const SECTION_METADATA: u8 = 0x01;
 pub const SECTION_BACKEND: u8 = 0x02;
 pub const SECTION_FRONTEND: u8 = 0x03;
 pub const SECTION_WEBKIT: u8 = 0x04;
+pub const SECTION_ASSETS: u8 = 0x05;
 
 pub const FLAG_OBFUSCATED: u8 = 0x40;
 pub const FLAG_COMPRESSED: u8 = 0x80;
 #[allow(dead_code)]
 pub const FLAG_SOURCE_MAP: u8 = 0x20;
+
+pub const META_FLAG_DEFERRED: u32 = 0x0001;
+#[allow(dead_code)]
+pub const META_FLAG_REQUIRED: u32 = 0x0002;
 
 pub fn section_name(id: u8) -> &'static str {
     match id {
@@ -45,6 +50,7 @@ pub fn section_name(id: u8) -> &'static str {
         SECTION_BACKEND => "Backend",
         SECTION_FRONTEND => "Frontend",
         SECTION_WEBKIT => "Webkit",
+        SECTION_ASSETS => "Assets",
         0xFF => "Reserved",
         _ => "Unknown",
     }

@@ -31,7 +31,10 @@ use anyhow::Context;
 
 pub const MAGIC: &[u8; 4] = b"STAR";
 pub const HEADER_SIZE: usize = 12;
-pub const SECTION_ENTRY_SIZE: usize = 14;
+
+pub const SECTION_ENTRY_SIZE: usize = 256;
+pub const FORMAT_VERSION_MAJOR: u8 = 2;
+pub const FORMAT_VERSION_MINOR: u8 = 0;
 
 pub const STAR_FLAG_SIGNED: u8 = 0x01;
 
@@ -45,13 +48,9 @@ pub struct StarHeader {
 
 impl StarHeader {
     pub fn new(section_count: u8, shim: &[u8]) -> Self {
-        let version: &str = env!("CARGO_PKG_VERSION");
-        let mut parts = version.splitn(3, '.');
-        let major = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-        let minor = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
         Self {
-            version_major: major,
-            version_minor: minor,
+            version_major: FORMAT_VERSION_MAJOR,
+            version_minor: FORMAT_VERSION_MINOR,
             section_count,
             star_flags: STAR_FLAG_SIGNED,
             shim_integrity: fnv1a(shim),
@@ -93,11 +92,25 @@ impl StarHeader {
     }
 }
 
+/// after a lot of thinking, this seems to be a good structure
+/// 256-byte section entry (v2 format).
+///
+/// Layout:
+///   0      u8    id
+///   1      u8    encode_flags   (COMPRESSED=0x80, OBFUSCATED=0x40)
+///   2–3    u8[2] pad            (zeroed)
+///   4–7    u32   meta_flags     (DEFERRED=0x01, REQUIRED=0x02)
+///   8–15   u64   offset         (bytes from star_start, LE)
+///   16–23  u64   length         (encoded on-disk byte count, LE)
+///   24–27  u32   crc32          (of encoded data)
+///   28–255 u8[]  reserved       (zeroed; future fields go here)
+
 pub struct SectionEntry {
     pub id: u8,
-    pub flags: u8,
-    pub offset: u32,
-    pub length: u32,
+    pub encode_flags: u8,
+    pub meta_flags: u32,
+    pub offset: u64,
+    pub length: u64,
     pub crc32: u32,
 }
 
@@ -105,20 +118,24 @@ impl SectionEntry {
     pub fn to_bytes(&self) -> [u8; SECTION_ENTRY_SIZE] {
         let mut out = [0u8; SECTION_ENTRY_SIZE];
         out[0] = self.id;
-        out[1] = self.flags;
-        out[2..6].copy_from_slice(&self.offset.to_le_bytes());
-        out[6..10].copy_from_slice(&self.length.to_le_bytes());
-        out[10..14].copy_from_slice(&self.crc32.to_le_bytes());
+        out[1] = self.encode_flags;
+        // out[2..4] = pad, left as zero
+        out[4..8].copy_from_slice(&self.meta_flags.to_le_bytes());
+        out[8..16].copy_from_slice(&self.offset.to_le_bytes());
+        out[16..24].copy_from_slice(&self.length.to_le_bytes());
+        out[24..28].copy_from_slice(&self.crc32.to_le_bytes());
+        // out[28..256] = reserved, left as zero
         out
     }
 
     pub fn from_bytes(bytes: &[u8; SECTION_ENTRY_SIZE]) -> Self {
         Self {
             id: bytes[0],
-            flags: bytes[1],
-            offset: u32::from_le_bytes(bytes[2..6].try_into().unwrap()),
-            length: u32::from_le_bytes(bytes[6..10].try_into().unwrap()),
-            crc32: u32::from_le_bytes(bytes[10..14].try_into().unwrap()),
+            encode_flags: bytes[1],
+            meta_flags: u32::from_le_bytes(bytes[4..8].try_into().unwrap()),
+            offset: u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
+            length: u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
+            crc32: u32::from_le_bytes(bytes[24..28].try_into().unwrap()),
         }
     }
 
