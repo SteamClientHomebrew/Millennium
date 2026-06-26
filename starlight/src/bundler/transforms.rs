@@ -769,73 +769,94 @@ pub fn apply_transforms(
 macro_rules! inject_args_for_ns {
     ($ns:expr) => {
         [
-            InjectArg { path: &[$ns, "callable"], arg: "pluginName" },
-            InjectArg { path: &[$ns, "ffi"], arg: "pluginName" },
-            InjectArg { path: &[$ns, "Millennium", "callServerMethod"], arg: "pluginName" },
-            InjectArg { path: &[$ns, "Millennium", "exposeObj"], arg: "__exports" },
-            InjectArg { path: &[$ns, "BindPluginSettings"], arg: "pluginName" },
-            InjectArg { path: &[$ns, "pluginConfig", "get"], arg: "pluginName" },
-            InjectArg { path: &[$ns, "pluginConfig", "set"], arg: "pluginName" },
-            InjectArg { path: &[$ns, "pluginConfig", "delete"], arg: "pluginName" },
-            InjectArg { path: &[$ns, "pluginConfig", "getAll"], arg: "pluginName" },
-            InjectArg { path: &[$ns, "usePluginConfig"], arg: "pluginName" },
-            InjectArg { path: &[$ns, "subscribePluginConfig"], arg: "pluginName" },
+            InjectArg {
+                path: &[$ns, "callable"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "ffi"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "Millennium", "callServerMethod"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "Millennium", "exposeObj"],
+                arg: "__exports",
+            },
+            InjectArg {
+                path: &[$ns, "BindPluginSettings"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "pluginConfig", "get"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "pluginConfig", "set"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "pluginConfig", "delete"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "pluginConfig", "getAll"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "usePluginConfig"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "subscribePluginConfig"],
+                arg: "pluginName",
+            },
         ]
     };
 }
 
-static FRONTEND_INJECT_ARGS_CLIENT: &[InjectArg] = &inject_args_for_ns!("_steambrew_client");
-static FRONTEND_INJECT_ARGS_MILLENNIUM: &[InjectArg] = &inject_args_for_ns!("_steambrew_millennium");
-
-pub const FRONTEND_INJECT_ARGS_SLICES: &[&[InjectArg]] =
-    &[FRONTEND_INJECT_ARGS_CLIENT, FRONTEND_INJECT_ARGS_MILLENNIUM];
+static FRONTEND_INJECT_ARGS: &[InjectArg] = &inject_args_for_ns!("millennium");
+pub const FRONTEND_INJECT_ARGS_SLICES: &[&[InjectArg]] = &[FRONTEND_INJECT_ARGS];
 
 pub static FRONTEND_RENAMES: &[Rename] = &[
     Rename {
-        path: &["_steamclienthomebrew_millennium", "pluginSelf"],
+        path: &["millennium", "pluginSelf"],
         replacement: "window.PLUGIN_LIST[pluginName]",
     },
     Rename {
-        path: &["_steambrew_client", "pluginSelf"],
+        path: &["millennium", "pluginSelf"],
         replacement: "window.PLUGIN_LIST[pluginName]",
     },
     Rename {
-        path: &["_steambrew_millennium", "pluginSelf"],
+        path: &["millennium", "pluginSelf"],
         replacement: "window.PLUGIN_LIST[pluginName]",
     },
 ];
 
 pub static FRONTEND_INJECT_CONSTS: &[InjectConst] = &[
     InjectConst {
-        path: &["_steambrew_client", "ChromeDevToolsProtocol"],
+        path: &["millennium", "ChromeDevToolsProtocol"],
         local_name: "ChromeDevToolsProtocol",
-        init: "_steambrew_client.MillenniumChromeDevToolsProtocol \
-                     ? new _steambrew_client.MillenniumChromeDevToolsProtocol(pluginName) \
-                     : _steambrew_client.ChromeDevToolsProtocol",
+        init: "millennium.MillenniumChromeDevToolsProtocol ? new millennium.MillenniumChromeDevToolsProtocol(pluginName) : millennium.ChromeDevToolsProtocol",
     },
     InjectConst {
-        path: &["_steambrew_millennium", "ChromeDevToolsProtocol"],
+        path: &["millennium", "ChromeDevToolsProtocol"],
         local_name: "ChromeDevToolsProtocol",
-        init: "_steambrew_millennium.MillenniumChromeDevToolsProtocol \
-                     ? new _steambrew_millennium.MillenniumChromeDevToolsProtocol(pluginName) \
-                     : _steambrew_millennium.ChromeDevToolsProtocol",
+        init: "millennium.MillenniumChromeDevToolsProtocol ? new millennium.MillenniumChromeDevToolsProtocol(pluginName) : millennium.ChromeDevToolsProtocol",
     },
 ];
 
-static WEBKIT_INJECT_ARGS_WEBKIT: &[InjectArg] = &inject_args_for_ns!("_steambrew_webkit");
-static WEBKIT_INJECT_ARGS_MILLENNIUM: &[InjectArg] = &inject_args_for_ns!("_steambrew_millennium");
-
-pub const WEBKIT_INJECT_ARGS_SLICES: &[&[InjectArg]] =
-    &[WEBKIT_INJECT_ARGS_WEBKIT, WEBKIT_INJECT_ARGS_MILLENNIUM];
+static WEBKIT_INJECT_ARGS: &[InjectArg] = &inject_args_for_ns!("millennium");
+pub const WEBKIT_INJECT_ARGS_SLICES: &[&[InjectArg]] = &[WEBKIT_INJECT_ARGS];
 
 pub static WEBKIT_RENAMES: &[Rename] = &[Rename {
-    path: &["_steambrew_millennium", "pluginSelf"],
+    path: &["millennium", "pluginSelf"],
     replacement: "window.PLUGIN_LIST[pluginName]",
 }];
 pub static WEBKIT_INJECT_CONSTS: &[InjectConst] = &[InjectConst {
-    path: &["_steambrew_millennium", "ChromeDevToolsProtocol"],
+    path: &["millennium", "ChromeDevToolsProtocol"],
     local_name: "ChromeDevToolsProtocol",
-    init: "_steambrew_millennium.MillenniumChromeDevToolsProtocol \
-                     ? new _steambrew_millennium.MillenniumChromeDevToolsProtocol(pluginName) \
-                     : _steambrew_millennium.ChromeDevToolsProtocol",
+    init: "millennium.MillenniumChromeDevToolsProtocol ? new millennium.MillenniumChromeDevToolsProtocol(pluginName) : millennium.ChromeDevToolsProtocol",
 }];

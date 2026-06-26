@@ -101,9 +101,28 @@ pub fn wrap(
     } else {
         let methods = lua_ffi_names
             .iter()
-            .map(|name| format!("    {}: window.MILLENNIUM_API.ffi(pluginName, '{}'),\n", name, name))
+            .map(|name| {
+                format!(
+                    "    {}: window.MILLENNIUM_API.ffi(pluginName, '{}'),\n",
+                    name, name
+                )
+            })
             .collect::<String>();
         format!("const backend = {{\n{}}};\n", methods)
+    };
+
+    let frontend_proxy = if !is_client {
+        format!(
+            "const frontend = new Proxy({{}}, {{\n\
+             \tget(_, key) {{\n\
+             \t\tif (typeof key !== 'string') return undefined;\n\
+             \t\treturn window.MILLENNIUM_API.ffi({}, 'frontend:' + key);\n\
+             \t}}\n\
+             }});\n",
+            plugin_name_json
+        )
+    } else {
+        String::new()
     };
 
     let sourcemap_comment = match source_map_url {
@@ -117,6 +136,7 @@ pub fn wrap(
          (window.PLUGIN_LIST ||= {{}})[pluginName] ||= {{}};\n\
          window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS ||= {{}};\n\
          {ffi_stubs}\
+         {frontend_proxy}\
          \n\
          {console_helper}\
          \n\
@@ -151,6 +171,7 @@ pub fn wrap(
         is_client = is_client_str,
         plugin_name_json = plugin_name_json,
         ffi_stubs = ffi_stubs,
+        frontend_proxy = frontend_proxy,
         iife = iife_expr,
         post_message = post_message,
         sourcemap_comment = sourcemap_comment,
