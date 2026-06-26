@@ -62,6 +62,7 @@ class webkit_world_mgr
     {
         std::string session_id;
         std::string script_id;
+        std::vector<std::string> star_script_ids;
         bool attaching{ false };
     };
 
@@ -87,6 +88,7 @@ class webkit_world_mgr
     void initialize();
     void attach_to_target(const std::string& target_id, const std::string& url);
     void expose_millennium_to_ctx(const std::string& session_id, bool can_reload);
+    void expose_star_webkit_to_ctx(const std::string& session_id, bool can_reload);
     void setup_event_listeners();
     bool is_valid_target_url(const std::string& url) const;
     std::string compile_api_shim();

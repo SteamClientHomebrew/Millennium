@@ -300,14 +300,14 @@ void plugin_loader::setup_webkit_shims()
         if (plugin.format == plugin_manager::plugin_format::star) {
             if (plugin.has_webkit_js) {
                 const auto vpath = std::filesystem::path("/star") / plugin.plugin_name / "webkit.js";
-                m_plugin_webkit_store->add({ plugin.plugin_name, vpath });
+                m_plugin_webkit_store->add({ plugin.plugin_name, vpath, plugin_manager::plugin_format::star });
             }
             continue;
         }
 
         const auto abs_path = std::filesystem::path(platform::environment::get("MILLENNIUM__PLUGINS_PATH")) / plugin.plugin_webkit_path;
         if (std::filesystem::exists(abs_path)) {
-            m_plugin_webkit_store->add({ plugin.plugin_name, abs_path });
+            m_plugin_webkit_store->add({ plugin.plugin_name, abs_path, plugin_manager::plugin_format::loose_files });
         }
     }
 }
