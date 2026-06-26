@@ -141,7 +141,6 @@ export interface Plugin {
 	common_name?: string;
 	name: string;
 	description?: string;
-	venv?: string;
 	version?: string;
 	useBackend?: boolean;
 	backendType?: string;
