@@ -405,10 +405,15 @@ fn resolve_auto_output(plugin_id: &str) -> anyhow::Result<PathBuf> {
 
     #[cfg(target_os = "linux")]
     {
-        let base = std::env::var("HOME")
+        let data_home = std::env::var("XDG_DATA_HOME")
             .map(PathBuf::from)
-            .map_err(|_| anyhow::anyhow!("auto: $HOME is not set"))?;
-        let path = base.join(".local/share/millennium/plugins").join(&filename);
+            .unwrap_or_else(|_| {
+                let home = std::env::var("HOME")
+                    .map(PathBuf::from)
+                    .expect("auto: neither $XDG_DATA_HOME nor $HOME is set");
+                home.join(".local/share")
+            });
+        let path = data_home.join("millennium/plugins").join(&filename);
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| {
                 anyhow::anyhow!(
