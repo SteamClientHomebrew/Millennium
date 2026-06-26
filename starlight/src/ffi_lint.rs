@@ -46,7 +46,7 @@ pub fn check(
     config_dir: &Path,
     frontend_entry: Option<&str>,
     webkit_entry: Option<&str>,
-) -> anyhow::Result<(Vec<String>, Vec<String>)> {
+) -> anyhow::Result<(Vec<crate::ts_ffi::TsExposedFn>, Vec<String>)> {
     let lua = crate::lua_ffi::scan(lua_entries)?;
     let ts = crate::ts_ffi::scan(config_dir, frontend_entry)?;
     let webkit = crate::ts_ffi::scan(config_dir, webkit_entry)?;
@@ -267,7 +267,7 @@ pub fn check(
         ));
     }
 
-    Ok((ts.exposed_fns.into_iter().map(|f| f.name).collect(), lua_fn_names))
+    Ok((ts.exposed_fns, lua_fn_names))
 }
 
 fn generate_dts(

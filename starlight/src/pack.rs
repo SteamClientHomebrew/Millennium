@@ -97,7 +97,7 @@ pub fn pack(
 
     let mut raw_sections: Vec<(u8, Vec<u8>)> = vec![(SECTION_METADATA, metadata_blob)];
 
-    let mut ffi_exposed: Vec<String> = Vec::new();
+    let mut ffi_exposed: Vec<crate::ts_ffi::TsExposedFn> = Vec::new();
     let mut lua_ffi_names: Vec<String> = Vec::new();
 
     if let Some(backend_cfg) = &cfg.backend {
@@ -129,12 +129,13 @@ pub fn pack(
             (None, None)
         };
 
-        let outro = if ffi_exposed.is_empty() {
+        let ffi_names: Vec<&str> = ffi_exposed.iter().map(|f| f.name.as_str()).collect();
+        let outro = if ffi_names.is_empty() {
             None
         } else {
             Some(format!(
                 "Millennium.exposeObj({{ {} }});",
-                ffi_exposed.join(", ")
+                ffi_names.join(", ")
             ))
         };
 
@@ -150,6 +151,30 @@ pub fn pack(
             outro,
             &lua_ffi_names,
         )?;
+
+        if !ffi_exposed.is_empty() {
+            let js_text = std::str::from_utf8(&js_bytes).unwrap_or("");
+            let defined = collect_named_functions(js_text);
+            let mut bundle_errors = 0usize;
+            for f in &ffi_exposed {
+                if !defined.contains(f.name.as_str()) {
+                    crate::log::build_error(
+                        &format!("FFI: `{}` is annotated with `/** @ffi */` but is not reachable from the frontend entry point", f.name),
+                        &format!(
+                            "  → declared in {}:{}\n  → re-export it from the entry file: `export {{ {} }} from '...'`\n",
+                            f.file, f.line, f.name,
+                        ),
+                    );
+                    bundle_errors += 1;
+                }
+            }
+            if bundle_errors > 0 {
+                return Err(anyhow::anyhow!(
+                    "FFI validation failed ({} error(s))",
+                    bundle_errors
+                ));
+            }
+        }
 
         if let (Some(path), false) = (&map_disk_path, map_bytes.is_empty()) {
             std::fs::write(path, &map_bytes).map_err(|e| {
@@ -563,4 +588,87 @@ fn add_asset_file(
 
     map.insert(name, data);
     Ok(())
+}
+
+fn collect_named_functions(js: &str) -> std::collections::HashSet<String> {
+    use oxc_allocator::Allocator;
+    use oxc_ast::ast::{Expression, Function, Statement};
+    use oxc_parser::Parser;
+    use oxc_span::SourceType;
+
+    fn visit_fn(func: &Function<'_>, out: &mut std::collections::HashSet<String>) {
+        if let Some(id) = &func.id {
+            out.insert(id.name.to_string());
+        }
+        if let Some(body) = &func.body {
+            for stmt in &body.statements {
+                visit_stmt(stmt, out);
+            }
+        }
+    }
+
+    fn visit_expr(expr: &Expression<'_>, out: &mut std::collections::HashSet<String>) {
+        match expr {
+            Expression::FunctionExpression(f) => visit_fn(f, out),
+            Expression::ArrowFunctionExpression(f) => {
+                for stmt in &f.body.statements {
+                    visit_stmt(stmt, out);
+                }
+            }
+            Expression::CallExpression(call) => {
+                visit_expr(&call.callee, out);
+                for arg in &call.arguments {
+                    if let Some(e) = arg.as_expression() {
+                        visit_expr(e, out);
+                    }
+                }
+            }
+            Expression::AssignmentExpression(a) => {
+                if let oxc_ast::ast::AssignmentTarget::StaticMemberExpression(m) = &a.left {
+                    out.insert(m.property.name.to_string());
+                }
+                visit_expr(&a.right, out);
+            }
+            Expression::SequenceExpression(seq) => {
+                for e in &seq.expressions {
+                    visit_expr(e, out);
+                }
+            }
+            Expression::ParenthesizedExpression(p) => visit_expr(&p.expression, out),
+            _ => {}
+        }
+    }
+
+    fn visit_stmt(stmt: &Statement<'_>, out: &mut std::collections::HashSet<String>) {
+        match stmt {
+            Statement::FunctionDeclaration(f) => visit_fn(f, out),
+            Statement::ExpressionStatement(es) => visit_expr(&es.expression, out),
+            Statement::BlockStatement(b) => {
+                for s in &b.body {
+                    visit_stmt(s, out);
+                }
+            }
+            Statement::VariableDeclaration(vd) => {
+                for decl in &vd.declarations {
+                    if let Some(init) = &decl.init {
+                        visit_expr(init, out);
+                    }
+                }
+            }
+            Statement::ReturnStatement(r) => {
+                if let Some(arg) = &r.argument {
+                    visit_expr(arg, out);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let alloc = Allocator::default();
+    let ret = Parser::new(&alloc, js, SourceType::mjs()).parse();
+    let mut names = std::collections::HashSet::new();
+    for stmt in &ret.program.body {
+        visit_stmt(stmt, &mut names);
+    }
+    names
 }

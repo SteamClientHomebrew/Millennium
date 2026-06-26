@@ -119,7 +119,7 @@ fn walk_stmt<'a>(stmt: &Statement<'a>, ctx: &mut ScanCtx<'_>) {
                 if let Some(init) = &decl.init {
                     if let Some(name) = binding_name(&decl.id) {
                         if has_ffi_comment(ctx.source, decl.id.span().start) {
-                            if let Some(exposed) = extract_arrow_ffi(&name, init, ctx.file) {
+                            if let Some(exposed) = extract_arrow_ffi(&name, init, ctx.file, ctx.source, decl.id.span().start) {
                                 ctx.exposed_fns.push(exposed);
                                 return;
                             }
@@ -132,7 +132,7 @@ fn walk_stmt<'a>(stmt: &Statement<'a>, ctx: &mut ScanCtx<'_>) {
         Statement::FunctionDeclaration(fd) => {
             let start = fd.span().start;
             if has_ffi_comment(ctx.source, start) {
-                if let Some(exposed) = extract_fn_decl_ffi(fd, ctx.file) {
+                if let Some(exposed) = extract_fn_decl_ffi(fd, ctx.file, ctx.source) {
                     ctx.exposed_fns.push(exposed);
                     return;
                 }
@@ -147,7 +147,7 @@ fn walk_stmt<'a>(stmt: &Statement<'a>, ctx: &mut ScanCtx<'_>) {
             if let Some(Declaration::FunctionDeclaration(fd)) = &exp.declaration {
                 let start = exp.span().start;
                 if has_ffi_comment(ctx.source, start) {
-                    if let Some(exposed) = extract_fn_decl_ffi(fd, ctx.file) {
+                    if let Some(exposed) = extract_fn_decl_ffi(fd, ctx.file, ctx.source) {
                         ctx.exposed_fns.push(exposed);
                         return;
                     }
@@ -305,7 +305,7 @@ fn extract_tuple_types(ty: &TSType) -> Vec<FfiType> {
     }
 }
 
-fn extract_fn_decl_ffi<'a>(fd: &Function<'a>, file: &str) -> Option<TsExposedFn> {
+fn extract_fn_decl_ffi<'a>(fd: &Function<'a>, file: &str, source: &str) -> Option<TsExposedFn> {
     let name = fd.id.as_ref()?.name.as_str().to_string();
     let (params, return_type) = extract_fn_signature(fd, file)?;
     Some(TsExposedFn {
@@ -313,11 +313,11 @@ fn extract_fn_decl_ffi<'a>(fd: &Function<'a>, file: &str) -> Option<TsExposedFn>
         params,
         return_type,
         file: file.to_string(),
-        line: 0,
+        line: byte_offset_to_line(source, fd.span().start as usize),
     })
 }
 
-fn extract_arrow_ffi<'a>(name: &str, expr: &Expression<'a>, file: &str) -> Option<TsExposedFn> {
+fn extract_arrow_ffi<'a>(name: &str, expr: &Expression<'a>, file: &str, source: &str, span_start: u32) -> Option<TsExposedFn> {
     let arrow = match expr {
         Expression::ArrowFunctionExpression(a) => a,
         _ => return None,
@@ -342,7 +342,7 @@ fn extract_arrow_ffi<'a>(name: &str, expr: &Expression<'a>, file: &str) -> Optio
         params,
         return_type,
         file: file.to_string(),
-        line: 0,
+        line: byte_offset_to_line(source, span_start as usize),
     })
 }
 

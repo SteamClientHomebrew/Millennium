@@ -78,19 +78,38 @@ fn patch_tsconfig(plugin_dir: &Path, cfg: &crate::config::PlgConfig) -> anyhow::
 
                     let depth = webkit_dir.strip_prefix(plugin_dir).map(|p| p.components().count()).unwrap_or(1);
                     let relative_root = "../".repeat(depth) + "tsconfig.json";
-                    let mut json = serde_json::json!({
-                        "extends": relative_root,
-                        "compilerOptions": {}
-                    });
+                    let parent_prefix = "../".repeat(depth);
+
+                    let mut json: serde_json::Value = if webkit_tsconfig.exists() {
+                        serde_json::from_str(&fs::read_to_string(&webkit_tsconfig)?)?
+                    } else {
+                        serde_json::json!({ "compilerOptions": {} })
+                    };
+
+                    json["extends"] = serde_json::json!(relative_root);
+
                     let compiler_options = json
                         .get_mut("compilerOptions")
                         .and_then(|v| v.as_object_mut())
-                        .unwrap();
+                        .ok_or_else(|| anyhow::anyhow!("{}: compilerOptions is not an object", webkit_tsconfig.display()))?;
+
                     compiler_options.insert("baseUrl".to_string(), serde_json::json!(".."));
-                    compiler_options.insert(
-                        "paths".to_string(),
-                        serde_json::json!({ "millennium": [".millennium/lsp/webkit-ts"] }),
-                    );
+                    compiler_options.insert("typeRoots".to_string(), serde_json::json!([
+                        format!("{}.millennium/types", parent_prefix),
+                        format!("{}node_modules/@types", parent_prefix),
+                    ]));
+
+                    // merge millennium path into existing paths without clobbering user-added aliases
+                    let paths = compiler_options
+                        .entry("paths")
+                        .or_insert_with(|| serde_json::json!({}));
+                    if let Some(paths_obj) = paths.as_object_mut() {
+                        paths_obj.insert(
+                            "millennium".to_string(),
+                            serde_json::json!([".millennium/lsp/webkit-ts"]),
+                        );
+                    }
+
                     let new_content = serde_json::to_string_pretty(&json)?;
                     let current = fs::read_to_string(&webkit_tsconfig).unwrap_or_default();
                     if new_content != current {
@@ -218,6 +237,11 @@ pub fn install_types(plugin_dir: &Path, starlight_version: &str, cfg: &crate::co
     patch_luarc(plugin_dir)?;
     patch_gitignore(plugin_dir)?;
     patch_package_json(plugin_dir)?;
+
+    if let Some(backend_cfg) = &cfg.backend {
+        let entries = crate::bundler::lua::collect(&backend_cfg.sources, plugin_dir)?;
+        crate::ffi_lint::check(&entries, plugin_dir, None, None)?;
+    }
 
     Ok(())
 }
