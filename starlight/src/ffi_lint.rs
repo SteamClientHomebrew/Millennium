@@ -215,6 +215,40 @@ pub fn check(
                 }
             }
         }
+
+        let banned = crate::ts_ffi::scan_banned_package_imports(
+            config_dir,
+            webkit_entry,
+            &["@steambrew/client", "@steambrew/webkit"],
+        )?;
+        for imp in &banned {
+            crate::log::build_error(
+                &format!("webkit: `{}` is deprecated and cannot be used with the starlight compiler", imp.package),
+                &format!(
+                    "  -> imported in {}:{}\n  -> use the `millennium` package instead\n",
+                    imp.file, imp.line,
+                ),
+            );
+            errors += 1;
+        }
+    }
+
+    if frontend_entry.is_some() {
+        let banned = crate::ts_ffi::scan_banned_package_imports(
+            config_dir,
+            frontend_entry,
+            &["@steambrew/client", "@steambrew/webkit"],
+        )?;
+        for imp in &banned {
+            crate::log::build_error(
+                &format!("frontend: `{}` is deprecated and cannot be used with the starlight compiler", imp.package),
+                &format!(
+                    "  -> imported in {}:{}\n  -> use the `millennium` package instead\n",
+                    imp.file, imp.line,
+                ),
+            );
+            errors += 1;
+        }
     }
 
     for call in frontend_backend_calls
@@ -303,13 +337,13 @@ fn generate_frontend_dts(
         };
 
         let params_str = func
-            .params
+            .raw_params
             .iter()
-            .map(|(name, ty)| format!("{}: {}", name, ty.to_ts()))
+            .map(|(name, ty)| format!("{}: {}", name, ty))
             .collect::<Vec<_>>()
             .join(", ");
 
-        let ret_str = func.return_type.to_ts();
+        let ret_str = &func.raw_return_type;
 
         out.push_str(&format!("    /** {} */\n", location));
         out.push_str(&format!(
