@@ -32,6 +32,7 @@
 #include "millennium/types.h"
 
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 rpc_client::rpc_client(plugin_ipc::socket_fd fd) : m_fd(fd)
@@ -64,6 +65,15 @@ bool rpc_client::send_message(const json& msg)
 
 json rpc_client::call(const std::string& method, const json& params)
 {
+    /*
+     * if we already know the link is dead, yield briefly before throwing so that
+     * any caller looping on IPC errors doesn't busy-spin at full CPU.
+     */
+    if (!m_connected.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        throw std::runtime_error("rpc_client: not connected");
+    }
+
     int id = m_next_id.fetch_add(1);
 
     json req = {
@@ -95,6 +105,22 @@ json rpc_client::call(const std::string& method, const json& params)
 
         if (type == plugin_ipc::TYPE_NOTIFY) {
             m_deferred_notifications.push_back(std::move(msg));
+            continue;
+        }
+
+        /*
+         * parent sent us a request while we were blocked (e.g. evaluate during call_frontend_method).
+         * handle it inline to break the deadlock.
+         */
+        if (type == plugin_ipc::TYPE_REQUEST && m_handler) {
+            int req_id = msg.value("id", -1);
+            std::string method = msg.value("method", "");
+            json params = msg.value("params", json(nullptr));
+            try {
+                respond(req_id, m_handler(method, params));
+            } catch (const std::exception& e) {
+                respond_error(req_id, e.what());
+            }
             continue;
         }
 
@@ -156,6 +182,8 @@ void rpc_client::resume_coroutine(lua_State* co)
 
 void rpc_client::run(request_handler handler)
 {
+    m_handler = handler;
+
     auto dispatch_notification = [&](const json& notif)
     {
         try {

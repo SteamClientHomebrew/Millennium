@@ -113,10 +113,16 @@ inline bool recv_all(socket_fd fd, void* buf, size_t n)
     while (total < n) {
 #ifdef _WIN32
         int r = ::recv(fd, static_cast<char*>(buf) + total, static_cast<int>(n - total), 0);
+        if (r == 0) return false; /* peer closed */
+        if (r < 0) return false;  /* real error */
 #else
         ssize_t r = ::recv(fd, static_cast<char*>(buf) + total, n - total, 0);
+        if (r == 0) return false; /* peer closed */
+        if (r < 0) {
+            if (errno == EINTR) continue; /* signal, retry */
+            return false;
+        }
 #endif
-        if (r <= 0) return false;
         total += static_cast<size_t>(r);
     }
     return true;
