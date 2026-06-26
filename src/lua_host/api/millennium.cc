@@ -202,7 +202,7 @@ static int RPC_AddBrowserCss(lua_State* L)
         };
 
         auto result = g_rpc->call(plugin_ipc::child_method::ADD_BROWSER_CSS, params);
-        lua_pushinteger(L, result.value("hookId", -1));
+        lua_pushinteger(L, result.value("id", -1));
     } catch (const std::exception& e) {
         return luaL_error(L, "add_browser_css failed: %s", e.what());
     }
@@ -221,7 +221,7 @@ static int RPC_AddBrowserJs(lua_State* L)
         };
 
         auto result = g_rpc->call(plugin_ipc::child_method::ADD_BROWSER_JS, params);
-        lua_pushinteger(L, result.value("hookId", -1));
+        lua_pushinteger(L, result.value("id", -1));
     } catch (const std::exception& e) {
         return luaL_error(L, "add_browser_js failed: %s", e.what());
     }
@@ -234,7 +234,7 @@ static int RPC_RemoveBrowserModule(lua_State* L)
 
     try {
         const json params = {
-            { "hookId", hookId }
+            { "hook_id", hookId }
         };
 
         auto result = g_rpc->call(plugin_ipc::child_method::REMOVE_BROWSER_MODULE, params);
@@ -351,13 +351,13 @@ static int assets_read(lua_State* L)
     }
 
     f.seekg(static_cast<std::streamoff>(entry.file_offset));
-    std::vector<uint8_t> compressed(entry.compressed_length);
-    if (!f.read(reinterpret_cast<char*>(compressed.data()), static_cast<std::streamsize>(entry.compressed_length))) {
-        lua_pushnil(L);
-        return 1;
-    }
 
     try {
+        std::vector<uint8_t> compressed(entry.compressed_length);
+        if (!f.read(reinterpret_cast<char*>(compressed.data()), static_cast<std::streamsize>(entry.compressed_length))) {
+            lua_pushnil(L);
+            return 1;
+        }
         auto decompressed = star_decompress(compressed.data(), compressed.size());
         lua_pushlstring(L, reinterpret_cast<const char*>(decompressed.data()), decompressed.size());
     } catch (const std::exception& e) {
