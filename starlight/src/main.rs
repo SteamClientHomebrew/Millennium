@@ -132,7 +132,11 @@ fn main() {
         }),
         Command::Verify { file } => verify::verify(&file),
         Command::Inspect { file } => verify::inspect(&file),
-        Command::Watch => watch::watch(&cfg_path, cli.of.as_deref(), mode),
+        Command::Watch => watch::watch(
+            &cfg_path,
+            cli.of.as_deref(),
+            if cli.release { BuildMode::Release } else { BuildMode::Debug },
+        ),
         Command::Lsp => {
             let plugin_dir = cfg_path.parent().unwrap_or(Path::new(".")).to_path_buf();
             crate::config::load(&cfg_path)
