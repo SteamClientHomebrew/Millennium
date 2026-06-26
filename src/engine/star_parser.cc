@@ -165,7 +165,7 @@ static std::vector<uint8_t> star_strip_parity(const std::vector<uint8_t>& woven)
     size_t pos = 0;
 
     while (pos < woven.size()) {
-        if (woven.size() - pos <= 12) throw std::runtime_error("truncated parity stream at block " + std::to_string(expected_idx));
+        if (woven.size() - pos < 12) throw std::runtime_error("truncated parity stream at block " + std::to_string(expected_idx));
 
         size_t data_end = std::min(pos + STAR_STRIDE, woven.size() - 12);
 
@@ -195,19 +195,21 @@ static std::vector<uint8_t> star_strip_parity(const std::vector<uint8_t>& woven)
 
 static std::vector<uint8_t> star_decode_section(const std::vector<uint8_t>& file_data, size_t star_start, const star_section_t& sec)
 {
-    const size_t abs_start = star_start + static_cast<size_t>(sec.offset);
-
     if (sec.encode_flags == 0) {
         /* raw section, no encoding; return bytes directly */
-        if (abs_start > file_data.size() || static_cast<size_t>(sec.length) > file_data.size() - abs_start) {
-            throw std::runtime_error(std::format("section 0x{} out of bounds", sec.id));
+        if (star_start > file_data.size() || static_cast<size_t>(sec.offset) > file_data.size() - star_start) {
+            throw std::runtime_error(std::format("section 0x{:02x} out of bounds", static_cast<uint32_t>(sec.id)));
         }
-
+        const size_t abs_start = star_start + static_cast<size_t>(sec.offset);
+        if (static_cast<size_t>(sec.length) > file_data.size() - abs_start) {
+            throw std::runtime_error(std::format("section 0x{:02x} out of bounds", static_cast<uint32_t>(sec.id)));
+        }
         return std::vector<uint8_t>(file_data.begin() + abs_start, file_data.begin() + abs_start + static_cast<size_t>(sec.length));
     }
 
-    if (static_cast<size_t>(sec.offset) > file_data.size() - star_start) throw std::runtime_error("section 0x" + std::to_string(sec.id) + " offset overflow");
-    if (static_cast<size_t>(sec.length) > file_data.size() - abs_start) throw std::runtime_error("section 0x" + std::to_string(sec.id) + " extends beyond file");
+    if (static_cast<size_t>(sec.offset) > file_data.size() - star_start) throw std::runtime_error(std::format("section 0x{:02x} offset overflow", static_cast<uint32_t>(sec.id)));
+    const size_t abs_start = star_start + static_cast<size_t>(sec.offset);
+    if (static_cast<size_t>(sec.length) > file_data.size() - abs_start) throw std::runtime_error(std::format("section 0x{:02x} extends beyond file", static_cast<uint32_t>(sec.id)));
 
     std::vector<uint8_t> blob(file_data.begin() + abs_start, file_data.begin() + abs_start + static_cast<size_t>(sec.length));
 
@@ -544,7 +546,9 @@ std::unordered_map<std::string, AssetEntry> star_read_asset_index(const std::fil
     if (asset_encode_flags != 0) return result;
     if (asset_length == 0) return result;
 
+    if (static_cast<size_t>(asset_offset) > file_size - star_start) return result;
     const size_t assets_abs_start = star_start + static_cast<size_t>(asset_offset);
+    if (static_cast<size_t>(asset_length) > file_size - assets_abs_start) return result;
     if (assets_abs_start + 4 > file_size) return result;
 
     f.seekg(static_cast<std::streamoff>(assets_abs_start));
@@ -552,6 +556,7 @@ std::unordered_map<std::string, AssetEntry> star_read_asset_index(const std::fil
     uint8_t count_buf[4];
     if (!f.read(reinterpret_cast<char*>(count_buf), 4)) return result;
     const uint32_t count = read_u32_le(count_buf);
+    if (count > 65536) return result;
 
     /* walk sub-entry headers; read only header bytes, skip data bodies */
     for (uint32_t i = 0; i < count; ++i) {
