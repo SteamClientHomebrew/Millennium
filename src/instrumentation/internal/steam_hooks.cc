@@ -43,7 +43,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
-#include "millennium/filesystem.h"
+#include "millennium/filesystem.h" // IWYU pragma: keep
 
 #include "millennium/logger.h"
 #include "millennium/steam_hooks.h"
