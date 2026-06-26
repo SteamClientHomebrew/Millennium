@@ -52,9 +52,10 @@ type Millennium = {
  * ```
  *
  * backend:
- * ```python
- * def methodName(arg1: str):
- *    pass
+ * ```lua
+ * function methodName(arg1)
+ *     body
+ * end
  * ```
  */
 const callable: <

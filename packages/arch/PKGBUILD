@@ -26,11 +26,11 @@ package() {
     cd "$srcdir/$_pkgdir"
 
     install -d "$pkgdir/usr/lib/millennium"
-    install -m755 build/libmillennium_x86.so             "$pkgdir/usr/lib/millennium/"
-    install -m755 build/libmillennium_hhx64.so           "$pkgdir/usr/lib/millennium/"
-    install -m755 build/libmillennium_bootstrap_x86.so   "$pkgdir/usr/lib/millennium/"
-    install -m755 build/libmillennium_luavm_x86          "$pkgdir/usr/lib/millennium/"
+    install -m755 build/libmillennium_x86.so "$pkgdir/usr/lib/millennium/"
+    install -m755 build/libmillennium_hhx64.so "$pkgdir/usr/lib/millennium/"
+    install -m755 build/libmillennium_bootstrap_x86.so "$pkgdir/usr/lib/millennium/"
+    install -m755 build/libmillennium_luavm_x86 "$pkgdir/usr/lib/millennium/"
     install -m755 build/libmillennium_bootstrap_hhx64.so "$pkgdir/usr/lib/millennium/"
-    install -m755 build/libmillennium_pvs64              "$pkgdir/usr/lib/millennium/"
-    install -Dm644 LICENSE.md                            "$pkgdir/usr/share/licenses/millennium/LICENSE.md"
+    install -m755 build/libmillennium_pvs64 "$pkgdir/usr/lib/millennium/"
+    install -Dm644 LICENSE.md "$pkgdir/usr/share/licenses/millennium/LICENSE.md"
 }
