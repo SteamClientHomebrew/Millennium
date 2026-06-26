@@ -49,6 +49,10 @@ pub struct TsExposedFn {
     pub name: String,
     pub params: Vec<(String, FfiType)>,
     pub return_type: FfiType,
+    /// Exact source text for each param's type annotation (parallel to `params`).
+    pub raw_params: Vec<(String, String)>,
+    /// Exact source text of the return type annotation.
+    pub raw_return_type: String,
     pub file: String,
     pub line: u32,
 }
@@ -307,11 +311,13 @@ fn extract_tuple_types(ty: &TSType) -> Vec<FfiType> {
 
 fn extract_fn_decl_ffi<'a>(fd: &Function<'a>, file: &str, source: &str) -> Option<TsExposedFn> {
     let name = fd.id.as_ref()?.name.as_str().to_string();
-    let (params, return_type) = extract_fn_signature(fd, file)?;
+    let (params, return_type, raw_params, raw_return_type) = extract_fn_signature(fd, file, source)?;
     Some(TsExposedFn {
         name,
         params,
         return_type,
+        raw_params,
+        raw_return_type,
         file: file.to_string(),
         line: byte_offset_to_line(source, fd.span().start as usize),
     })
@@ -323,12 +329,17 @@ fn extract_arrow_ffi<'a>(name: &str, expr: &Expression<'a>, file: &str, source: 
         _ => return None,
     };
 
-    let params = extract_params(&arrow.params, file)?;
+    let (params, raw_params) = extract_params(&arrow.params, file, source)?;
     let return_type = arrow
         .return_type
         .as_ref()
         .map(|r| ffi_type_from_ts(&r.type_annotation))
         .unwrap_or(FfiType::Unknown);
+    let raw_return_type = arrow
+        .return_type
+        .as_ref()
+        .map(|r| source[r.type_annotation.span().start as usize..r.type_annotation.span().end as usize].to_string())
+        .unwrap_or_else(|| "unknown".to_string());
 
     if matches!(return_type, FfiType::Unknown) {
         crate::log::warn(&format!(
@@ -341,6 +352,8 @@ fn extract_arrow_ffi<'a>(name: &str, expr: &Expression<'a>, file: &str, source: 
         name: name.to_string(),
         params,
         return_type,
+        raw_params,
+        raw_return_type,
         file: file.to_string(),
         line: byte_offset_to_line(source, span_start as usize),
     })
@@ -349,18 +362,24 @@ fn extract_arrow_ffi<'a>(name: &str, expr: &Expression<'a>, file: &str, source: 
 fn extract_fn_signature<'a>(
     fd: &Function<'a>,
     file: &str,
-) -> Option<(Vec<(String, FfiType)>, FfiType)> {
+    source: &str,
+) -> Option<(Vec<(String, FfiType)>, FfiType, Vec<(String, String)>, String)> {
     let name = fd
         .id
         .as_ref()
         .map(|id| id.name.as_str())
         .unwrap_or("(anonymous)");
-    let params = extract_params(&fd.params, file)?;
+    let (params, raw_params) = extract_params(&fd.params, file, source)?;
     let return_type = fd
         .return_type
         .as_ref()
         .map(|r| ffi_type_from_ts(&r.type_annotation))
         .unwrap_or(FfiType::Unknown);
+    let raw_return_type = fd
+        .return_type
+        .as_ref()
+        .map(|r| source[r.type_annotation.span().start as usize..r.type_annotation.span().end as usize].to_string())
+        .unwrap_or_else(|| "unknown".to_string());
 
     if matches!(return_type, FfiType::Unknown) {
         crate::log::warn(&format!(
@@ -369,11 +388,12 @@ fn extract_fn_signature<'a>(
         ));
     }
 
-    Some((params, return_type))
+    Some((params, return_type, raw_params, raw_return_type))
 }
 
-fn extract_params<'a>(params: &FormalParameters<'a>, file: &str) -> Option<Vec<(String, FfiType)>> {
-    let mut result = Vec::new();
+fn extract_params<'a>(params: &FormalParameters<'a>, file: &str, source: &str) -> Option<(Vec<(String, FfiType)>, Vec<(String, String)>)> {
+    let mut result: Vec<(String, FfiType)> = Vec::new();
+    let mut raw: Vec<(String, String)> = Vec::new();
     for param in &params.items {
         let name = binding_name(&param.pattern).unwrap_or_else(|| "_".to_string());
         let ty = param
@@ -381,6 +401,11 @@ fn extract_params<'a>(params: &FormalParameters<'a>, file: &str) -> Option<Vec<(
             .as_ref()
             .map(|ann| ffi_type_from_ts(&ann.type_annotation))
             .unwrap_or(FfiType::Unknown);
+        let raw_ty = param
+            .type_annotation
+            .as_ref()
+            .map(|ann| source[ann.type_annotation.span().start as usize..ann.type_annotation.span().end as usize].to_string())
+            .unwrap_or_else(|| "unknown".to_string());
 
         if matches!(ty, FfiType::Unknown) {
             crate::log::warn(&format!(
@@ -389,9 +414,10 @@ fn extract_params<'a>(params: &FormalParameters<'a>, file: &str) -> Option<Vec<(
             ));
         }
 
-        result.push((name, ty));
+        result.push((name.clone(), ty));
+        raw.push((name, raw_ty));
     }
-    Some(result)
+    Some((result, raw))
 }
 
 fn binding_name(pat: &BindingPattern) -> Option<String> {
@@ -539,6 +565,40 @@ pub fn scan_webkit_imports(config_dir: &Path, webkit_entry: Option<&str>) -> any
         }
     }
     Ok(imports)
+}
+
+pub struct BannedImport {
+    pub package: String,
+    pub file: String,
+    pub line: u32,
+}
+
+/// Reports any import from `banned` packages found in source files under `entry`.
+pub fn scan_banned_package_imports(
+    config_dir: &Path,
+    entry: Option<&str>,
+    banned: &[&str],
+) -> anyhow::Result<Vec<BannedImport>> {
+
+    let mut found = Vec::new();
+    for path in find_ts_files(config_dir, entry) {
+        let source = match std::fs::read_to_string(&path) { Ok(s) => s, Err(_) => continue };
+        let rel = path.strip_prefix(config_dir).unwrap_or(&path).to_string_lossy().to_string();
+        let source_type = if path.extension().map_or(false, |e| e == "tsx") { SourceType::tsx() } else { SourceType::ts() };
+        let alloc = Allocator::default();
+        let ret = Parser::new(&alloc, &source, source_type).parse();
+        if ret.panicked { continue; }
+
+        for stmt in &ret.program.body {
+            if let Statement::ImportDeclaration(import) = stmt {
+                let src = import.source.value.as_str();
+                if !banned.contains(&src) { continue; }
+                let line_num = source[..import.span.start as usize].bytes().filter(|&b| b == b'\n').count() as u32 + 1;
+                found.push(BannedImport { package: src.to_string(), file: rel.clone(), line: line_num });
+            }
+        }
+    }
+    Ok(found)
 }
 
 fn find_ts_files(config_dir: &Path, frontend_entry: Option<&str>) -> Vec<std::path::PathBuf> {
