@@ -1,0 +1,47 @@
+[package]
+name = "starlight"
+version = "1.0.7"
+edition = "2021"
+
+[[bin]]
+name = "starlight"
+path = "src/main.rs"
+
+[dependencies]
+anyhow     = "1"
+clap       = { version = "4", features = ["derive"] }
+crc32fast  = "1"
+glob       = "0.3"
+notify     = "6"
+rmp-serde  = "1"
+serde      = { version = "1", features = ["derive"] }
+toml       = "0.8"
+serde_json = "1"
+owo-colors  = { version = "4", features = ["supports-colors"] }
+lz4_flex       = "0.11"
+rolldown       = "1.1.1"
+rolldown_error = "1.1.1"
+ed25519-dalek  = "2"
+rustc-hash = "2"
+indexmap   = "2"
+tokio      = { version = "1", features = ["rt", "rt-multi-thread"] }
+oxc_allocator = "0.135.0"
+oxc_parser    = "0.135.0"
+oxc_ast       = "0.135.0"
+oxc_span      = "0.135.0"
+oxc_minifier  = "0.135.0"
+oxc_codegen   = "0.135.0"
+sourcemap     = "8"
+full_moon     = "2"
+zip           = { version = "2", default-features = false, features = ["deflate"] }
+
+[target.'cfg(windows)'.dependencies]
+uds_windows = "1"
+winreg = "0.52"
+
+[profile.release]
+strip         = true
+lto           = true
+codegen-units = 1
+opt-level     = "z"
+panic         = "abort"

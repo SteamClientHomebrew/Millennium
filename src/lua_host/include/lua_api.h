@@ -17,3 +17,4 @@ extern "C" {
 
 void register_config_module(lua_State* L);
 void dispatch_config_change(lua_State* L, const std::string& key, const nlohmann::json& value);
+void register_assets_module(lua_State* L);

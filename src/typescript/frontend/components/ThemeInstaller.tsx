@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal } from '@steambrew/client';
+import { ConfirmModal } from '@steambrew/sdk';
 import { InstallerProps, Theme } from '../types';
 import { OnProgressUpdate, RendererProps } from './InstallerProgress';
 import { backend } from '../utils/ffi';

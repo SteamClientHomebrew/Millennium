@@ -44,6 +44,7 @@
 #include "millennium/backend_mgr.h"
 #include "millennium/environment.h"
 #include "millennium/http_hooks.h"
+#include "millennium/star_parser.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_webkit_store.h"
 #include "millennium/semver.h"
@@ -188,6 +189,7 @@ void plugin_loader::init()
     m_plugin_webkit_store = std::make_shared<plugin_webkit_store>(m_plugin_manager);
     m_plugin_ptr = std::make_shared<std::vector<plugin_manager::plugin_t>>(m_plugin_manager->get_all_plugins());
     m_enabledPluginsPtr = std::make_shared<std::vector<plugin_manager::plugin_t>>(m_plugin_manager->get_enabled_backends());
+    register_packed_plugin_resources(*m_plugin_ptr);
 
     m_plugin_manager->init();
 
@@ -235,7 +237,8 @@ void plugin_loader::init_devtools()
     m_thread_pool->enqueue([this]()
     {
         logger.log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_socket_con_time).count());
-        this->inject_frontend_shims(true /** reload SharedJSContext */);
+        const bool should_reload = !m_skip_next_inject_reload.exchange(false, std::memory_order_acq_rel);
+        this->inject_frontend_shims(should_reload);
     });
 }
 
@@ -254,6 +257,36 @@ std::shared_ptr<std::thread> plugin_loader::connect_steam_socket(std::shared_ptr
     }));
 }
 
+void plugin_loader::register_packed_plugin_resources(const std::vector<plugin_manager::plugin_t>& plugins)
+{
+    for (const auto& plugin : plugins) {
+        if (plugin.format != plugin_manager::plugin_format::star) continue;
+
+        const std::string base = std::string(m_network_hook_ctl->get_ftp_url()) + "star/" + plugin.plugin_name + "/";
+
+        if (plugin.has_frontend_js) {
+            auto cache = std::make_shared<std::string>();
+            auto mtx = std::make_shared<std::mutex>();
+            m_network_hook_ctl->register_virtual_resource(base + "bundle.js", [path = plugin.plugin_base_dir, cache, mtx]()
+            {
+                std::lock_guard lock(*mtx);
+                if (cache->empty()) *cache = star_read_javascript(path, star_js_section::frontend);
+                return *cache;
+            });
+        }
+        if (plugin.has_webkit_js) {
+            auto cache = std::make_shared<std::string>();
+            auto mtx = std::make_shared<std::mutex>();
+            m_network_hook_ctl->register_virtual_resource(base + "webkit.js", [path = plugin.plugin_base_dir, cache, mtx]()
+            {
+                std::lock_guard lock(*mtx);
+                if (cache->empty()) *cache = star_read_javascript(path, star_js_section::webkit);
+                return *cache;
+            });
+        }
+    }
+}
+
 void plugin_loader::setup_webkit_shims()
 {
     logger.log("Injecting webkit shims...");
@@ -262,9 +295,19 @@ void plugin_loader::setup_webkit_shims()
     const auto plugins = this->m_plugin_manager->get_all_plugins();
 
     for (auto& plugin : plugins) {
+        if (!m_plugin_manager->is_enabled(plugin.plugin_name)) continue;
+
+        if (plugin.format == plugin_manager::plugin_format::star) {
+            if (plugin.has_webkit_js) {
+                const auto vpath = std::filesystem::path("/star") / plugin.plugin_name / "webkit.js";
+                m_plugin_webkit_store->add({ plugin.plugin_name, vpath, plugin_manager::plugin_format::star });
+            }
+            continue;
+        }
+
         const auto abs_path = std::filesystem::path(platform::environment::get("MILLENNIUM__PLUGINS_PATH")) / plugin.plugin_webkit_path;
-        if (this->m_plugin_manager->is_enabled(plugin.plugin_name) && std::filesystem::exists(abs_path)) {
-            m_plugin_webkit_store->add({ plugin.plugin_name, abs_path });
+        if (std::filesystem::exists(abs_path)) {
+            m_plugin_webkit_store->add({ plugin.plugin_name, abs_path, plugin_manager::plugin_format::loose_files });
         }
     }
 }
@@ -291,6 +334,11 @@ std::string plugin_loader::cdp_generate_shim_module()
             continue;
         }
 
+        if (plugin.format == plugin_manager::plugin_format::star) {
+            if (plugin.has_frontend_js) script_list.push_back(std::format("{}star/{}/bundle.js", m_network_hook_ctl->get_ftp_url(), plugin.plugin_name));
+            continue;
+        }
+
         const auto frontEndAbs = plugin.plugin_frontend_dir.generic_string();
         script_list.push_back(utils::url::get_url_from_path(m_network_hook_ctl->get_ftp_url(), frontEndAbs));
     }
@@ -302,38 +350,49 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
     this->setup_webkit_shims();
     auto self = this->shared_from_this();
 
+    auto cdp = m_cdp;
+    if (!cdp) {
+        logger.warn("inject_frontend_shims: no CDP connection, skipping frontend injection");
+        return;
+    }
+
     /**
      * add the initial binding for the shared js context.
      * the rest is handled by the ffi_binder.
      */
-    const auto insert_ipc = std::make_shared<std::function<void()>>([self]()
+    const auto insert_ipc = std::make_shared<std::function<void()>>([self, cdp, reload_frontend]()
     {
-        self->m_cdp->send("Runtime.enable").get();
+        cdp->send("Runtime.enable").get();
 
         const json add_binding_params = {
             { "name", ffi_constants::binding_name }
         };
-        self->m_cdp->send("Runtime.addBinding", add_binding_params).get();
+        cdp->send("Runtime.addBinding", add_binding_params).get();
 
         const json add_extension_binding_params = {
             { "name", ffi_constants::extension_binding_name }
         };
-        self->m_cdp->send("Runtime.addBinding", add_extension_binding_params).get();
+        cdp->send("Runtime.addBinding", add_extension_binding_params).get();
 
         const json add_cdp_proxy_params = {
             { "name", ffi_constants::cdp_proxy_binding_name }
         };
-        self->m_cdp->send("Runtime.addBinding", add_cdp_proxy_params).get();
+        cdp->send("Runtime.addBinding", add_cdp_proxy_params).get();
+
+        if (reload_frontend) {
+            logger.log("Frontend notifier skipped isolated world injection (page reload pending)");
+            return;
+        }
 
         /** create an isolated world per enabled plugin and inject the CDP context script */
         const std::string isolated_ctx_script = get_cdp_isolated_ctx_script();
-        const std::string shared_js_session = self->m_cdp->get_shared_js_session_id();
+        const std::string shared_js_session = cdp->get_shared_js_session_id();
 
         if (!isolated_ctx_script.empty()) {
             const auto plugins = self->m_plugin_manager->get_enabled_plugins();
             for (const auto& plugin : plugins) {
                 try {
-                    auto frame_result = self->m_cdp->send("Page.getFrameTree").get();
+                    auto frame_result = cdp->send("Page.getFrameTree").get();
                     const std::string frame_id = frame_result["frameTree"]["frame"]["id"].get<std::string>();
 
                     const json create_world_params = {
@@ -341,14 +400,14 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
                         { "worldName", std::format("millennium-{}", plugin.plugin_name) },
                         { "grantUniversalAccess", false }
                     };
-                    auto world_result = self->m_cdp->send("Page.createIsolatedWorld", create_world_params).get();
+                    auto world_result = cdp->send("Page.createIsolatedWorld", create_world_params).get();
                     const int ctx_id = world_result["executionContextId"].get<int>();
 
                     const json eval_params = {
                         { "expression", isolated_ctx_script },
                         { "contextId",  ctx_id              }
                     };
-                    self->m_cdp->send("Runtime.evaluate", eval_params).get();
+                    cdp->send("Runtime.evaluate", eval_params).get();
 
                     if (self->m_ffi_binder) {
                         self->m_ffi_binder->register_isolated_ctx(plugin.plugin_name, ctx_id, shared_js_session);
@@ -368,35 +427,47 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
      * reload the frontend of Steam if need be.
      * sometimes we need to queue a change instead of instantly applying it.
      */
-    const auto reload = std::make_shared<std::function<void()>>([reload_frontend, self]()
+    const auto reload = std::make_shared<std::function<void()>>([reload_frontend, self, cdp]()
     {
         json reload_params = {
             { "ignoreCache", true }
         };
 
         if (reload_frontend) {
-            json result;
-            do {
-                result = self->m_cdp->send("Page.reload", reload_params).get();
+            /*
+             * mark that we are about to reload so the reconnect handler that follows
+             * (init_devtools) skips its own reload and does not create an infinite loop.
+             */
+            self->m_skip_next_inject_reload.store(true, std::memory_order_release);
+
+            try {
+                json result;
+                do {
+                    result = cdp->send("Page.reload", reload_params).get();
+                }
+                /** empty means it was successful */
+                while (!result.empty());
+            } catch (...) {
+                /* CDP died before/during reload — clear the flag so the next genuine
+                   reconnect still gets its own reload rather than silently skipping it. */
+                self->m_skip_next_inject_reload.store(false, std::memory_order_release);
             }
-            /** empty means it was successful */
-            while (!result.empty());
         }
     });
 
     /**
      * tell chromium to run Millennium's frontend every time a new document is loaded.
      */
-    const auto insert_millennium = std::make_shared<std::function<void()>>([self]()
+    const auto insert_millennium = std::make_shared<std::function<void()>>([self, cdp]()
     {
-        self->m_cdp->send("Page.enable").get();
+        cdp->send("Page.enable").get();
 
         if (!self->document_script_id.empty()) {
             const json params = {
                 { "identifier", self->document_script_id }
             };
 
-            self->m_cdp->send("Page.removeScriptToEvaluateOnNewDocument", params).get();
+            cdp->send("Page.removeScriptToEvaluateOnNewDocument", params).get();
             self->document_script_id.clear();
         }
 
@@ -407,7 +478,7 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
         constexpr int max_retries = 3;
         for (int attempt = 0; attempt < max_retries; ++attempt) {
             try {
-                auto result = self->m_cdp->send("Page.addScriptToEvaluateOnNewDocument", params).get();
+                auto result = cdp->send("Page.addScriptToEvaluateOnNewDocument", params).get();
 
                 if (!result.contains("identifier") || !result["identifier"].is_string()) {
                     LOG_ERROR("Page.addScriptToEvaluateOnNewDocument returned unexpected result: {}", result.dump());
@@ -433,12 +504,15 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
      */
     m_backend_event_dispatcher->on_all_backends_ready([insert_millennium, reload, insert_ipc, self]()
     {
-        logger.log("Notifying frontend of backend load...");
-        self->m_backend_initializer->compat_restore_shared_js_context();
+        self->m_thread_pool->enqueue([insert_millennium, reload, insert_ipc, self]()
+        {
+            logger.log("Notifying frontend of backend load...");
+            self->m_backend_initializer->compat_restore_shared_js_context();
 
-        (*insert_ipc)();
-        (*insert_millennium)();
-        (*reload)();
+            (*insert_ipc)();
+            (*insert_millennium)();
+            (*reload)();
+        });
     });
 }
 
@@ -544,7 +618,8 @@ void plugin_loader::setup_child_request_handler()
                 { "pluginName", plugin_name },
                 { "methodName", params.value("methodName", "") },
                 { "argumentList", params.contains("params") ? params["params"] : nlohmann::json::array() },
-                { "caller", params.value("caller", std::string{}) }
+                { "caller", params.value("caller", std::string{}) },
+                { "return_by_value", params.value("return_by_value", false) }
             };
 
             nlohmann::json call = {
@@ -609,13 +684,18 @@ void plugin_loader::setup_child_request_handler()
         if (method == plugin_ipc::child_method::LOG) {
             const std::string level = params.is_object() ? params.value("level", "info") : "info";
             const std::string message = params.is_object() ? params.value("message", "") : "";
+            const bool v2 = params.is_object() ? params.value("v2", false) : false;
+            const uint64_t timestamp_us = params.is_object() ? params.value("timestamp_us", uint64_t(0)) : 0;
+            const std::string src_file = (params.is_object() && v2) ? params.value("file", "") : "";
+            const int src_line = (params.is_object() && v2) ? params.value("line", 0) : 0;
 
+            /** only v1 loggers output to Millennium */
             if (level == "error")
-                ErrorToLogger(plugin_name, message);
+                ErrorToLogger(plugin_name, message, v2, timestamp_us, src_file, src_line);
             else if (level == "warn")
-                WarnToLogger(plugin_name, message);
+                WarnToLogger(plugin_name, message, v2, timestamp_us, src_file, src_line);
             else
-                InfoToLogger(plugin_name, message);
+                InfoToLogger(plugin_name, message, v2, timestamp_us, src_file, src_line);
 
             return {
                 { "success", true }
@@ -1004,12 +1084,12 @@ void plugin_loader::start_plugin_backends()
         m_backend_manager->spawn_plugin(plugin);
     }
 }
-void plugin_loader::set_plugin_enable(std::string plugin_name, bool enabled)
+void plugin_loader::set_plugin_enable(std::string plugin_name, bool enabled, bool reload_frontend)
 {
-    this->set_plugins_enabled({ std::make_pair(plugin_name, enabled) });
+    this->set_plugins_enabled({ std::make_pair(plugin_name, enabled) }, reload_frontend);
 }
 
-void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string, bool>>& plugins)
+void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string, bool>>& plugins, bool reload_frontend)
 {
     bool should_start_backends = false;
     std::vector<std::string> plugins_to_disable;
@@ -1035,6 +1115,7 @@ void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string,
        see the updated enabled-plugin list rather than the init()-time snapshot. */
     *m_plugin_ptr = m_plugin_manager->get_all_plugins();
     *m_enabledPluginsPtr = m_plugin_manager->get_enabled_backends();
+    register_packed_plugin_resources(*m_plugin_ptr);
 
     /** only spawn the plugins that were just enabled — not all non-running
         enabled plugins.  start_plugin_backends() would re-spawn crashed plugins
@@ -1059,7 +1140,7 @@ void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string,
         }
     }
 
-    inject_frontend_shims(true);
+    inject_frontend_shims(reload_frontend);
 }
 
 std::shared_ptr<ipc_main> plugin_loader::get_ipc_main()

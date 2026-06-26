@@ -29,7 +29,7 @@
  */
 
 import React, { useState } from 'react';
-import { DialogButton, DialogControlsSection, IconsModule, joinClassNames, pluginSelf, SteamSpinner } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, joinClassNames, pluginSelf, SteamSpinner } from '@steambrew/sdk';
 import { MillenniumUpdateCard } from './MillenniumUpdateCard';
 import { ThemeUpdateCard } from './ThemeUpdateCards';
 import { useUpdateContext } from './useUpdateContext';

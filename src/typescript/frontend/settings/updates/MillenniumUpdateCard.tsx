@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, pluginSelf, showModal } from '@steambrew/client';
+import { ConfirmModal, pluginSelf, showModal } from '@steambrew/sdk';
 import { Utils } from '../../utils';
 import { formatString, locale } from '../../utils/localization-manager';
 import { UpdateCard } from './UpdateCard';

@@ -62,6 +62,9 @@ class console_capture
 
     std::vector<console_entry> get_recent(const std::string& plugin, std::size_t max = 200) const;
 
+    void push_direct(const std::string& plugin, const std::string& level, const std::string& message,
+                     const std::string& source = "frontend", const std::string& file = "", int line = 0);
+
     int add_listener(const std::string& plugin, listener_fn fn);
     void remove_listener(int id);
 
@@ -84,5 +87,6 @@ class console_capture
     std::shared_ptr<plugin_manager> m_pm;
     std::shared_ptr<cdp_client> m_cdp;
     std::atomic<bool> m_started{ false };
+    int m_cdp_listener_token{ -1 };
 };
 } // namespace mep

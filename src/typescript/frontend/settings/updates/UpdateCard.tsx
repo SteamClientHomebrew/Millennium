@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, Field, IconsModule, joinClassNames } from '@steambrew/client';
+import { DialogButton, Field, IconsModule, joinClassNames } from '@steambrew/sdk';
 import { settingsClasses } from '../../utils/classes';
 import { Component, createRef, ReactNode } from 'react';
 import Markdown from 'markdown-to-jsx';

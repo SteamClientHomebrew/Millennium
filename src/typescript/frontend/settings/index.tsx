@@ -29,7 +29,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Classes, DialogBody, IconsModule, Navigation, SidebarNavigation, SidebarNavigationPage } from '@steambrew/client';
+import { Classes, DialogBody, IconsModule, Navigation, SidebarNavigation, SidebarNavigationPage } from '@steambrew/sdk';
 import { locale } from '../utils/localization-manager';
 import { settingsClasses } from '../utils/classes';
 import { GeneralViewModal } from './general';

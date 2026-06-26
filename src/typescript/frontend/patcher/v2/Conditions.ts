@@ -1,4 +1,4 @@
-import { pluginSelf } from '@steambrew/client';
+import { pluginSelf } from '@steambrew/sdk';
 import { Conditions, ConditionsStore, ThemeItem, ConditionalControlFlowType as ModuleType } from '../../types';
 import { DOMModifier, EvaluatePatch } from '../Dispatch';
 

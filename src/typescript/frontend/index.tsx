@@ -29,7 +29,7 @@
  */
 
 import React from 'react';
-import { EUIMode, Millennium, pluginSelf, routerHook } from '@steambrew/client';
+import { EUIMode, Millennium, pluginSelf, routerHook } from '@steambrew/sdk';
 import { WelcomeModalComponent } from './components/WelcomeModal';
 import { onWindowCreatedCallback, patchMissedDocuments, signalConfigReady } from './patcher';
 import { DispatchSystemColors } from './patcher/SystemColors';

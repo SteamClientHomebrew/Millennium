@@ -30,7 +30,7 @@
 
 import React, { createContext, useContext } from 'react';
 import { backend } from '../../utils/ffi';
-import { pluginSelf, sleep } from '@steambrew/client';
+import { pluginSelf, sleep } from '@steambrew/sdk';
 import { UpdateItemType } from './UpdateCard';
 import { MillenniumUpdateChannel, PluginUpdateInfo } from '../../types';
 import { locale } from '../../utils/localization-manager';

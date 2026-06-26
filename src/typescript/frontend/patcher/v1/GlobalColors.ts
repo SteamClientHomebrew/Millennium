@@ -1,4 +1,4 @@
-import { pluginSelf } from '@steambrew/client';
+import { pluginSelf } from '@steambrew/sdk';
 import { ColorProp } from '../../types';
 
 /**

@@ -1,0 +1,629 @@
+/**
+ * ==================================================
+ *   _____ _ _ _             _
+ *  |     |_| | |___ ___ ___|_|_ _ _____
+ *  | | | | | | | -_|   |   | | | |     |
+ *  |_|_|_|_|_|_|___|_|_|_|_|_|___|_|_|_|
+ *
+ * ==================================================
+ *
+ * Copyright (c) 2026 Project Millennium
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+use crate::ffi_types::{ffi_type_from_ts, FfiType};
+use oxc_allocator::Allocator;
+use oxc_ast::ast::*;
+use oxc_parser::Parser;
+use oxc_span::{GetSpan, SourceType};
+use std::path::Path;
+
+#[derive(Debug)]
+pub struct TsFfiCall {
+    pub fn_name: String,
+    pub param_types: Vec<FfiType>,
+    pub return_type: FfiType,
+    pub file: String,
+    pub line: u32,
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct TsExposedFn {
+    pub name: String,
+    pub params: Vec<(String, FfiType)>,
+    pub return_type: FfiType,
+    /// Exact source text for each param's type annotation (parallel to `params`).
+    pub raw_params: Vec<(String, String)>,
+    /// Exact source text of the return type annotation.
+    pub raw_return_type: String,
+    pub file: String,
+    pub line: u32,
+}
+
+pub struct TsScanResult {
+    pub ffi_calls: Vec<TsFfiCall>,
+    pub exposed_fns: Vec<TsExposedFn>,
+}
+
+pub fn scan(config_dir: &Path, frontend_entry: Option<&str>) -> anyhow::Result<TsScanResult> {
+    let mut ffi_calls = Vec::new();
+    let mut exposed_fns = Vec::new();
+
+    for path in find_ts_files(config_dir, frontend_entry) {
+        let source = match std::fs::read_to_string(&path) {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
+        let rel = path
+            .strip_prefix(config_dir)
+            .unwrap_or(&path)
+            .to_string_lossy()
+            .to_string();
+
+        let source_type = if path.extension().map_or(false, |e| e == "tsx") {
+            SourceType::tsx()
+        } else {
+            SourceType::ts()
+        };
+
+        let alloc = Allocator::default();
+        let ret = Parser::new(&alloc, &source, source_type).parse();
+        if ret.panicked {
+            continue;
+        }
+
+        let mut ctx = ScanCtx {
+            source: &source,
+            file: &rel,
+            ffi_calls: &mut ffi_calls,
+            exposed_fns: &mut exposed_fns,
+        };
+
+        for stmt in &ret.program.body {
+            walk_stmt(stmt, &mut ctx);
+        }
+    }
+
+    Ok(TsScanResult {
+        ffi_calls,
+        exposed_fns,
+    })
+}
+
+struct ScanCtx<'a> {
+    source: &'a str,
+    file: &'a str,
+    ffi_calls: &'a mut Vec<TsFfiCall>,
+    exposed_fns: &'a mut Vec<TsExposedFn>,
+}
+
+fn walk_stmt<'a>(stmt: &Statement<'a>, ctx: &mut ScanCtx<'_>) {
+    match stmt {
+        Statement::ExpressionStatement(es) => walk_expr(&es.expression, ctx),
+        Statement::VariableDeclaration(vd) => {
+            for decl in &vd.declarations {
+                // Check for /** @ffi */ const name = (params): Ret => ...
+                if let Some(init) = &decl.init {
+                    if let Some(name) = binding_name(&decl.id) {
+                        if has_ffi_comment(ctx.source, decl.id.span().start) {
+                            if let Some(exposed) = extract_arrow_ffi(&name, init, ctx.file, ctx.source, decl.id.span().start) {
+                                ctx.exposed_fns.push(exposed);
+                                return;
+                            }
+                        }
+                    }
+                    walk_expr(init, ctx);
+                }
+            }
+        }
+        Statement::FunctionDeclaration(fd) => {
+            let start = fd.span().start;
+            if has_ffi_comment(ctx.source, start) {
+                if let Some(exposed) = extract_fn_decl_ffi(fd, ctx.file, ctx.source) {
+                    ctx.exposed_fns.push(exposed);
+                    return;
+                }
+            }
+            if let Some(body) = &fd.body {
+                for s in &body.statements {
+                    walk_stmt(s, ctx);
+                }
+            }
+        }
+        Statement::ExportNamedDeclaration(exp) => {
+            if let Some(Declaration::FunctionDeclaration(fd)) = &exp.declaration {
+                let start = exp.span().start;
+                if has_ffi_comment(ctx.source, start) {
+                    if let Some(exposed) = extract_fn_decl_ffi(fd, ctx.file, ctx.source) {
+                        ctx.exposed_fns.push(exposed);
+                        return;
+                    }
+                }
+            }
+        }
+        Statement::BlockStatement(bs) => {
+            for s in &bs.body {
+                walk_stmt(s, ctx);
+            }
+        }
+        Statement::ReturnStatement(rs) => {
+            if let Some(arg) = &rs.argument {
+                walk_expr(arg, ctx);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn walk_expr<'a>(expr: &Expression<'a>, ctx: &mut ScanCtx<'_>) {
+    match expr {
+        Expression::CallExpression(call) => {
+            if let Some(ffi_call) = extract_ffi_call(call, ctx.source, ctx.file) {
+                ctx.ffi_calls.push(ffi_call);
+            }
+            walk_expr(&call.callee, ctx);
+            for arg in &call.arguments {
+                walk_arg(arg, ctx);
+            }
+        }
+        Expression::ArrowFunctionExpression(arrow) => walk_fn_body(&arrow.body, ctx),
+        Expression::FunctionExpression(fe) => {
+            if let Some(body) = &fe.body {
+                for s in &body.statements {
+                    walk_stmt(s, ctx);
+                }
+            }
+        }
+        Expression::StaticMemberExpression(m) => walk_expr(&m.object, ctx),
+        Expression::AssignmentExpression(a) => walk_expr(&a.right, ctx),
+        Expression::LogicalExpression(l) => {
+            walk_expr(&l.left, ctx);
+            walk_expr(&l.right, ctx);
+        }
+        Expression::ConditionalExpression(c) => {
+            walk_expr(&c.test, ctx);
+            walk_expr(&c.consequent, ctx);
+            walk_expr(&c.alternate, ctx);
+        }
+        Expression::SequenceExpression(seq) => {
+            for e in &seq.expressions {
+                walk_expr(e, ctx);
+            }
+        }
+        Expression::AwaitExpression(a) => walk_expr(&a.argument, ctx),
+        _ => {}
+    }
+}
+
+fn walk_arg<'a>(arg: &Argument<'a>, ctx: &mut ScanCtx<'_>) {
+    match arg {
+        Argument::CallExpression(call) => {
+            if let Some(ffi_call) = extract_ffi_call(call, ctx.source, ctx.file) {
+                ctx.ffi_calls.push(ffi_call);
+            }
+        }
+        Argument::ArrowFunctionExpression(f) => walk_fn_body(&f.body, ctx),
+        Argument::FunctionExpression(f) => {
+            if let Some(body) = &f.body {
+                for s in &body.statements {
+                    walk_stmt(s, ctx);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn walk_fn_body<'a>(body: &FunctionBody<'a>, ctx: &mut ScanCtx<'_>) {
+    for stmt in &body.statements {
+        walk_stmt(stmt, ctx);
+    }
+}
+
+fn extract_ffi_call<'a>(call: &CallExpression<'a>, source: &str, file: &str) -> Option<TsFfiCall> {
+    let is_ffi = match &call.callee {
+        Expression::Identifier(id) => matches!(id.name.as_str(), "ffi" | "callable"),
+        Expression::StaticMemberExpression(m) => {
+            matches!(m.property.name.as_str(), "ffi" | "callable")
+        }
+        _ => false,
+    };
+    if !is_ffi {
+        return None;
+    }
+
+    let fn_name = match call.arguments.first() {
+        Some(Argument::StringLiteral(lit)) => lit.value.as_str().to_string(),
+        _ => return None,
+    };
+
+    let (param_types, return_type) = match &call.type_arguments {
+        Some(tp) if !tp.params.is_empty() => {
+            let params = extract_tuple_types(&tp.params[0]);
+            let ret = tp
+                .params
+                .get(1)
+                .map(ffi_type_from_ts)
+                .unwrap_or(FfiType::Unknown);
+            (params, ret)
+        }
+        _ => (Vec::new(), FfiType::Unknown),
+    };
+
+    let line = byte_offset_to_line(source, call.span.start as usize);
+
+    Some(TsFfiCall {
+        fn_name,
+        param_types,
+        return_type,
+        file: file.to_string(),
+        line,
+    })
+}
+
+fn ffi_type_from_tuple_elem(elem: &TSTupleElement) -> FfiType {
+    match elem {
+        TSTupleElement::TSNamedTupleMember(m) => ffi_type_from_tuple_elem(&m.element_type),
+        TSTupleElement::TSRestType(_) | TSTupleElement::TSOptionalType(_) => FfiType::Unknown,
+        TSTupleElement::TSNumberKeyword(_) => FfiType::Number,
+        TSTupleElement::TSStringKeyword(_) => FfiType::String,
+        TSTupleElement::TSBooleanKeyword(_) => FfiType::Boolean,
+        TSTupleElement::TSNullKeyword(_) | TSTupleElement::TSUndefinedKeyword(_) => FfiType::Nil,
+        TSTupleElement::TSAnyKeyword(_) | TSTupleElement::TSUnknownKeyword(_) => FfiType::Unknown,
+        TSTupleElement::TSVoidKeyword(_) => FfiType::Void,
+        TSTupleElement::TSArrayType(t) => {
+            FfiType::Array(Box::new(ffi_type_from_ts(&t.element_type)))
+        }
+        TSTupleElement::TSUnionType(t) => {
+            FfiType::Union(t.types.iter().map(ffi_type_from_ts).collect())
+        }
+        _ => FfiType::Unknown,
+    }
+}
+
+fn extract_tuple_types(ty: &TSType) -> Vec<FfiType> {
+    match ty {
+        TSType::TSTupleType(tuple) => tuple
+            .element_types
+            .iter()
+            .map(ffi_type_from_tuple_elem)
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+fn extract_fn_decl_ffi<'a>(fd: &Function<'a>, file: &str, source: &str) -> Option<TsExposedFn> {
+    let name = fd.id.as_ref()?.name.as_str().to_string();
+    let (params, return_type, raw_params, raw_return_type) = extract_fn_signature(fd, file, source)?;
+    Some(TsExposedFn {
+        name,
+        params,
+        return_type,
+        raw_params,
+        raw_return_type,
+        file: file.to_string(),
+        line: byte_offset_to_line(source, fd.span().start as usize),
+    })
+}
+
+fn extract_arrow_ffi<'a>(name: &str, expr: &Expression<'a>, file: &str, source: &str, span_start: u32) -> Option<TsExposedFn> {
+    let arrow = match expr {
+        Expression::ArrowFunctionExpression(a) => a,
+        _ => return None,
+    };
+
+    let (params, raw_params) = extract_params(&arrow.params, file, source)?;
+    let return_type = arrow
+        .return_type
+        .as_ref()
+        .map(|r| ffi_type_from_ts(&r.type_annotation))
+        .unwrap_or(FfiType::Unknown);
+    let raw_return_type = arrow
+        .return_type
+        .as_ref()
+        .map(|r| source[r.type_annotation.span().start as usize..r.type_annotation.span().end as usize].to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    if matches!(return_type, FfiType::Unknown) {
+        crate::log::warn(&format!(
+            "FFI: `{}` in {} needs an explicit return type annotation",
+            name, file
+        ));
+    }
+
+    Some(TsExposedFn {
+        name: name.to_string(),
+        params,
+        return_type,
+        raw_params,
+        raw_return_type,
+        file: file.to_string(),
+        line: byte_offset_to_line(source, span_start as usize),
+    })
+}
+
+fn extract_fn_signature<'a>(
+    fd: &Function<'a>,
+    file: &str,
+    source: &str,
+) -> Option<(Vec<(String, FfiType)>, FfiType, Vec<(String, String)>, String)> {
+    let name = fd
+        .id
+        .as_ref()
+        .map(|id| id.name.as_str())
+        .unwrap_or("(anonymous)");
+    let (params, raw_params) = extract_params(&fd.params, file, source)?;
+    let return_type = fd
+        .return_type
+        .as_ref()
+        .map(|r| ffi_type_from_ts(&r.type_annotation))
+        .unwrap_or(FfiType::Unknown);
+    let raw_return_type = fd
+        .return_type
+        .as_ref()
+        .map(|r| source[r.type_annotation.span().start as usize..r.type_annotation.span().end as usize].to_string())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    if matches!(return_type, FfiType::Unknown) {
+        crate::log::warn(&format!(
+            "FFI: `{}` in {} needs an explicit return type annotation",
+            name, file
+        ));
+    }
+
+    Some((params, return_type, raw_params, raw_return_type))
+}
+
+fn extract_params<'a>(params: &FormalParameters<'a>, file: &str, source: &str) -> Option<(Vec<(String, FfiType)>, Vec<(String, String)>)> {
+    let mut result: Vec<(String, FfiType)> = Vec::new();
+    let mut raw: Vec<(String, String)> = Vec::new();
+    for param in &params.items {
+        let name = binding_name(&param.pattern).unwrap_or_else(|| "_".to_string());
+        let ty = param
+            .type_annotation
+            .as_ref()
+            .map(|ann| ffi_type_from_ts(&ann.type_annotation))
+            .unwrap_or(FfiType::Unknown);
+        let raw_ty = param
+            .type_annotation
+            .as_ref()
+            .map(|ann| source[ann.type_annotation.span().start as usize..ann.type_annotation.span().end as usize].to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+
+        if matches!(ty, FfiType::Unknown) {
+            crate::log::warn(&format!(
+                "FFI: parameter `{}` in {} needs an explicit type annotation",
+                name, file
+            ));
+        }
+
+        result.push((name.clone(), ty));
+        raw.push((name, raw_ty));
+    }
+    Some((result, raw))
+}
+
+fn binding_name(pat: &BindingPattern) -> Option<String> {
+    match pat {
+        BindingPattern::BindingIdentifier(id) => Some(id.name.as_str().to_string()),
+        _ => None,
+    }
+}
+
+fn has_ffi_comment(source: &str, pos: u32) -> bool {
+    let before = &source[..pos as usize];
+    if let Some(i) = before.rfind("/** @ffi */") {
+        let after_comment = &before[i + 11..];
+        after_comment.chars().all(|c| c.is_whitespace())
+    } else {
+        false
+    }
+}
+
+fn byte_offset_to_line(source: &str, offset: usize) -> u32 {
+    source[..offset.min(source.len())]
+        .chars()
+        .filter(|&c| c == '\n')
+        .count() as u32
+        + 1
+}
+
+pub struct BackendCall {
+    pub method: String,
+    pub arg_count: usize,
+    pub file: String,
+    pub line: u32,
+}
+
+/// Scan TS files for `backend.METHOD(...)` call expressions.
+pub fn scan_backend_calls(config_dir: &Path, entry: Option<&str>) -> anyhow::Result<Vec<BackendCall>> {
+    let mut calls = Vec::new();
+    for path in find_ts_files(config_dir, entry) {
+        let source = match std::fs::read_to_string(&path) { Ok(s) => s, Err(_) => continue };
+        let rel = path.strip_prefix(config_dir).unwrap_or(&path).to_string_lossy().to_string();
+        let source_type = if path.extension().map_or(false, |e| e == "tsx") { SourceType::tsx() } else { SourceType::ts() };
+        let alloc = Allocator::default();
+        let ret = Parser::new(&alloc, &source, source_type).parse();
+        if ret.panicked { continue; }
+        collect_backend_calls(&ret.program.body, &source, &rel, &mut calls);
+    }
+    Ok(calls)
+}
+
+fn collect_backend_calls<'a>(stmts: &[Statement<'a>], source: &str, file: &str, out: &mut Vec<BackendCall>) {
+    for stmt in stmts {
+        collect_backend_calls_stmt(stmt, source, file, out);
+    }
+}
+
+fn collect_backend_calls_stmt<'a>(stmt: &Statement<'a>, source: &str, file: &str, out: &mut Vec<BackendCall>) {
+    match stmt {
+        Statement::ExpressionStatement(es) => collect_backend_calls_expr(&es.expression, source, file, out),
+        Statement::VariableDeclaration(vd) => {
+            for decl in &vd.declarations {
+                if let Some(init) = &decl.init {
+                    collect_backend_calls_expr(init, source, file, out);
+                }
+            }
+        }
+        Statement::ReturnStatement(rs) => {
+            if let Some(arg) = &rs.argument {
+                collect_backend_calls_expr(arg, source, file, out);
+            }
+        }
+        Statement::IfStatement(s) => {
+            collect_backend_calls_expr(&s.test, source, file, out);
+            collect_backend_calls_stmt(&s.consequent, source, file, out);
+            if let Some(alt) = &s.alternate { collect_backend_calls_stmt(alt, source, file, out); }
+        }
+        Statement::BlockStatement(b) => collect_backend_calls(&b.body, source, file, out),
+        Statement::FunctionDeclaration(fd) => collect_backend_calls(&fd.body.as_ref().map_or([].as_slice(), |b| b.statements.as_slice()), source, file, out),
+        _ => {}
+    }
+}
+
+fn collect_backend_calls_expr<'a>(expr: &Expression<'a>, source: &str, file: &str, out: &mut Vec<BackendCall>) {
+    match expr {
+        Expression::CallExpression(call) => {
+            // Detect `backend.METHOD(...)`
+            if let Expression::StaticMemberExpression(member) = &call.callee {
+                if let Expression::Identifier(obj) = &member.object {
+                    if obj.name == "backend" {
+                        let method = member.property.name.to_string();
+                        let arg_count = call.arguments.len();
+                        let line = byte_offset_to_line(source, call.span.start as usize);
+                        out.push(BackendCall { method, arg_count, file: file.to_string(), line });
+                    }
+                }
+            }
+            // Recurse into callee and args
+            collect_backend_calls_expr(&call.callee, source, file, out);
+            for arg in &call.arguments {
+                if let Some(e) = arg.as_expression() { collect_backend_calls_expr(e, source, file, out); }
+            }
+        }
+        Expression::AwaitExpression(a) => collect_backend_calls_expr(&a.argument, source, file, out),
+        Expression::ArrowFunctionExpression(af) => {
+            collect_backend_calls(&af.body.statements, source, file, out);
+        }
+        _ => {}
+    }
+}
+
+pub struct WebkitImport {
+    pub name: String,
+    pub file: String,
+    pub line: u32,
+}
+
+pub fn scan_webkit_imports(config_dir: &Path, webkit_entry: Option<&str>) -> anyhow::Result<Vec<WebkitImport>> {
+    const SDK_PACKAGES: &[&str] = &["millennium"];
+
+    let mut imports = Vec::new();
+    for path in find_ts_files(config_dir, webkit_entry) {
+        let source = match std::fs::read_to_string(&path) { Ok(s) => s, Err(_) => continue };
+        let rel = path.strip_prefix(config_dir).unwrap_or(&path).to_string_lossy().to_string();
+        let source_type = if path.extension().map_or(false, |e| e == "tsx") { SourceType::tsx() } else { SourceType::ts() };
+        let alloc = Allocator::default();
+        let ret = Parser::new(&alloc, &source, source_type).parse();
+        if ret.panicked { continue; }
+
+        for stmt in &ret.program.body {
+            if let Statement::ImportDeclaration(import) = stmt {
+                let src = import.source.value.as_str();
+                if !SDK_PACKAGES.contains(&src) { continue; }
+                let line_num = source[..import.span.start as usize].bytes().filter(|&b| b == b'\n').count() as u32 + 1;
+                if let Some(specifiers) = &import.specifiers {
+                    for spec in specifiers {
+                        if let ImportDeclarationSpecifier::ImportSpecifier(s) = spec {
+                            imports.push(WebkitImport {
+                                name: s.imported.name().to_string(),
+                                file: rel.clone(),
+                                line: line_num,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(imports)
+}
+
+pub struct BannedImport {
+    pub package: String,
+    pub file: String,
+    pub line: u32,
+}
+
+/// Reports any import from `banned` packages found in source files under `entry`.
+pub fn scan_banned_package_imports(
+    config_dir: &Path,
+    entry: Option<&str>,
+    banned: &[&str],
+) -> anyhow::Result<Vec<BannedImport>> {
+
+    let mut found = Vec::new();
+    for path in find_ts_files(config_dir, entry) {
+        let source = match std::fs::read_to_string(&path) { Ok(s) => s, Err(_) => continue };
+        let rel = path.strip_prefix(config_dir).unwrap_or(&path).to_string_lossy().to_string();
+        let source_type = if path.extension().map_or(false, |e| e == "tsx") { SourceType::tsx() } else { SourceType::ts() };
+        let alloc = Allocator::default();
+        let ret = Parser::new(&alloc, &source, source_type).parse();
+        if ret.panicked { continue; }
+
+        for stmt in &ret.program.body {
+            if let Statement::ImportDeclaration(import) = stmt {
+                let src = import.source.value.as_str();
+                if !banned.contains(&src) { continue; }
+                let line_num = source[..import.span.start as usize].bytes().filter(|&b| b == b'\n').count() as u32 + 1;
+                found.push(BannedImport { package: src.to_string(), file: rel.clone(), line: line_num });
+            }
+        }
+    }
+    Ok(found)
+}
+
+fn find_ts_files(config_dir: &Path, frontend_entry: Option<&str>) -> Vec<std::path::PathBuf> {
+    // scope to the frontend entry's parent directory so webkit/preload files
+    // (which have different ffi semantics) don't get mixed in.
+    let scan_root = frontend_entry
+        .and_then(|e| std::path::Path::new(e).parent())
+        .map(|p| config_dir.join(p))
+        .unwrap_or_else(|| config_dir.to_path_buf());
+
+    let mut files = Vec::new();
+    for pattern in &["**/*.ts", "**/*.tsx"] {
+        let full = scan_root.join(pattern).to_string_lossy().to_string();
+        if let Ok(paths) = glob::glob(&full) {
+            for p in paths.flatten() {
+                let rel = p.strip_prefix(config_dir).unwrap_or(&p);
+                let rel_str = rel.to_string_lossy();
+                if !rel_str.starts_with(".millennium")
+                    && !rel_str.contains("node_modules")
+                    && !rel_str.contains(".d.ts")
+                {
+                    files.push(p);
+                }
+            }
+        }
+    }
+    files
+}

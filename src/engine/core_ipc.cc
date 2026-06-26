@@ -51,14 +51,15 @@ json ipc_main::javascript_evaluation_result::to_json(const std::string& pluginNa
     };
 }
 
-ipc_main::javascript_evaluation_result ipc_main::evaluate_javascript_expression(std::string script)
+ipc_main::javascript_evaluation_result ipc_main::evaluate_javascript_expression(std::string script, bool return_by_value)
 {
     try {
         std::tuple<json, bool> response;
 
         const json params = {
-            { "expression",   script },
-            { "awaitPromise", true   }
+            { "expression",    script           },
+            { "awaitPromise",  true             },
+            { "returnByValue", return_by_value  }
         };
 
         auto result = m_cdp->send("Runtime.evaluate", params).get();
@@ -308,11 +309,12 @@ ordered_json ipc_main::call_frontend_method(const json& call)
 
     const std::string pluginName = call["data"]["pluginName"];
     const std::string methodName = call["data"]["methodName"];
+    const bool return_by_value = call["data"].value("return_by_value", false);
 
     const std::string script = this->compile_javascript_expression(pluginName, methodName, params);
 
     const auto t0 = std::chrono::steady_clock::now();
-    auto eval_result = this->evaluate_javascript_expression(script);
+    auto eval_result = this->evaluate_javascript_expression(script, return_by_value);
     const auto t1 = std::chrono::steady_clock::now();
 
     /* record the FFI call (backend → frontend). */

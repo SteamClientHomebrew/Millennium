@@ -1,4 +1,4 @@
-import { DialogButton, IconsModule, joinClassNames } from '@steambrew/client';
+import { DialogButton, IconsModule, joinClassNames } from '@steambrew/sdk';
 import React, { createElement, MouseEvent } from 'react';
 import { DesktopTooltip } from './SteamComponents';
 import { settingsClasses } from '../utils/classes';

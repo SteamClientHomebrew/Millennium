@@ -1,4 +1,4 @@
-import { pluginSelf } from '@steambrew/client';
+import { pluginSelf } from '@steambrew/sdk';
 import { CommonPatchTypes, ConditionalControlFlow, ConditionalPatch, ConditionalControlFlowType as ModuleType } from '../types';
 import { settingsManager } from '../utils/settings-manager';
 

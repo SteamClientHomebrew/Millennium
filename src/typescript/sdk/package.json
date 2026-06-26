@@ -1,41 +1,35 @@
 {
-  "name": "@steambrew/sdk",
-  "version": "1.1.2",
-  "description": "The SteamBrew SDK.",
-  "private": false,
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "docs"
-  ],
-  "scripts": {
-    "build": "exit 0",
-    "docs": "typedoc",
-    "prepublish": "bun run build && bun run docs"
-  },
-  "devDependencies": {
-    "typedoc": "^0.28.15",
-    "typedoc-plugin-frontmatter": "^1.3.1",
-    "typedoc-plugin-markdown": "^4.9.0"
-  },
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": [
-        "react",
-        "react-dom"
-      ]
-    },
-    "updateConfig": {
-      "ignoreDependencies": [
-        "react",
-        "react-dom"
-      ]
-    },
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "electron",
-      "nx"
-    ]
-  }
+	"name": "@steambrew/sdk",
+	"version": "1.1.2",
+	"type": "module",
+	"license": "LGPL-2.1-only",
+	"main": "./build/api/api.js",
+	"types": "./build/api/api.d.ts",
+	"scripts": {
+		"build": "rollup -c && tsc -p tsconfig.api.json"
+	},
+	"files": [
+		"/build"
+	],
+	"devDependencies": {
+		"@types/node": "^20.14.9",
+		"@types/react": "19.1.1",
+		"@types/react-dom": "19.1.1",
+		"@types/react-router": "5.1.20"
+	},
+	"dependencies": {
+		"devtools-protocol": "^0.0.1485358",
+		"@rollup/plugin-commonjs": "^28.0.3",
+		"@rollup/plugin-node-resolve": "^16.0.1",
+		"@rollup/plugin-replace": "^5.0.7",
+		"@rollup/plugin-terser": "^0.4.4",
+		"@rollup/plugin-typescript": "^12.1.1",
+		"rollup": "4.59.0",
+		"rollup-plugin-del": "^1.0.1",
+		"rollup-plugin-external-globals": "^0.13.0",
+		"rollup-plugin-inject-process-env": "^1.3.1",
+		"terser": "^5.36.0",
+		"tslib": "^2.8.1",
+		"typescript": "^5.8.3"
+	}
 }
