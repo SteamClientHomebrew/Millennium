@@ -29,7 +29,7 @@ namespace mime
 // clang-format off
 enum class file_type
 {
-    CSS, JS, JSON, PY,
+    CSS, JS, JSON,
     TTF, OTF, WOFF, WOFF2,
     PNG, JPEG, JPG, GIF, WEBP, SVG,
     HTML,
@@ -49,7 +49,6 @@ static constexpr file_type_t file_types[] = {
     { file_type::CSS,   ".css",   "text/css",               false },
     { file_type::JS,    ".js",    "application/javascript", false },
     { file_type::JSON,  ".json",  "application/json",       false },
-    { file_type::PY,    ".py",    "text/x-python",          false },
 
     { file_type::TTF,   ".ttf",   "font/ttf",               true  },
     { file_type::OTF,   ".otf",   "font/otf",               true  },

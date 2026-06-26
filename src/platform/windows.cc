@@ -298,7 +298,7 @@ VOID Win32_AttachMillennium(VOID)
  * Cleans up resources and gracefully shuts down Millennium on Windows.
  *
  * @warning This cleanup function assumes EntryMain has returned with success, otherwise this detach function will deadlock.
- * It depends on Python being uninitialized with all threads terminated, and all frontend hooks detached.
+ * It depends on Lua being uninitialized with all threads terminated, and all frontend hooks detached.
  */
 VOID Win32_DetachMillennium(VOID)
 {
