@@ -60,6 +60,7 @@ typedef NTSTATUS(NTAPI* LdrUnregisterDllNotification_t)(PVOID Cookie);
 
 bool initialize_steam_hooks();
 void uninitialize_steam_hooks();
+void stop_pipe_drain();
 
 /**
  * Register DLL load/unload notifications and hook any already-loaded modules.

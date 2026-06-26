@@ -33,6 +33,7 @@
 #include <mutex>
 #include <string>
 #include <string_view>
+#include <thread>
 
 #ifdef __linux__
 #include <dlfcn.h>
@@ -61,6 +62,8 @@ HANDLE g_cdp_pipe_read = INVALID_HANDLE_VALUE;
 HANDLE g_cdp_pipe_write = INVALID_HANDLE_VALUE;
 HANDLE g_cdp_child_read = INVALID_HANDLE_VALUE;
 HANDLE g_cdp_child_write = INVALID_HANDLE_VALUE;
+static std::thread g_pipe_drain_thread;
+static std::atomic<bool> g_pipe_drain_stop{ false };
 #elif __linux__
 int g_cdp_pipe_read_fd = -1;
 int g_cdp_pipe_write_fd = -1;
@@ -176,6 +179,17 @@ cleanup:
 }
 #endif /* __linux__ */
 
+#ifdef _WIN32
+void stop_pipe_drain()
+{
+    g_pipe_drain_stop = true;
+    if (g_pipe_drain_thread.joinable()) {
+        CancelSynchronousIo(reinterpret_cast<HANDLE>(g_pipe_drain_thread.native_handle()));
+        g_pipe_drain_thread.join();
+    }
+}
+#endif
+
 const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 {
     if (!cmd) {
@@ -217,6 +231,24 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
 
 #ifdef _WIN32
     {
+        stop_pipe_drain();
+        if (g_cdp_pipe_read != INVALID_HANDLE_VALUE) {
+            CloseHandle(g_cdp_pipe_read);
+            g_cdp_pipe_read = INVALID_HANDLE_VALUE;
+        }
+        if (g_cdp_pipe_write != INVALID_HANDLE_VALUE) {
+            CloseHandle(g_cdp_pipe_write);
+            g_cdp_pipe_write = INVALID_HANDLE_VALUE;
+        }
+        if (g_cdp_child_read != INVALID_HANDLE_VALUE) {
+            CloseHandle(g_cdp_child_read);
+            g_cdp_child_read = INVALID_HANDLE_VALUE;
+        }
+        if (g_cdp_child_write != INVALID_HANDLE_VALUE) {
+            CloseHandle(g_cdp_child_write);
+            g_cdp_child_write = INVALID_HANDLE_VALUE;
+        }
+
         SECURITY_ATTRIBUTES sa = { sizeof(sa), nullptr, TRUE };
 
         HANDLE hChildRead = INVALID_HANDLE_VALUE, hParentWrite = INVALID_HANDLE_VALUE;
@@ -246,6 +278,21 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
                 g_cdp_pipes_ready = true;
             }
             g_cdp_pipe_cv.notify_all();
+
+            g_pipe_drain_stop = false;
+            g_pipe_drain_thread = std::thread([hRead = hParentRead]()
+            {
+                char buf[4096];
+                DWORD bytesRead = 0;
+                while (!g_pipe_drain_stop.load(std::memory_order_acquire)) {
+                    BOOL ok = ReadFile(hRead, buf, sizeof(buf), &bytesRead, nullptr);
+                    if (!ok) {
+                        DWORD err = GetLastError();
+                        if (err == ERROR_BROKEN_PIPE || err == ERROR_INVALID_HANDLE || err == ERROR_OPERATION_ABORTED) break;
+                    }
+                }
+                logger.log("CDP pipe drain thread exited.");
+            });
         } else {
             LOG_ERROR("Failed to create CDP pipes (error {}), falling back to port-only debugging.", GetLastError());
             if (hChildRead != INVALID_HANDLE_VALUE) CloseHandle(hChildRead);
@@ -334,25 +381,42 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
             auto attr_list = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attr_buf.get());
 
             if (InitializeProcThreadAttributeList(attr_list, 1, 0, &attr_size) &&
-                UpdateProcThreadAttribute(attr_list, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, inherit_handles, sizeof(inherit_handles), nullptr, nullptr))
-            {
+                UpdateProcThreadAttribute(attr_list, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, inherit_handles, sizeof(inherit_handles), nullptr, nullptr)) {
                 STARTUPINFOEXW siex{};
                 siex.StartupInfo = *lpStartupInfo;
                 siex.StartupInfo.cb = sizeof(STARTUPINFOEXW);
                 siex.lpAttributeList = attr_list;
 
-                BOOL result = orig(hUserToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
-                                   TRUE, dwCreationFlags | EXTENDED_STARTUPINFO_PRESENT, lpEnvironment, lpCurrentDirectory,
-                                   reinterpret_cast<LPSTARTUPINFOW>(&siex), lpProcessInformation, hNewToken);
+                BOOL result = orig(hUserToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, TRUE, dwCreationFlags | EXTENDED_STARTUPINFO_PRESENT,
+                                   lpEnvironment, lpCurrentDirectory, reinterpret_cast<LPSTARTUPINFOW>(&siex), lpProcessInformation, hNewToken);
 
                 DeleteProcThreadAttributeList(attr_list);
+
+                if (g_cdp_child_read != INVALID_HANDLE_VALUE) {
+                    CloseHandle(g_cdp_child_read);
+                    g_cdp_child_read = INVALID_HANDLE_VALUE;
+                }
+                if (g_cdp_child_write != INVALID_HANDLE_VALUE) {
+                    CloseHandle(g_cdp_child_write);
+                    g_cdp_child_write = INVALID_HANDLE_VALUE;
+                }
                 return result;
             }
 
             DeleteProcThreadAttributeList(attr_list);
             LOG_ERROR("Failed to build PROC_THREAD_ATTRIBUTE_HANDLE_LIST (error {}), falling back to full inherit.", GetLastError());
-            return orig(hUserToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
-                        TRUE, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation, hNewToken);
+
+            BOOL result = orig(hUserToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, TRUE, dwCreationFlags, lpEnvironment, lpCurrentDirectory,
+                               lpStartupInfo, lpProcessInformation, hNewToken);
+            if (g_cdp_child_read != INVALID_HANDLE_VALUE) {
+                CloseHandle(g_cdp_child_read);
+                g_cdp_child_read = INVALID_HANDLE_VALUE;
+            }
+            if (g_cdp_child_write != INVALID_HANDLE_VALUE) {
+                CloseHandle(g_cdp_child_write);
+                g_cdp_child_write = INVALID_HANDLE_VALUE;
+            }
+            return result;
         }
     }
 
@@ -556,6 +620,7 @@ bool initialize_steam_hooks()
 
 void uninitialize_steam_hooks()
 {
+    stop_pipe_drain();
     if (g_rdcw_hook) {
         snare_inline_remove(g_rdcw_hook);
         snare_inline_free(g_rdcw_hook);
