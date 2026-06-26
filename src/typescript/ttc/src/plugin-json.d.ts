@@ -41,6 +41,5 @@ export interface PluginJson {
 	splash_image?: string;
 	thumbnail?: string;
 	useBackend?: boolean;
-	venv?: string;
 	version?: string;
 }
