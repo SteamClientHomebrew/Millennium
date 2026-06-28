@@ -117,10 +117,10 @@ fn main() {
         return;
     }
 
-    let mode = if cli.debug {
-        BuildMode::Debug
-    } else {
+    let mode = if cli.release {
         BuildMode::Release
+    } else {
+        BuildMode::Debug
     };
     let cfg_path = resolve_config(cli.dir.as_deref(), &cli.config);
 
