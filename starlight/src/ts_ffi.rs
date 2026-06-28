@@ -431,7 +431,10 @@ fn has_ffi_comment(source: &str, pos: u32) -> bool {
     let before = &source[..pos as usize];
     if let Some(i) = before.rfind("/** @ffi */") {
         let after_comment = &before[i + 11..];
-        after_comment.chars().all(|c| c.is_whitespace())
+        // Allow blank lines and // line-comments between the annotation and the declaration.
+        after_comment
+            .lines()
+            .all(|line| line.trim().is_empty() || line.trim().starts_with("//"))
     } else {
         false
     }
