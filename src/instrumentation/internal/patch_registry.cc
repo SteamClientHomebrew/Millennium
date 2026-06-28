@@ -28,6 +28,45 @@
  * SOFTWARE.
  */
 
-#include <cstdint>
+#include "instrumentation/patch_registry.h"
+#include <mutex>
+#include <unordered_map>
 
-int find_file_matches(char* file_content, uint32_t size, char* local_path, char** out_file_content, uint32_t* out_file_size);
+static std::mutex                                         g_mu;
+static std::unordered_map<std::string, std::vector<PatchEntry>> g_patches;
+
+void patch_registry_set(const std::string& plugin, std::vector<PatchEntry> patches)
+{
+    std::lock_guard<std::mutex> lock(g_mu);
+    g_patches[plugin] = std::move(patches);
+}
+
+void patch_registry_remove(const std::string& plugin)
+{
+    std::lock_guard<std::mutex> lock(g_mu);
+    g_patches.erase(plugin);
+}
+
+nlohmann::json patch_registry_to_json()
+{
+    using json = nlohmann::json;
+    json list  = json::array();
+
+    std::lock_guard<std::mutex> lock(g_mu);
+    for (const auto& [plugin, entries] : g_patches) {
+        for (const auto& e : entries) {
+            json transforms = json::array();
+            for (const auto& t : e.transforms) {
+                transforms.push_back({ { "match", t.match }, { "replace", t.replace } });
+            }
+            list.push_back({
+                { "plugin",     e.plugin              },
+                { "file",       e.file                },
+                { "find",       e.find                },
+                { "transforms", std::move(transforms) },
+            });
+        }
+    }
+
+    return list;
+}

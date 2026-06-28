@@ -50,9 +50,10 @@
 #include "millennium/semver.h"
 #include "millennium/auth.h"
 
-#include "state/shared_memory.h"
+#include "instrumentation/patch_registry.h"
 
 #include "mep/console_capture.h"
+#include "mep/patch_update_notifier.h"
 #include "mep/exception_capture.h"
 #include "mep/crash_event_bus.h"
 
@@ -1034,22 +1035,25 @@ void plugin_loader::setup_child_request_handler()
         if (method == plugin_ipc::child_method::PATCHES) {
             const auto& patches = params.is_object() ? params["patches"] : params;
 
-            if (g_lb_patch_arena && patches.is_array() && !patches.empty()) {
-                auto* patch_list = hashmap_add_key(g_lb_patch_arena, plugin_name.c_str());
-
+            if (patches.is_array() && !patches.empty()) {
+                std::vector<PatchEntry> entries;
                 for (const auto& p : patches) {
-                    const std::string file = p.value("file", "");
-                    const std::string find = p.value("find", "");
-                    auto* patch = patchlist_add(g_lb_patch_arena, patch_list, file.c_str(), find.c_str());
-
+                    PatchEntry entry;
+                    entry.plugin = plugin_name;
+                    entry.file = p.value("file", "");
+                    entry.find = p.value("find", "");
                     if (p.contains("transforms") && p["transforms"].is_array()) {
                         for (const auto& t : p["transforms"]) {
-                            const std::string match = t.value("match", "");
-                            const std::string replace = t.value("replace", "");
-                            patch_add_transform(g_lb_patch_arena, patch, match.c_str(), replace.c_str());
+                            entry.transforms.push_back({
+                                t.value("match", ""),
+                                t.value("replace", ""),
+                            });
                         }
                     }
+                    if (!entry.file.empty() && !entry.find.empty()) entries.push_back(std::move(entry));
                 }
+                patch_registry_set(plugin_name, std::move(entries));
+                patch_update_notifier::instance().notify();
             }
 
             return {

@@ -34,7 +34,8 @@
 #include "millennium/logger.h"
 #include "millennium/plugin_ipc.h"
 #include "millennium/star_parser.h"
-#include "state/shared_memory.h"
+#include "instrumentation/patch_registry.h"
+#include "mep/patch_update_notifier.h"
 
 #include <format>
 #include <thread>
@@ -214,10 +215,8 @@ bool backend_manager::destroy_plugin(const std::string& pluginName, bool isShutt
         logger.log("Stopping plugin '{}'...", pluginName);
         process->shutdown();
 
-        /* remove patches from shared memory */
-        if (g_lb_patch_arena) {
-            hashmap_remove(g_lb_patch_arena, pluginName.c_str());
-        }
+        patch_registry_remove(pluginName);
+        patch_update_notifier::instance().notify();
 
         process.reset();
     }

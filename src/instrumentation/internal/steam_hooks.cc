@@ -50,6 +50,7 @@
 #include "millennium/cmdline_api.h"
 #include "millennium/cmdline_parser.h"
 #include "millennium/millennium_lifecycle.h"
+#include "instrumentation/loopback_ipc.h"
 
 std::mutex g_cdp_pipe_mutex;
 std::condition_variable g_cdp_pipe_cv;
@@ -69,6 +70,8 @@ int g_cdp_pipe_change_efd = -1;
 static std::string g_pv_shim_dir;
 static std::string g_cdp_cmd_fifo;
 static std::string g_cdp_resp_fifo;
+static std::string g_lb_ipc_cmd_fifo;
+static std::string g_lb_ipc_resp_fifo;
 
 static std::string find_pvs64_binary()
 {
@@ -99,6 +102,16 @@ static void cleanup_pv_shim()
         g_cdp_resp_fifo.clear();
     }
 
+    if (!g_lb_ipc_cmd_fifo.empty()) {
+        unlink(g_lb_ipc_cmd_fifo.c_str());
+        g_lb_ipc_cmd_fifo.clear();
+    }
+
+    if (!g_lb_ipc_resp_fifo.empty()) {
+        unlink(g_lb_ipc_resp_fifo.c_str());
+        g_lb_ipc_resp_fifo.clear();
+    }
+
     rmdir(g_pv_shim_dir.c_str());
     g_pv_shim_dir.clear();
 }
@@ -107,8 +120,10 @@ static bool create_pv_shim()
 {
     cleanup_pv_shim();
 
-    int command_fd = -1;
-    int response_fd = -1;
+    int command_fd    = -1;
+    int response_fd   = -1;
+    int lb_cmd_fd     = -1;
+    int lb_resp_fd    = -1;
 
     char tmp[] = "/tmp/.millennium-pv-XXXXXX";
     const char* mkd_temp_directory = mkdtemp(tmp);
@@ -118,32 +133,44 @@ static bool create_pv_shim()
         return false;
     }
 
-    std::string shim_directory = mkd_temp_directory;
-    std::string binary_directory = shim_directory + "/bin";
-    std::string command_fifo_directory = shim_directory + "/cmd.fifo";
+    std::string shim_directory        = mkd_temp_directory;
+    std::string binary_directory      = shim_directory + "/bin";
+    std::string command_fifo_directory  = shim_directory + "/cmd.fifo";
     std::string response_fifo_directory = shim_directory + "/resp.fifo";
+    std::string lb_cmd_fifo_path        = shim_directory + "/lb-cmd.fifo";
+    std::string lb_resp_fifo_path       = shim_directory + "/lb-resp.fifo";
 
     if (mkdir(binary_directory.c_str(), 0755) < 0) {
         goto cleanup;
     }
 
-    if (mkfifo(command_fifo_directory.c_str(), 0600) < 0 || mkfifo(response_fifo_directory.c_str(), 0600) < 0) {
+    if (mkfifo(command_fifo_directory.c_str(), 0600) < 0
+        || mkfifo(response_fifo_directory.c_str(), 0600) < 0
+        || mkfifo(lb_cmd_fifo_path.c_str(), 0600) < 0
+        || mkfifo(lb_resp_fifo_path.c_str(), 0600) < 0) {
         LOG_ERROR("create_pv_shim: mkfifo failed (errno {})", errno);
         goto cleanup;
     }
 
-    command_fd = open(command_fifo_directory.c_str(), O_RDWR | O_CLOEXEC);
+    command_fd  = open(command_fifo_directory.c_str(),  O_RDWR | O_CLOEXEC);
     response_fd = open(response_fifo_directory.c_str(), O_RDWR | O_CLOEXEC);
+    lb_cmd_fd   = open(lb_cmd_fifo_path.c_str(),        O_RDWR | O_CLOEXEC);
+    lb_resp_fd  = open(lb_resp_fifo_path.c_str(),        O_RDWR | O_CLOEXEC);
 
-    if (command_fd < 0 || response_fd < 0) {
+    if (command_fd < 0 || response_fd < 0 || lb_cmd_fd < 0 || lb_resp_fd < 0) {
         LOG_ERROR("create_pv_shim: open FIFO failed (errno {})", errno);
         goto cleanup;
     }
 
     g_cdp_pipe_write_fd = command_fd;
-    g_cdp_pipe_read_fd = response_fd;
-    g_cdp_cmd_fifo = command_fifo_directory;
-    g_cdp_resp_fifo = response_fifo_directory;
+    g_cdp_pipe_read_fd  = response_fd;
+    g_cdp_cmd_fifo      = command_fifo_directory;
+    g_cdp_resp_fifo     = response_fifo_directory;
+    g_lb_ipc_cmd_fifo   = lb_cmd_fifo_path;
+    g_lb_ipc_resp_fifo  = lb_resp_fifo_path;
+
+    register_loopback_conn(lb_cmd_fd, lb_resp_fd);
+
     {
         std::string pvs64 = find_pvs64_binary();
         if (pvs64.empty()) {
@@ -162,11 +189,15 @@ static bool create_pv_shim()
     return true;
 
 cleanup:
-    if (command_fd >= 0) close(command_fd);
+    if (command_fd >= 0)  close(command_fd);
     if (response_fd >= 0) close(response_fd);
+    if (lb_cmd_fd >= 0)   close(lb_cmd_fd);
+    if (lb_resp_fd >= 0)  close(lb_resp_fd);
 
     unlink(command_fifo_directory.c_str());
     unlink(response_fifo_directory.c_str());
+    unlink(lb_cmd_fifo_path.c_str());
+    unlink(lb_resp_fifo_path.c_str());
     rmdir(binary_directory.c_str());
     rmdir(mkd_temp_directory);
 
@@ -247,12 +278,38 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
             if (hChildRead != INVALID_HANDLE_VALUE) CloseHandle(hChildRead);
             if (hParentWrite != INVALID_HANDLE_VALUE) CloseHandle(hParentWrite);
         }
+
+        /* loopback IPC pipes: host writes patch lists, reads log/patch_event */
+        {
+            HANDLE hLbChildRead = INVALID_HANDLE_VALUE, hLbParentWrite = INVALID_HANDLE_VALUE;
+            HANDLE hLbParentRead = INVALID_HANDLE_VALUE, hLbChildWrite = INVALID_HANDLE_VALUE;
+            SECURITY_ATTRIBUTES sa2 = { sizeof(sa2), nullptr, TRUE };
+
+            bool lb_ok = CreatePipe(&hLbChildRead, &hLbParentWrite, &sa2, 0)
+                      && CreatePipe(&hLbParentRead, &hLbChildWrite, &sa2, 0);
+
+            if (lb_ok) {
+                SetHandleInformation(hLbParentWrite, HANDLE_FLAG_INHERIT, 0);
+                SetHandleInformation(hLbParentRead,  HANDLE_FLAG_INHERIT, 0);
+
+                cmd_line.ensure_param("--millennium-loopback-ipc-handles",
+                    std::format("{},{}", reinterpret_cast<uintptr_t>(hLbChildRead),
+                                        reinterpret_cast<uintptr_t>(hLbChildWrite)).c_str());
+
+                register_loopback_conn(hLbParentWrite, hLbParentRead);
+            } else {
+                LOG_ERROR("Failed to create loopback IPC pipes (error {}).", GetLastError());
+                if (hLbChildRead  != INVALID_HANDLE_VALUE) CloseHandle(hLbChildRead);
+                if (hLbParentWrite != INVALID_HANDLE_VALUE) CloseHandle(hLbParentWrite);
+            }
+        }
     }
 #elif __linux__
     {
         cmd_line.ensure_param("--remote-debugging-pipe");
 
         if (create_pv_shim()) {
+            cmd_line.ensure_param("--millennium-loopback-ipc-fds", "5,6");
             cmd_line.params.insert(cmd_line.params.begin(), cmd_line.exec);
             cmd_line.params.insert(cmd_line.params.begin(), "PRESSURE_VESSEL_PREFIX=" + g_pv_shim_dir);
             cmd_line.exec = "/usr/bin/env";

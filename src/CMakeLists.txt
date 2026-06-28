@@ -74,7 +74,8 @@ set(SOURCE_FILES
     bindings/theme_mgr.cc
     bindings/webkit.cc
     instrumentation/internal/steam_hooks.cc
-    state/shared_memory.cc
+    instrumentation/internal/loopback_ipc.cc
+    instrumentation/internal/patch_registry.cc
     shared/crash_report.cc
     shared/crash_handler.cc
     shared/crash_handler_core.cc
@@ -95,6 +96,7 @@ set(SOURCE_FILES
     mep/exception_capture.cc
     mep/crash_event_bus.cc
     mep/sdk_ready_bus.cc
+    mep/patch_stream_recorder.cc
 )
 
 if(WIN32)
