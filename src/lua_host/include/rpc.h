@@ -75,6 +75,9 @@ class rpc_client
 
     request_handler m_handler;
 
+    /* responses received out-of-order (nested call() consumed them first) */
+    std::unordered_map<int, nlohmann::json> m_stashed_responses;
+
     std::vector<nlohmann::json> m_deferred_notifications;
 
     /* coroutines waiting for their first resume */

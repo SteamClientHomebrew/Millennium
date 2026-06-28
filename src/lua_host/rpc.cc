@@ -87,8 +87,21 @@ json rpc_client::call(const std::string& method, const json& params)
         throw std::runtime_error("rpc_client: failed to send request");
     }
 
-    /* notifications can interleave while we wait for our response — defer them */
+    /* notifications and nested requests can interleave while we wait */
     while (m_connected.load()) {
+        /* a nested call() may have already consumed our response, check */
+        {
+            auto it = m_stashed_responses.find(id);
+            if (it != m_stashed_responses.end()) {
+                json resp = std::move(it->second);
+                m_stashed_responses.erase(it);
+                if (resp.contains("error")) {
+                    throw std::runtime_error(resp["error"].get<std::string>());
+                }
+                return resp.value("result", json(nullptr));
+            }
+        }
+
         json msg;
         if (!read_message(msg)) {
             throw std::runtime_error("rpc_client: disconnected while waiting for response");
@@ -96,11 +109,17 @@ json rpc_client::call(const std::string& method, const json& params)
 
         std::string type = msg.value("type", "");
 
-        if (type == plugin_ipc::TYPE_RESPONSE && msg.value("id", -1) == id) {
-            if (msg.contains("error")) {
-                throw std::runtime_error(msg["error"].get<std::string>());
+        if (type == plugin_ipc::TYPE_RESPONSE) {
+            int resp_id = msg.value("id", -1);
+            if (resp_id == id) {
+                if (msg.contains("error")) {
+                    throw std::runtime_error(msg["error"].get<std::string>());
+                }
+                return msg.value("result", json(nullptr));
             }
-            return msg.value("result", json(nullptr));
+            /* response for an outer (stacked) call .stash it for that frame */
+            m_stashed_responses[resp_id] = std::move(msg);
+            continue;
         }
 
         if (type == plugin_ipc::TYPE_NOTIFY) {
@@ -108,10 +127,6 @@ json rpc_client::call(const std::string& method, const json& params)
             continue;
         }
 
-        /*
-         * parent sent us a request while we were blocked (e.g. evaluate during call_frontend_method).
-         * handle it inline to break the deadlock.
-         */
         if (type == plugin_ipc::TYPE_REQUEST && m_handler) {
             int req_id = msg.value("id", -1);
             std::string method = msg.value("method", "");
