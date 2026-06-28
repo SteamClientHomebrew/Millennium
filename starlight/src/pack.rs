@@ -596,7 +596,7 @@ fn add_asset_file(
 
 fn collect_named_functions(js: &str) -> std::collections::HashSet<String> {
     use oxc_allocator::Allocator;
-    use oxc_ast::ast::{Expression, Function, Statement};
+    use oxc_ast::ast::{BindingPattern, Expression, Function, Statement};
     use oxc_parser::Parser;
     use oxc_span::SourceType;
 
@@ -654,6 +654,9 @@ fn collect_named_functions(js: &str) -> std::collections::HashSet<String> {
             }
             Statement::VariableDeclaration(vd) => {
                 for decl in &vd.declarations {
+                    if let BindingPattern::BindingIdentifier(id) = &decl.id {
+                        out.insert(id.name.to_string());
+                    }
                     if let Some(init) = &decl.init {
                         visit_expr(init, out);
                     }
