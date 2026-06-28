@@ -37,6 +37,7 @@
 #include <condition_variable>
 #include <thread>
 #include "millennium/millennium_lifecycle.h"
+#include "millennium/steam_hooks.h"
 
 extern HANDLE g_cdp_pipe_read;
 extern HANDLE g_cdp_pipe_write;
@@ -132,6 +133,9 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> socket
     });
 
     logger.log("[{}] CDP pipe transport connected.", name);
+
+    /** hand off from the drain thread to the real CDP client. */
+    stop_pipe_drain();
 
     /** start the read loop on a background thread so messages flow immediately */
     std::thread read_thread([hRead = g_cdp_pipe_read, cdp, name]()

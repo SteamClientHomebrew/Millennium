@@ -196,12 +196,20 @@ void DownloadWithProgress(const std::tuple<std::string, size_t>& download_info, 
 
     res = curl_easy_perform(curl);
 
+    long response_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
     fclose(fp);
     curl_easy_cleanup(curl);
 
     if (res != CURLE_OK) {
         std::filesystem::remove(destPath);
         throw std::runtime_error("Download failed: " + std::string(curl_easy_strerror(res)));
+    }
+
+    if (response_code < 200 || response_code >= 300) {
+        std::filesystem::remove(destPath);
+        throw std::runtime_error("Download failed: HTTP " + std::to_string(response_code));
     }
 
     if (progressCallback) {
