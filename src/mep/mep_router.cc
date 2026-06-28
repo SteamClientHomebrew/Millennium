@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "mep_router.h"
+#include "mep/mep_router.h"
 
 namespace mep
 {

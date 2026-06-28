@@ -28,13 +28,13 @@
  * SOFTWARE.
  */
 
-#include "mep_hooks.h"
-#include "mep_message.h"
-#include "ffi_recorder.h"
-#include "console_capture.h"
-#include "exception_capture.h"
-#include "crash_event_bus.h"
-#include "sdk_ready_bus.h"
+#include "mep/mep_hooks.h"
+#include "mep/mep_message.h"
+#include "mep/ffi_recorder.h"
+#include "mep/console_capture.h"
+#include "mep/exception_capture.h"
+#include "mep/crash_event_bus.h"
+#include "mep/sdk_ready_bus.h"
 
 #include "millennium/plugin_loader.h"
 #include "millennium/plugin_manager.h"
@@ -319,8 +319,8 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
             for (const auto& e : lgr->collect_logs()) {
                 if (e.level >= min_lv)
                     initial.push_back({
-                        { "level",     level_str(e.level)                  },
-                        { "message",   e.message                           },
+                        { "level",     level_str(e.level)                   },
+                        { "message",   e.message                            },
                         { "timestamp", format_log_timestamp(e.timestamp_us) }
                     });
             }
@@ -362,9 +362,9 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
                 { "plugin",          captured_name   },
                 { "data",
                  {
-                      { "level",     level_str(entry.level)                       },
-                      { "message",   entry.message                                },
-                      { "timestamp", format_log_timestamp(entry.timestamp_us)     },
+                      { "level", level_str(entry.level) },
+                      { "message", entry.message },
+                      { "timestamp", format_log_timestamp(entry.timestamp_us) },
                   }                                  },
             });
         });

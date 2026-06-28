@@ -96,7 +96,8 @@ std::string exception_capture::attribute_plugin(const nlohmann::json& params) co
 
     const auto plugins = m_pm->get_all_plugins();
 
-    auto check_url = [&](const std::string& url) -> std::string {
+    auto check_url = [&](const std::string& url) -> std::string
+    {
         for (const auto& p : plugins) {
             if (p.is_internal) continue;
             const std::string base = p.plugin_base_dir.generic_string();
