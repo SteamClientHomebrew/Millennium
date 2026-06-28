@@ -44,11 +44,6 @@ pub struct Rename {
     pub replacement: &'static str,
 }
 
-pub struct InjectConst {
-    pub path: &'static [&'static str],
-    pub local_name: &'static str,
-    pub init: &'static str,
-}
 
 pub struct ConsoleHook {
     pub fn_name: &'static str,
@@ -66,12 +61,9 @@ struct Ctx<'s> {
     source: &'s str,
     inject_args: &'s [InjectArg],
     renames: &'s [Rename],
-    inject_consts: &'s [InjectConst],
     console_hook: Option<&'s ConsoleHook>,
     source_map: Option<&'s sourcemap::SourceMap>,
     patches: Vec<Patch>,
-    matched_consts: Vec<usize>,
-    iife_body_start: Option<u32>,
 }
 
 fn offset_to_line_col(source: &str, offset: usize) -> (u32, u32) {
@@ -93,7 +85,6 @@ impl<'s> Ctx<'s> {
         source: &'s str,
         inject_args: &'s [InjectArg],
         renames: &'s [Rename],
-        inject_consts: &'s [InjectConst],
         console_hook: Option<&'s ConsoleHook>,
         source_map: Option<&'s sourcemap::SourceMap>,
     ) -> Self {
@@ -101,12 +92,9 @@ impl<'s> Ctx<'s> {
             source,
             inject_args,
             renames,
-            inject_consts,
             console_hook,
             source_map,
             patches: Vec::new(),
-            matched_consts: Vec::new(),
-            iife_body_start: None,
         }
     }
 
@@ -186,7 +174,7 @@ impl<'s> Ctx<'s> {
         }
     }
 
-    fn handle_static_member(&mut self, member: &StaticMemberExpression<'_>, is_callee: bool) {
+    fn handle_static_member(&mut self, member: &StaticMemberExpression<'_>, _is_callee: bool) {
         for spec in self.renames {
             if static_member_matches_path(member, spec.path) {
                 self.patches.push(Patch {
@@ -195,21 +183,6 @@ impl<'s> Ctx<'s> {
                     text: spec.replacement.to_string(),
                 });
                 return;
-            }
-        }
-        if !is_callee {
-            for (i, spec) in self.inject_consts.iter().enumerate() {
-                if static_member_matches_path(member, spec.path) {
-                    self.patches.push(Patch {
-                        start: member.span.start,
-                        end: member.span.end,
-                        text: spec.local_name.to_string(),
-                    });
-                    if !self.matched_consts.contains(&i) {
-                        self.matched_consts.push(i);
-                    }
-                    return;
-                }
             }
         }
     }
@@ -276,56 +249,11 @@ fn arg_is_identifier(arg: &Argument<'_>, name: &str) -> bool {
 }
 
 fn walk_program(program: &Program<'_>, ctx: &mut Ctx<'_>) {
-    if !ctx.inject_consts.is_empty() && ctx.iife_body_start.is_none() {
-        ctx.iife_body_start = find_iife_body_start(program);
-    }
     for stmt in &program.body {
         walk_stmt(stmt, ctx);
     }
 }
 
-fn find_iife_body_start(program: &Program<'_>) -> Option<u32> {
-    for stmt in &program.body {
-        let call = match stmt {
-            Statement::ExpressionStatement(es) => {
-                if let Expression::CallExpression(call) = &es.expression {
-                    Some(call.as_ref())
-                } else {
-                    None
-                }
-            }
-            Statement::VariableDeclaration(vd) => vd.declarations.iter().find_map(|d| {
-                d.init.as_ref().and_then(|init| {
-                    if let Expression::CallExpression(call) = init {
-                        Some(call.as_ref())
-                    } else {
-                        None
-                    }
-                })
-            }),
-            _ => None,
-        };
-        if let Some(call) = call {
-            if let Some(f) = get_func_from_callee(&call.callee) {
-                if let Some(body) = &f.body {
-                    return Some(body.span.start + 1);
-                }
-            }
-        }
-    }
-    None
-}
-
-fn get_func_from_callee<'a>(callee: &'a Expression<'a>) -> Option<&'a Function<'a>> {
-    match callee {
-        Expression::FunctionExpression(f) => Some(f),
-        Expression::ParenthesizedExpression(p) => get_func_from_callee(&p.expression),
-        Expression::SequenceExpression(seq) => {
-            seq.expressions.iter().find_map(|e| get_func_from_callee(e))
-        }
-        _ => None,
-    }
-}
 
 fn walk_stmt(stmt: &Statement<'_>, ctx: &mut Ctx<'_>) {
     match stmt {
@@ -728,7 +656,6 @@ pub fn apply_transforms(
     source: &str,
     inject_args: &[InjectArg],
     renames: &[Rename],
-    inject_consts: &[InjectConst],
     console_hook: Option<&ConsoleHook>,
     source_map: Option<&sourcemap::SourceMap>,
 ) -> String {
@@ -743,26 +670,10 @@ pub fn apply_transforms(
         source,
         inject_args,
         renames,
-        inject_consts,
         console_hook,
         source_map,
     );
     walk_program(&ret.program, &mut ctx);
-
-    if !ctx.matched_consts.is_empty() {
-        if let Some(pos) = ctx.iife_body_start {
-            for &i in &ctx.matched_consts {
-                let ic = &inject_consts[i];
-                let decl = format!("\nconst {} = {};\n", ic.local_name, ic.init);
-                ctx.patches.push(Patch {
-                    start: pos,
-                    end: pos,
-                    text: decl,
-                });
-            }
-        }
-    }
-
     apply_patches_inner(source, ctx.patches)
 }
 
@@ -835,18 +746,6 @@ pub static FRONTEND_RENAMES: &[Rename] = &[
     },
 ];
 
-pub static FRONTEND_INJECT_CONSTS: &[InjectConst] = &[
-    InjectConst {
-        path: &["millennium", "ChromeDevToolsProtocol"],
-        local_name: "ChromeDevToolsProtocol",
-        init: "millennium.MillenniumChromeDevToolsProtocol ? new millennium.MillenniumChromeDevToolsProtocol(pluginName) : millennium.ChromeDevToolsProtocol",
-    },
-    InjectConst {
-        path: &["millennium", "ChromeDevToolsProtocol"],
-        local_name: "ChromeDevToolsProtocol",
-        init: "millennium.MillenniumChromeDevToolsProtocol ? new millennium.MillenniumChromeDevToolsProtocol(pluginName) : millennium.ChromeDevToolsProtocol",
-    },
-];
 
 static WEBKIT_INJECT_ARGS: &[InjectArg] = &inject_args_for_ns!("millennium");
 pub const WEBKIT_INJECT_ARGS_SLICES: &[&[InjectArg]] = &[WEBKIT_INJECT_ARGS];
@@ -854,9 +753,4 @@ pub const WEBKIT_INJECT_ARGS_SLICES: &[&[InjectArg]] = &[WEBKIT_INJECT_ARGS];
 pub static WEBKIT_RENAMES: &[Rename] = &[Rename {
     path: &["millennium", "pluginSelf"],
     replacement: "window.PLUGIN_LIST[pluginName]",
-}];
-pub static WEBKIT_INJECT_CONSTS: &[InjectConst] = &[InjectConst {
-    path: &["millennium", "ChromeDevToolsProtocol"],
-    local_name: "ChromeDevToolsProtocol",
-    init: "millennium.MillenniumChromeDevToolsProtocol ? new millennium.MillenniumChromeDevToolsProtocol(pluginName) : millennium.ChromeDevToolsProtocol",
 }];

@@ -33,6 +33,7 @@ oxc_minifier  = "0.135.0"
 oxc_codegen   = "0.135.0"
 sourcemap     = "8"
 full_moon     = "2"
+similar       = { version = "2", features = ["inline"] }
 zip           = { version = "2", default-features = false, features = ["deflate"] }
 
 [target.'cfg(windows)'.dependencies]

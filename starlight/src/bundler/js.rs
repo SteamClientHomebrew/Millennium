@@ -50,8 +50,8 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use super::transforms::{
-    apply_transforms, CONSOLE_HOOK, FRONTEND_INJECT_ARGS_SLICES, FRONTEND_INJECT_CONSTS,
-    FRONTEND_RENAMES, WEBKIT_INJECT_ARGS_SLICES, WEBKIT_INJECT_CONSTS, WEBKIT_RENAMES,
+    apply_transforms, CONSOLE_HOOK, FRONTEND_INJECT_ARGS_SLICES, FRONTEND_RENAMES,
+    WEBKIT_INJECT_ARGS_SLICES, WEBKIT_RENAMES,
 };
 use super::wrapper::wrap;
 
@@ -60,12 +60,10 @@ static FRONTEND_DEFAULTS: &[(&str, &str)] = &[
     ("react", "window.SP_REACT"),
     ("react-dom", "window.SP_REACTDOM"),
     ("react-dom/client", "window.SP_REACTDOM"),
-    ("react/jsx-runtime", "SP_JSX_FACTORY"),
+    ("react/jsx-runtime", "window.SP_JSX_FACTORY"),
 ];
 
-static WEBKIT_DEFAULTS: &[(&str, &str)] = &[
-    ("millennium", "window.MILLENNIUM_API"),
-];
+static WEBKIT_DEFAULTS: &[(&str, &str)] = &[("millennium", "window.MILLENNIUM_API")];
 
 pub enum BundleTarget {
     Frontend,
@@ -206,13 +204,9 @@ async fn async_bundle(
     }
     anyhow::ensure!(!raw_js.is_empty(), "rolldown produced no .js output");
 
-    let (ia_slices, rn, ic) = match target {
-        BundleTarget::Frontend => (
-            FRONTEND_INJECT_ARGS_SLICES,
-            FRONTEND_RENAMES,
-            FRONTEND_INJECT_CONSTS,
-        ),
-        BundleTarget::Webkit => (WEBKIT_INJECT_ARGS_SLICES, WEBKIT_RENAMES, WEBKIT_INJECT_CONSTS),
+    let (ia_slices, rn) = match target {
+        BundleTarget::Frontend => (FRONTEND_INJECT_ARGS_SLICES, FRONTEND_RENAMES),
+        BundleTarget::Webkit => (WEBKIT_INJECT_ARGS_SLICES, WEBKIT_RENAMES),
     };
     let ia: Vec<_> = ia_slices.iter().flat_map(|s| s.iter()).copied().collect();
     let sm = if !map_bytes.is_empty() {
@@ -220,10 +214,10 @@ async fn async_bundle(
     } else {
         None
     };
-    let transformed = apply_transforms(&raw_js, &ia, rn, ic, Some(&CONSOLE_HOOK), sm.as_ref());
+    let transformed = apply_transforms(&raw_js, &ia, rn, Some(&CONSOLE_HOOK), sm.as_ref());
 
     let is_client = matches!(target, BundleTarget::Frontend);
-    let wrapped = wrap(
+    let (wrapped, iife_line_offset, iife_col_offset) = wrap(
         &transformed,
         plugin_name,
         is_client,
@@ -238,5 +232,42 @@ async fn async_bundle(
         wrapped
     };
 
-    Ok((final_js.into_bytes(), map_bytes))
+    let final_map = if let Some(sm) = sm.as_ref() {
+        shift_sourcemap(sm, iife_line_offset, iife_col_offset)
+    } else {
+        map_bytes
+    };
+
+    Ok((final_js.into_bytes(), final_map))
+}
+
+fn shift_sourcemap(sm: &sourcemap::SourceMap, line_offset: u32, col_offset: u32) -> Vec<u8> {
+    let mut builder = sourcemap::SourceMapBuilder::new(None);
+    for (i, src) in sm.sources().enumerate() {
+        let sid = builder.add_source(src);
+        if let Some(contents) = sm.get_source_contents(i as u32) {
+            builder.set_source_contents(sid, Some(contents));
+        }
+    }
+    for token in sm.tokens() {
+        let dst_line = token.get_dst_line() + line_offset;
+        let dst_col = if token.get_dst_line() == 0 {
+            token.get_dst_col() + col_offset
+        } else {
+            token.get_dst_col()
+        };
+        builder.add(
+            dst_line,
+            dst_col,
+            token.get_src_line(),
+            token.get_src_col(),
+            token.get_source(),
+            token.get_name(),
+            false,
+        );
+    }
+    let shifted = builder.into_sourcemap();
+    let mut out = Vec::new();
+    let _ = shifted.to_writer(&mut out);
+    out
 }

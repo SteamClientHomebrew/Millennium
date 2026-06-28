@@ -27,8 +27,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+const SHIM_JS: &str = include_str!("shim.js");
 const INSPECT_POLYFILL_JS: &str = include_str!("inspect_polyfill.js");
 
+/// Returns `(wrapped_js, iife_line_offset, iife_col_offset)`.
+/// Offsets describe where `__BUNDLE__` lands in the final output so the
+/// rolldown source map can be shifted to point at the right lines.
 pub fn wrap(
     bundle_js: &str,
     plugin_name: &str,
@@ -36,153 +40,130 @@ pub fn wrap(
     source_map_url: Option<&str>,
     inspect: &crate::config::InspectConfig,
     lua_ffi_names: &[String],
-) -> String {
-    let code = strip_sourcemap(bundle_js).trim_end();
-
-    let code = code.strip_suffix(';').unwrap_or(code);
-
-    let iife_expr = if let Some(rest) = code.strip_prefix("var ") {
-        rest.splitn(2, " = ").nth(1).unwrap_or(code)
-    } else {
-        code
-    };
+) -> (String, u32, u32) {
+    let iife_expr = extract_iife(strip_sourcemap(bundle_js).trim_end());
 
     let plugin_name_json = serde_json::to_string(plugin_name).expect("plugin name is valid JSON");
-    let is_client_str = if is_client { "true" } else { "false" };
-
-    let post_message = if is_client {
-        "\t\tif (MILLENNIUM_IS_CLIENT_MODULE) {\n\
-         \t\t\tMILLENNIUM_BACKEND_IPC.postMessage(1, { pluginName: pluginName });\n\
-         \t\t}\n"
-    } else {
-        ""
-    };
-
     let source_tag = if is_client { "frontend" } else { "webkit" };
-    let console_helper = format!(
-        "var __millennium_plugin_console__ = (function() {{\n\
-         {polyfill}\
-         \n\
-         return function(level, file, line) {{\n\
-         \tvar args = Array.prototype.slice.call(arguments, 3);\n\
-         \ttry {{\n\
-         \t\tvar MAX_MSG = 65536;\n\
-         \t\tvar msg = args.map(function(a) {{\n\
-         \t\t\ttry {{\n\
-         \t\t\t\tif (typeof a === 'string') return a;\n\
-         \t\t\t\tif (a === null) return 'null';\n\
-         \t\t\t\tif (a === undefined) return 'undefined';\n\
-         \t\t\t\tif (typeof a === 'number' || typeof a === 'boolean') return String(a);\n\
-         \t\t\t\treturn __inspect(a, {{depth: {depth}, colors: {colors}, showHidden: {show_hidden}}});\n\
-         \t\t\t}} catch(e) {{ return '[' + (e && e.message ? e.message : String(e)) + ']'; }}\n\
-         \t\t}}).join(' ');\n\
-         \t\tif (msg.length > MAX_MSG) msg = msg.slice(0, MAX_MSG) + ' [truncated]';\n\
-         \t\tvar payload = {{ plugin: {pname}, level: level, message: msg, source: \"{src}\" }};\n\
-         \t\tif (file !== undefined) {{ payload.file = file; payload.line = line; }}\n\
-         \t\twindow.__millennium_plugin_console_binding__(JSON.stringify(payload));\n\
-         \t}} catch(e) {{\n\
-         \t\ttry {{\n\
-         \t\t\tvar errPayload = {{ plugin: {pname}, level: 'error', message: '[console] ' + (e && e.message ? e.message : String(e)), source: \"{src}\" }};\n\
-         \t\t\twindow.__millennium_plugin_console_binding__(JSON.stringify(errPayload));\n\
-         \t\t}} catch(_) {{}}\n\
-         \t}}\n\
-         }};\n\
-         }})();\n",
-        polyfill = INSPECT_POLYFILL_JS,
-        pname = plugin_name_json,
-        src = source_tag,
-        depth = inspect.depth,
-        colors = inspect.colors,
-        show_hidden = inspect.show_hidden,
-    );
 
     let ffi_stubs = if lua_ffi_names.is_empty() {
         String::new()
     } else {
-        let methods = lua_ffi_names
+        let methods: String = lua_ffi_names
             .iter()
-            .map(|name| {
-                format!(
-                    "    {}: window.MILLENNIUM_API.ffi(pluginName, '{}'),\n",
-                    name, name
-                )
-            })
-            .collect::<String>();
+            .map(|n| format!("  {}: window.MILLENNIUM_API.ffi(pluginName, '{}'),\n", n, n))
+            .collect();
         format!("const backend = {{\n{}}};\n", methods)
     };
 
     let frontend_proxy = if !is_client {
         format!(
-            "const frontend = new Proxy({{}}, {{\n\
-             \tget(_, key) {{\n\
-             \t\tif (typeof key !== 'string') return undefined;\n\
-             \t\treturn window.MILLENNIUM_API.ffi({}, 'frontend:' + key);\n\
-             \t}}\n\
-             }});\n",
+            "const frontend = new Proxy({{}}, {{\n  \
+             get(_, key) {{\n    \
+             if (typeof key !== 'string') return undefined;\n    \
+             return window.MILLENNIUM_API.ffi({}, 'frontend:' + key);\n  \
+             }}\n}});\n",
             plugin_name_json
         )
     } else {
         String::new()
     };
 
+    let post_message = if is_client {
+        "if (MILLENNIUM_IS_CLIENT_MODULE) {\n    \
+         MILLENNIUM_BACKEND_IPC.postMessage(1, { pluginName: pluginName });\n  \
+         }"
+    } else {
+        ""
+    };
+
+    // Render the shim with all substitutions except __BUNDLE__.
+    // We need the pre-bundle text to count the line/col offset.
+    let shim = SHIM_JS
+        .replace("__IS_CLIENT__", if is_client { "true" } else { "false" })
+        .replace("__PLUGIN_NAME__", &plugin_name_json)
+        .replace("__FFI_STUBS__;", &ffi_stubs)
+        .replace("__FRONTEND_PROXY__;", &frontend_proxy)
+        .replace("__INSPECT_POLYFILL__;", INSPECT_POLYFILL_JS)
+        .replace("__POST_MESSAGE__;", post_message)
+        .replace("__SOURCE_TAG__", source_tag)
+        .replace("__DEPTH__", &inspect.depth.to_string())
+        .replace("__COLORS__", &inspect.colors.to_string())
+        .replace("__SHOW_HIDDEN__", &inspect.show_hidden.to_string());
+
+    let bundle_placeholder = "__BUNDLE__";
+    let bundle_pos = shim
+        .find(bundle_placeholder)
+        .expect("shim.js missing __BUNDLE__");
+    let before = &shim[..bundle_pos];
+
+    let iife_line_offset = before.bytes().filter(|&b| b == b'\n').count() as u32;
+    let iife_col_offset = (before.len() - before.rfind('\n').map_or(0, |p| p + 1)) as u32;
+
+    let after = &shim[bundle_pos + bundle_placeholder.len()..];
     let sourcemap_comment = match source_map_url {
         Some(url) => format!("\n//# sourceMappingURL={url}"),
         None => String::new(),
     };
 
-    format!(
-        "const MILLENNIUM_IS_CLIENT_MODULE = {is_client};\n\
-         const pluginName = {plugin_name_json};\n\
-         (window.PLUGIN_LIST ||= {{}})[pluginName] ||= {{}};\n\
-         window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS ||= {{}};\n\
-         {ffi_stubs}\
-         {frontend_proxy}\
-         \n\
-         {console_helper}\
-         \n\
-         let PluginEntryPointMain = function () {{\n\
-         \tconst __exports = {{}};\n\
-         \tconst __bundle = {iife};\n\
-         \tif (__bundle && typeof __bundle === 'object' && 'default' in __bundle) {{\n\
-         \t\tObject.assign(__exports, __bundle);\n\
-         \t}} else {{\n\
-         \t\t__exports.default = __bundle;\n\
-         \t}}\n\
-         \treturn __exports;\n\
-         }};\n\
-         \n\
-         (async () => {{\n\
-         \tconst PluginModule = PluginEntryPointMain();\n\
-         \tObject.assign(window.PLUGIN_LIST[pluginName], {{\n\
-         \t\t...PluginModule,\n\
-         \t\t__millennium_internal_plugin_name_do_not_use_or_change__: pluginName,\n\
-         \t}});\n\
-         \tconst pluginProps = await PluginModule.default();\n\
-         \tif (\n\
-         \t\tpluginProps &&\n\
-         \t\tpluginProps.title !== undefined &&\n\
-         \t\tpluginProps.icon !== undefined &&\n\
-         \t\tpluginProps.content !== undefined\n\
-         \t) {{\n\
-         \t\twindow.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS[pluginName] = pluginProps;\n\
-         \t}}\n\
-         {post_message}\
-         }})();{sourcemap_comment}\n",
-        is_client = is_client_str,
-        plugin_name_json = plugin_name_json,
-        ffi_stubs = ffi_stubs,
-        frontend_proxy = frontend_proxy,
-        iife = iife_expr,
-        post_message = post_message,
-        sourcemap_comment = sourcemap_comment,
-    )
+    let full = format!("{before}{iife_expr}{after}{sourcemap_comment}\n");
+    (full, iife_line_offset, iife_col_offset)
+}
+
+fn extract_iife(code: &str) -> &str {
+    let code = code.strip_suffix(';').unwrap_or(code);
+    if let Some(rest) = code.strip_prefix("var ") {
+        rest.splitn(2, " = ").nth(1).unwrap_or(code)
+    } else {
+        code
+    }
 }
 
 fn strip_sourcemap(code: &str) -> &str {
-    // Strip trailing `//# sourceMappingURL=...` line.
     if let Some(pos) = code.rfind("//# sourceMappingURL=") {
-        let before = code[..pos].trim_end_matches('\n').trim_end_matches('\r');
-        return before;
+        return code[..pos].trim_end_matches('\n').trim_end_matches('\r');
     }
     code
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::InspectConfig;
+
+    fn default_inspect() -> InspectConfig {
+        InspectConfig {
+            depth: 2,
+            colors: false,
+            show_hidden: false,
+        }
+    }
+
+    #[test]
+    fn sourcemap_url_present() {
+        let bundle = "(function() { return {}; })()";
+        let (out, _, _) = wrap(
+            bundle,
+            "test",
+            true,
+            Some("file:///test.map"),
+            &default_inspect(),
+            &[],
+        );
+        assert!(
+            out.contains("//# sourceMappingURL=file:///test.map"),
+            "missing sourceMappingURL\nlast 300: {:?}",
+            &out[out.len().saturating_sub(300)..]
+        );
+    }
+
+    #[test]
+    fn sourcemap_url_absent_when_none() {
+        let bundle = "(function() { return {}; })()";
+        let (out, _, _) = wrap(bundle, "test", true, None, &default_inspect(), &[]);
+        assert!(
+            !out.contains("sourceMappingURL"),
+            "unexpected sourceMappingURL"
+        );
+    }
 }

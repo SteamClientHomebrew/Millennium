@@ -47,7 +47,7 @@ fn is_tty() -> bool {
     *TTY.get_or_init(|| std::io::stdout().is_terminal())
 }
 
-fn colors_enabled() -> bool {
+pub fn colors_enabled() -> bool {
     static ENABLED: OnceLock<bool> = OnceLock::new();
     *ENABLED.get_or_init(|| is_tty() && std::env::var_os("NO_COLOR").map_or(true, |v| v.is_empty()))
 }
