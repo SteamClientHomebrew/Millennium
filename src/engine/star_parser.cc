@@ -263,21 +263,39 @@ static std::string extract_primary_entry(const std::vector<star_sub_entry_t>& en
     return {};
 }
 
-static bool star_is_trusted(const uint8_t* star_hdr, const std::vector<uint8_t>& data)
+static bool star_is_trusted(const uint8_t* star_hdr, size_t star_start,
+                             const std::vector<star_section_t>& sections,
+                             const std::vector<uint8_t>& data)
 {
     const uint8_t star_flags = star_hdr[7];
+    if (!(star_flags & STAR_FLAG_SIGNED))
+        return false;
 
-    bool is_trusted = false;
-    if (star_flags & STAR_FLAG_SIGNED) {
-        constexpr size_t SIG_LEN = 64;
-        if (data.size() >= SIG_LEN) {
-            const size_t payload_len = data.size() - SIG_LEN;
-            const uint8_t* signature = data.data() + payload_len;
-            is_trusted = verify_ed25519_signature(data.data(), payload_len, signature, STARLIGHT_PUBLIC_KEY);
+    constexpr size_t SIG_LEN = 64;
+
+    // Content sections must not be deferred in a signed file — deferred data falls
+    // outside the signed region and could be swapped without invalidating the signature.
+    for (const auto& s : sections) {
+        if (s.id != SEC_ASSETS && (s.meta_flags & META_FLAG_DEFERRED))
+            return false;
+    }
+
+    // Compute the signed boundary the same way the Rust signer does: end of the last
+    // non-deferred section (offsets are relative to star_start).
+    uint64_t max_eager_end = 0;
+    for (const auto& s : sections) {
+        if (!(s.meta_flags & META_FLAG_DEFERRED)) {
+            const uint64_t end = s.offset + s.length;
+            if (end > max_eager_end) max_eager_end = end;
         }
     }
 
-    return is_trusted;
+    const size_t sig_start = star_start + static_cast<size_t>(max_eager_end);
+    if (data.size() < sig_start + SIG_LEN)
+        return false;
+
+    const uint8_t* signature = data.data() + sig_start;
+    return verify_ed25519_signature(data.data(), sig_start, signature, STARLIGHT_PUBLIC_KEY);
 }
 
 /**
@@ -388,7 +406,7 @@ std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::p
     if (file_data.size() < star_start + STAR_HEADER_SIZE) return std::nullopt;
     const uint8_t* star_hdr = file_data.data() + star_start;
 
-    const bool is_trusted = star_is_trusted(star_hdr, file_data);
+    const bool is_trusted = star_is_trusted(star_hdr, star_start, sections, file_data);
 
     /* verify shim integrity if shim prefix is present. */
     if (star_start > 0) {
