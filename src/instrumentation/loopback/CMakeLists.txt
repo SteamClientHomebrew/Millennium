@@ -3,7 +3,7 @@ project(hhx64 CXX)
 include(${MILLENNIUM_BASE}/scripts/cmake/millennium_version.cmake)
 
 include(FetchContent)
-FetchContent_Declare(Corrosion GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git GIT_TAG v0.6.1)
+FetchContent_Declare(Corrosion URL "${MILLENNIUM_BASE}/thirdparty/corrosion-v0.6.1.tar.gz" DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 FetchContent_MakeAvailable(Corrosion)
 
 string(TIMESTAMP CURRENT_YEAR "%Y")
