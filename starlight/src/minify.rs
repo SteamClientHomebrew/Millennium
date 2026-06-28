@@ -161,44 +161,117 @@ pub fn minify_lua(src: &[u8]) -> Vec<u8> {
     }
 
     let mut result = String::with_capacity(out.len());
-    for line in out.lines() {
-        let t = collapse_spaces(line.trim());
-        if !t.is_empty() {
-            result.push_str(&t);
-            result.push('\n');
+    let ob = out.as_bytes();
+    let olen = ob.len();
+    let mut ip = 0usize;
+    let mut at_line_start = true;
+    let mut line_has_content = false;
+    let mut pending_space = false;
+
+    while ip < olen {
+        let c = ob[ip];
+
+        if c == b'[' {
+            let eq_start = ip + 1;
+            let mut j = eq_start;
+            while j < olen && ob[j] == b'=' {
+                j += 1;
+            }
+            if j < olen && ob[j] == b'[' {
+                let level = j - eq_start;
+                if pending_space && line_has_content {
+                    result.push(' ');
+                    pending_space = false;
+                }
+                result.push_str(&out[ip..=j]);
+                line_has_content = true;
+                at_line_start = false;
+                ip = j + 1;
+                'lstr2: loop {
+                    if ip >= olen {
+                        break;
+                    }
+                    if ob[ip] == b']' {
+                        let mut k = ip + 1;
+                        let mut cl = 0usize;
+                        while k < olen && ob[k] == b'=' {
+                            cl += 1;
+                            k += 1;
+                        }
+                        if k < olen && ob[k] == b']' && cl == level {
+                            result.push_str(&out[ip..=k]);
+                            ip = k + 1;
+                            break 'lstr2;
+                        }
+                    }
+                    result.push(ob[ip] as char);
+                    ip += 1;
+                }
+                continue;
+            }
         }
+
+        if c == b'"' || c == b'\'' {
+            if pending_space && line_has_content {
+                result.push(' ');
+                pending_space = false;
+            }
+            let quote = c;
+            result.push(c as char);
+            line_has_content = true;
+            at_line_start = false;
+            ip += 1;
+            while ip < olen {
+                let qc = ob[ip];
+                if qc == b'\\' {
+                    result.push('\\');
+                    ip += 1;
+                    if ip < olen {
+                        result.push(ob[ip] as char);
+                        ip += 1;
+                    }
+                    continue;
+                }
+                result.push(qc as char);
+                let done = qc == quote;
+                ip += 1;
+                if done {
+                    break;
+                }
+            }
+            continue;
+        }
+
+        if c == b'\n' {
+            if line_has_content {
+                result.push('\n');
+            }
+            at_line_start = true;
+            line_has_content = false;
+            pending_space = false;
+            ip += 1;
+            continue;
+        }
+
+        if c == b' ' || c == b'\t' {
+            if at_line_start {
+                ip += 1;
+                continue;
+            }
+            pending_space = true;
+            ip += 1;
+            continue;
+        }
+
+        at_line_start = false;
+        if pending_space {
+            result.push(' ');
+            pending_space = false;
+        }
+        result.push(c as char);
+        line_has_content = true;
+        ip += 1;
     }
 
     result.into_bytes()
-}
-
-fn collapse_spaces(line: &str) -> String {
-    let mut result = String::with_capacity(line.len());
-    let mut in_str = false;
-    let mut str_char = b'"';
-    let mut prev_space = false;
-
-    for b in line.bytes() {
-        if in_str {
-            result.push(b as char);
-            if b == str_char {
-                in_str = false;
-            }
-        } else if b == b'"' || b == b'\'' {
-            in_str = true;
-            str_char = b;
-            prev_space = false;
-            result.push(b as char);
-        } else if b == b' ' || b == b'\t' {
-            if !prev_space {
-                result.push(' ');
-            }
-            prev_space = true;
-        } else {
-            prev_space = false;
-            result.push(b as char);
-        }
-    }
-
-    result
 }
