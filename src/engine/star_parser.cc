@@ -178,7 +178,7 @@ static std::vector<uint8_t> star_strip_parity(const std::vector<uint8_t>& woven)
         for (size_t i = pos; i < data_end; ++i)
             xor_check ^= static_cast<uint32_t>(woven[i]);
 
-        uint32_t expected_roll = fnv1a_u32(rolling ^ xor_check, xor_check);
+        uint32_t expected_roll = fnv1a_u32(rolling, xor_check);
 
         if (stored_xor != xor_check) throw std::runtime_error("parity xor mismatch at block " + std::to_string(expected_idx));
         if (stored_roll != expected_roll) throw std::runtime_error("parity chain broken at block " + std::to_string(expected_idx));

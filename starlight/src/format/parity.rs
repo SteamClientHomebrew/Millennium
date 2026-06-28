@@ -46,7 +46,7 @@ pub fn weave_parity(data: &[u8]) -> Vec<u8> {
     for chunk in data.chunks(PLG_STRIDE) {
         out.extend_from_slice(chunk);
         let xor_check = chunk.iter().fold(0u32, |acc, &b| acc ^ b as u32);
-        rolling = fnv1a_u32(rolling ^ xor_check, xor_check);
+        rolling = fnv1a_u32(rolling, xor_check);
         out.extend_from_slice(&xor_check.to_le_bytes());
         out.extend_from_slice(&rolling.to_le_bytes());
         out.extend_from_slice(&block_index.to_le_bytes());
@@ -88,7 +88,7 @@ pub fn verify_and_strip_parity(woven: &[u8]) -> anyhow::Result<Vec<u8>> {
         let stored_index = u32::from_le_bytes(parity_bytes[8..12].try_into().unwrap());
 
         let xor_check = chunk.iter().fold(0u32, |acc, &b| acc ^ b as u32);
-        let expected_roll = fnv1a_u32(rolling ^ xor_check, xor_check);
+        let expected_roll = fnv1a_u32(rolling, xor_check);
 
         anyhow::ensure!(
             stored_xor == xor_check,
