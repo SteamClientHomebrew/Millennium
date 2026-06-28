@@ -442,7 +442,8 @@ std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::p
         return std::nullopt;
     }
 
-    if (!metadata.is_object() || !metadata.contains("id") || !metadata.contains("name")) {
+    if (!metadata.is_object() || !metadata.contains("id") || !metadata.contains("name")
+        || !metadata["id"].is_string() || !metadata["name"].is_string()) {
         LOG_ERROR("star: {} metadata is missing required fields (id, name)", star_path.string());
         return std::nullopt;
     }
