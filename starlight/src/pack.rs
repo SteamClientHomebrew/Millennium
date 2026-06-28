@@ -69,9 +69,8 @@ pub fn pack(
     let out_path = match out_path {
         Some(p) => p.to_path_buf().join(format!("{}.star", cfg.plugin.id)),
         None => match cfg.compiler.as_ref().and_then(|c| c.output_path.as_deref()) {
-            Some("auto") => resolve_auto_output(&cfg.plugin.id)?,
+            Some("auto") | None => resolve_auto_output(&cfg.plugin.id)?,
             Some(p) => PathBuf::from(p),
-            None => config_dir.join(format!("{}.star", cfg.plugin.id)),
         },
     };
 
