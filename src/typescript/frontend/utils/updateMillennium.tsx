@@ -1,4 +1,4 @@
-import { IconsModule, pluginSelf, toaster } from '@steambrew/client';
+import { IconsModule, pluginSelf, toaster } from '@steambrew/sdk';
 import { backend } from './ffi';
 import { deferredSettingLabelClasses } from './classes';
 

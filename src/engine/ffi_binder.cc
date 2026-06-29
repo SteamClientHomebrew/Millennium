@@ -33,6 +33,7 @@
 #include "millennium/core_ipc.h"
 #include "mep/ffi_recorder.h"
 #include "mep/sdk_ready_bus.h"
+#include "mep/console_capture.h"
 
 #include <chrono>
 
@@ -380,6 +381,29 @@ void ffi_binder::sdk_ready_hdlr(const json& params)
     mep::sdk_ready_bus::instance().notify(ev);
 }
 
+void ffi_binder::plugin_console_hdlr(const json& params)
+{
+    if (!params.contains("payload")) return;
+
+    json payload;
+    try {
+        payload = json::parse(params["payload"].get<std::string>());
+    } catch (...) {
+        return;
+    }
+
+    const std::string plugin = payload.value("plugin", std::string{});
+    const std::string level  = payload.value("level",  std::string{"log"});
+    const std::string msg    = payload.value("message", std::string{});
+    const std::string source = payload.value("source", std::string{"frontend"});
+    const std::string file   = payload.value("file",   std::string{});
+    const int         line   = payload.value("line",   0);
+
+    if (plugin.empty()) return;
+
+    mep::console_capture::instance().push_direct(plugin, level, msg, source, file, line);
+}
+
 void ffi_binder::binding_call_hdlr(const json& params)
 {
     if (!params.contains("name")) {
@@ -400,6 +424,11 @@ void ffi_binder::binding_call_hdlr(const json& params)
 
     if (binding_name == ffi_constants::sdk_ready_binding_name) {
         sdk_ready_hdlr(params);
+        return;
+    }
+
+    if (binding_name == ffi_constants::plugin_console_binding_name) {
+        plugin_console_hdlr(params);
         return;
     }
 
@@ -500,6 +529,15 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
             { "executionContextId", context_id                            }
         };
         m_client->send_host("Runtime.addBinding", add_sdk_ready_params, session_id).get();
+    } catch (...) {
+    }
+
+    try {
+        const json add_console_params = {
+            { "name",               ffi_constants::plugin_console_binding_name },
+            { "executionContextId", context_id                                  }
+        };
+        m_client->send_host("Runtime.addBinding", add_console_params, session_id).get();
     } catch (...) {
     }
 }

@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ErrorBoundary, getParentWindow } from '@steambrew/client';
+import { ErrorBoundary, getParentWindow } from '@steambrew/sdk';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TitleView } from '../components/QuickAccessTitle';
 import { PluginSelectorView, RenderPluginView } from './PluginView';

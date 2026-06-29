@@ -18,11 +18,9 @@ add_custom_command(
 )
 add_custom_target(ts_install DEPENDS "${TS_STAMPS}/install.stamp")
 
-file(GLOB_RECURSE _src_ttc    CONFIGURE_DEPENDS "${TS_ROOT}/ttc/src/*.ts"    "${TS_ROOT}/ttc/src/*.tsx")
-file(GLOB_RECURSE _src_client CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/client/src/*.ts"  "${TS_ROOT}/sdk/packages/client/src/*.tsx")
-file(GLOB_RECURSE _src_webkit CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/browser/src/*.ts" "${TS_ROOT}/sdk/packages/browser/src/*.tsx")
-file(GLOB_RECURSE _src_api    CONFIGURE_DEPENDS "${TS_ROOT}/sdk/packages/loader/src/*.ts"  "${TS_ROOT}/sdk/packages/loader/src/*.tsx")
-file(GLOB_RECURSE _src_core   CONFIGURE_DEPENDS
+file(GLOB_RECURSE _src_ttc  CONFIGURE_DEPENDS "${TS_ROOT}/ttc/src/*.ts" "${TS_ROOT}/ttc/src/*.tsx")
+file(GLOB_RECURSE _src_sdk  CONFIGURE_DEPENDS "${TS_ROOT}/sdk/src/*.ts" "${TS_ROOT}/sdk/src/*.tsx")
+file(GLOB_RECURSE _src_core CONFIGURE_DEPENDS
     "${TS_ROOT}/frontend/*.ts"
     "${TS_ROOT}/frontend/*.tsx"
 )
@@ -57,39 +55,22 @@ _ts_package(ttc "${TS_ROOT}/ttc"
     ${_src_ttc}
 )
 
-_ts_package(client "${TS_ROOT}/sdk/packages/client"
+_ts_package(sdk "${TS_ROOT}/sdk"
     "${TS_STAMPS}/ttc.stamp"
-    "${TS_ROOT}/sdk/packages/client/package.json"
-    "${TS_ROOT}/sdk/packages/client/tsconfig.json"
-    ${_src_client}
+    "${TS_ROOT}/sdk/package.json"
+    "${TS_ROOT}/sdk/rollup.config.js"
+    "${TS_ROOT}/sdk/tsconfig.json"
+    ${_src_sdk}
 )
-add_dependencies(ts_client ts_ttc)
-
-_ts_package(webkit "${TS_ROOT}/sdk/packages/browser"
-    "${TS_STAMPS}/ttc.stamp"
-    "${TS_ROOT}/sdk/packages/browser/package.json"
-    "${TS_ROOT}/sdk/packages/browser/tsconfig.json"
-    ${_src_webkit}
-)
-add_dependencies(ts_webkit ts_ttc)
-
-_ts_package(api "${TS_ROOT}/sdk/packages/loader"
-    "${TS_STAMPS}/client.stamp"
-    "${TS_ROOT}/sdk/packages/loader/package.json"
-    "${TS_ROOT}/sdk/packages/loader/rollup.config.js"
-    "${TS_ROOT}/sdk/packages/loader/tsconfig.json"
-    ${_src_api}
-)
-add_dependencies(ts_api ts_client)
+add_dependencies(ts_sdk ts_ttc)
 
 _ts_package(core "${TS_ROOT}/frontend"
-    "${TS_STAMPS}/client.stamp"
-    "${TS_STAMPS}/webkit.stamp"
+    "${TS_STAMPS}/sdk.stamp"
     "${TS_ROOT}/frontend/package.json"
     ${_src_core}
     ${_src_locales}
 )
-add_dependencies(ts_core ts_client ts_webkit)
+add_dependencies(ts_core ts_sdk)
 
 set(_virtfs_h "${MILLENNIUM_BASE}/src/include/millennium/virtfs.h")
 if(WIN32 AND (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo"))
@@ -104,10 +85,10 @@ add_custom_command(
         -D "CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
         -P "${MILLENNIUM_BASE}/scripts/cmake/generate_virtfs.cmake"
     DEPENDS
-        "${TS_STAMPS}/api.stamp"
+        "${TS_STAMPS}/sdk.stamp"
         "${TS_STAMPS}/core.stamp"
     COMMENT "Generating virtfs.h"
     VERBATIM
 )
 add_custom_target(virtfs_header DEPENDS "${_virtfs_h}")
-add_dependencies(virtfs_header ts_api ts_core)
+add_dependencies(virtfs_header ts_sdk ts_core)

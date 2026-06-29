@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { Field, IconsModule, Menu, MenuItem, showContextMenu, Toggle } from '@steambrew/client';
+import { Field, IconsModule, Menu, MenuItem, showContextMenu, Toggle } from '@steambrew/sdk';
 import React, { Component } from 'react';
 import { IconButton } from '../../components/IconButton';
 import { DesktopTooltip, Separator } from '../../components/SteamComponents';

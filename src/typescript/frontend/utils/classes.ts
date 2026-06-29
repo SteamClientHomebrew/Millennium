@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { findClassModule } from '@steambrew/client';
+import { findClassModule } from '@steambrew/sdk';
 
 export const contextMenuClasses = findClassModule((m) => m.ContextMenuMouseOverlay) as any;
 export const deferredSettingLabelClasses = findClassModule((m) => m.DeferredSettingLabel) as any;

@@ -72,12 +72,18 @@ int main(int argc, char* argv[])
     if (prefix && *prefix) {
         std::string cmd_path = std::string(prefix) + "/cmd.fifo";
         std::string resp_path = std::string(prefix) + "/resp.fifo";
+        std::string lb_cmd_path = std::string(prefix) + "/lb-cmd.fifo";
+        std::string lb_resp_path = std::string(prefix) + "/lb-resp.fifo";
 
         open_at_fd(cmd_path.c_str(), O_RDONLY, 3);
         open_at_fd(resp_path.c_str(), O_WRONLY, 4);
+        open_at_fd(lb_cmd_path.c_str(), O_RDONLY, 5);
+        open_at_fd(lb_resp_path.c_str(), O_WRONLY, 6);
 
         unlink(cmd_path.c_str());
         unlink(resp_path.c_str());
+        unlink(lb_cmd_path.c_str());
+        unlink(lb_resp_path.c_str());
     } else {
         fprintf(stderr, "[pvs64] WARNING: PRESSURE_VESSEL_PREFIX not set\n");
     }
@@ -97,6 +103,8 @@ int main(int argc, char* argv[])
     /* pass through our fd's so steamwebhelper can write to our fd */
     new_argv.push_back(const_cast<char*>("--pass-fd=3"));
     new_argv.push_back(const_cast<char*>("--pass-fd=4"));
+    new_argv.push_back(const_cast<char*>("--pass-fd=5"));
+    new_argv.push_back(const_cast<char*>("--pass-fd=6"));
 
     /* pass original arguments */
     for (int i = 1; i < argc; ++i)

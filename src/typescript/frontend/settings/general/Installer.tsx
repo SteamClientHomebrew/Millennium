@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, ConfirmModalProps, Millennium, pluginSelf, showModal, ShowModalResult } from '@steambrew/client';
+import { ConfirmModal, ConfirmModalProps, Millennium, pluginSelf, showModal, ShowModalResult } from '@steambrew/sdk';
 import React, { useEffect, useState } from 'react';
 import { StartThemeInstaller } from '../../components/ThemeInstaller';
 import { IProgressProps } from '../../types';

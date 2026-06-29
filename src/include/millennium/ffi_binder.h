@@ -43,6 +43,7 @@ static const char* const frontend_binding_name = "MILLENNIUM_PRIVATE_INTERNAL_FO
 static const char* const extension_binding_name = "__millennium_extension_route__";
 static const char* const extension_frontend_response_name = "MILLENNIUM_CHROME_DEV_TOOLS_PROTOCOL_DO_NOT_USE_OR_OVERRIDE_ONMESSAGE";
 static const char* const cdp_proxy_binding_name = "__millennium_cdp_proxy__";
+static const char* const plugin_console_binding_name = "__millennium_plugin_console_binding__";
 static const char* const millennium_cdp_reject = "window.__millennium_cdp_reject__";
 static const char* const millennium_cdp_resolve = "window.__millennium_cdp_resolve__";
 } // namespace ffi_constants
@@ -113,6 +114,7 @@ class ffi_binder
     void extension_route_hdlr(const json& params);
     void cdp_proxy_hdlr(const json& params);
     void sdk_ready_hdlr(const json& params);
+    void plugin_console_hdlr(const json& params);
     void execution_ctx_created_hdlr(const json& params);
     void execution_ctx_destroyed_hdlr(const json& params);
 

@@ -28,7 +28,6 @@
  * SOFTWARE.
  */
 
-#include "state/shared_memory.h"
 #include "head/default_cfg.h"
 
 #include "millennium/health_check.h"
@@ -102,7 +101,6 @@ void millennium::check_for_updates()
  */
 void millennium::entry()
 {
-    platform::shared_memory::init();
     platform::health::check_health();
 
     m_mep_server.start();

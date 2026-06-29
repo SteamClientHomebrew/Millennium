@@ -3,8 +3,128 @@ name: Release
 on:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  release:
+  get-version:
+    name: Resolve Version
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
     steps:
-      - run: echo "starlight release workflow — full implementation on starlight-v2-support"
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Resolve version
+        id: resolve
+        run: |
+          CARGO_VER=$(grep '^version' starlight/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          if npm view @steambrew/starlight@$CARGO_VER version 2>/dev/null | grep -qF "$CARGO_VER"; then
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CARGO_VER"
+            VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+            echo "config version $CARGO_VER already published — bumping patch to $VERSION"
+          else
+            VERSION="$CARGO_VER"
+            echo "using config version $VERSION"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Write version to files
+        run: |
+          VERSION=${{ steps.resolve.outputs.version }}
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" starlight/Cargo.toml
+          npm version "$VERSION" --prefix starlight/npm --no-git-tag-version --allow-same-version
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add starlight/Cargo.toml starlight/npm/package.json
+          git diff --cached --quiet || git commit -m "chore: release starlight v$VERSION [skip ci]"
+          git push
+
+  build:
+    name: Build (${{ matrix.bin }})
+    needs: get-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            bin: starlight-linux-x64
+
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            bin: starlight-win32-x64.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+          workspaces: starlight
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+        working-directory: starlight
+
+      - name: Stage binary (Unix)
+        if: runner.os != 'Windows'
+        run: cp starlight/target/${{ matrix.target }}/release/starlight ${{ matrix.bin }}
+
+      - name: Stage binary (Windows)
+        if: runner.os == 'Windows'
+        run: cp starlight/target/${{ matrix.target }}/release/starlight.exe ${{ matrix.bin }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.bin }}
+          path: ${{ matrix.bin }}
+
+  publish:
+    name: Release & Publish
+    needs: [get-version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: starlight/npm/binaries
+          merge-multiple: true
+
+      - name: Mark Unix binaries executable
+        run: chmod +x starlight/npm/binaries/starlight-linux-x64
+
+      - name: Build type bundles
+        run: bun starlight/build.ts --types-only
+
+      - name: Publish
+        run: npm publish --access public
+        working-directory: starlight/npm

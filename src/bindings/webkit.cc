@@ -32,7 +32,6 @@
 #include "millennium/config.h"
 #include "millennium/http_hooks.h"
 #include "millennium/logger.h"
-#include "millennium/filesystem.h"
 #include "nlohmann/json_fwd.hpp"
 
 #include <unordered_set>
@@ -126,7 +125,7 @@ std::vector<head::theme_webkit_mgr::webkit_item> head::theme_webkit_mgr::parse_c
 
 unsigned long long head::theme_webkit_mgr::add_browser_hook(const std::string& path, const std::string& regex, network_hook_ctl::TagTypes type)
 {
-    unsigned long long hook_id = m_network_hook_ctl->add_hook({ (platform::get_steam_path() / "steamui" / path).generic_string(), std::regex(regex), type });
+    unsigned long long hook_id = m_network_hook_ctl->add_hook({ path, std::regex(regex), type });
     m_registered_hooks.push_back(hook_id);
     return hook_id;
 }
@@ -141,17 +140,17 @@ bool head::theme_webkit_mgr::remove_browser_hook(unsigned long long hookId)
     return false;
 }
 
-void head::theme_webkit_mgr::add_conditional_data(const std::string& path, const nlohmann::json& data, const std::string& theme_name)
+void head::theme_webkit_mgr::add_conditional_data(const nlohmann::json& data, const std::string& theme_name)
 {
     try {
         auto parsed_patches = this->parse_conditional_data(data, theme_name);
 
         for (auto& patch : parsed_patches) {
-            if (patch.fileType == "TargetCss" && !patch.path.empty() && !patch.match_pattern.empty()) {
-                std::string full_path = (std::filesystem::path(path) / patch.path).generic_string();
+            if (patch.path.empty() || patch.match_pattern.empty()) continue;
+            std::string full_path = (std::filesystem::path(theme_name) / patch.path).generic_string();
+            if (patch.fileType == "TargetCss") {
                 this->add_browser_hook(full_path, patch.match_pattern, network_hook_ctl::TagTypes::STYLESHEET);
-            } else if (patch.fileType == "TargetJs" && !patch.path.empty() && !patch.match_pattern.empty()) {
-                std::string full_path = (std::filesystem::path(path) / patch.path).generic_string();
+            } else if (patch.fileType == "TargetJs") {
                 this->add_browser_hook(full_path, patch.match_pattern, network_hook_ctl::TagTypes::JAVASCRIPT);
             }
         }

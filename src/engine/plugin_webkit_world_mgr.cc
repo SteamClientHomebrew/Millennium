@@ -86,8 +86,7 @@ static bool is_steam_owned_url(const std::string& url)
     for (const auto* tld : k_steam_tlds) {
         const size_t tld_len = std::strlen(tld);
         if (host == tld) return true;
-        if (host.size() > tld_len + 1 && host[host.size() - tld_len - 1] == '.' && host.compare(host.size() - tld_len, tld_len, tld) == 0)
-            return true;
+        if (host.size() > tld_len + 1 && host[host.size() - tld_len - 1] == '.' && host.compare(host.size() - tld_len, tld_len, tld) == 0) return true;
     }
     return false;
 }
@@ -135,7 +134,7 @@ void webkit_world_mgr::attach_to_target(const std::string& target_id, const std:
     }
     {
         std::lock_guard<std::mutex> lock(m_targets_mutex);
-        auto [it, inserted] = m_attached_targets.try_emplace(target_id, target_context{ "", "", true });
+        auto [it, inserted] = m_attached_targets.try_emplace(target_id, target_context{ "", "", {}, true });
 
         if (!inserted) {
             if (it->second.attaching || !it->second.session_id.empty()) {
@@ -195,7 +194,7 @@ void webkit_world_mgr::attach_to_target(const std::string& target_id, const std:
 
         {
             std::lock_guard<std::mutex> lock(m_targets_mutex);
-            m_attached_targets[target_id] = target_context{ session_id, "", false };
+            m_attached_targets[target_id] = target_context{ session_id, "", {}, false };
         }
         expose_millennium_to_ctx(session_id, can_reload);
 
@@ -233,6 +232,7 @@ import('{1}')
 
     const std::string modules = std::accumulate(webkit_items.begin(), webkit_items.end(), std::string{}, [m_ftp_url](auto acc, const auto& item)
     {
+        if (item.format != plugin_manager::plugin_format::loose_files) return acc;
         if (!acc.empty()) acc += ",";
         return acc + std::format("\"{}\"", utils::url::get_url_from_path(m_ftp_url, item.abs_webkit_path.generic_string()));
     });
@@ -297,6 +297,8 @@ void webkit_world_mgr::expose_millennium_to_ctx(const std::string& session_id, b
                 }
             }
         }
+
+        expose_star_webkit_to_ctx(session_id, can_reload);
 
         if (can_reload) {
             /** reload page to apply CSP bypass and run script */
@@ -424,4 +426,106 @@ void webkit_world_mgr::setup_event_listeners()
     m_listener_tokens.push_back(m_client->on("Target.targetCreated", std::bind(&webkit_world_mgr::target_create_hdlr, this, std::placeholders::_1)));
     m_listener_tokens.push_back(m_client->on("Target.targetDestroyed", std::bind(&webkit_world_mgr::target_destroy_hdlr, this, std::placeholders::_1)));
     m_listener_tokens.push_back(m_client->on("Target.targetInfoChanged", std::bind(&webkit_world_mgr::target_change_hdlr, this, std::placeholders::_1)));
+}
+
+void webkit_world_mgr::expose_star_webkit_to_ctx(const std::string& session_id, bool can_reload)
+{
+    constexpr const char* m_api_shim_script = R"((async () => {{
+try {{
+    const _preload = await import('{}');
+    await (new _preload.default).startBrowser([], [], [], '{}');
+    const _r = await fetch('{}');
+    const _s = await _r.text();
+    (0, eval)(_s);
+}} catch (e) {{
+    console.error('%cMillennium%c webkit plugin {} failed to load', 'background:black;color:red;padding:2px 6px;border-radius:2px', '', e);
+}}
+}})();)";
+
+    const auto webkit_items = m_plugin_webkit_store->get();
+    const std::string ftp_url = m_network_hook_ctl->get_ftp_url();
+
+    /** remove any previously registered isolated-world scripts for this session */
+    {
+        std::lock_guard<std::mutex> lock(m_targets_mutex);
+        for (auto& [tid, ctx] : m_attached_targets) {
+            if (ctx.session_id != session_id) continue;
+            for (const auto& sid : ctx.star_script_ids) {
+                try {
+                    m_client
+                        ->send_host("Page.removeScriptToEvaluateOnNewDocument",
+                                    json{
+                                        { "identifier", sid }
+                    },
+                                    session_id)
+                        .get();
+                } catch (...) {
+                }
+            }
+            ctx.star_script_ids.clear();
+            break;
+        }
+    }
+
+    /** lazy frame id, only needed for the non-reload (createIsolatedWorld) path */
+    std::optional<std::string> cached_frame_id;
+
+    const std::string preload_url = ftp_url + platform::get_millennium_preload_path();
+    const std::string ftp_base = ftp_url + GetScrambledApiPathToken();
+
+    for (const auto& item : webkit_items) {
+        if (item.format != plugin_manager::plugin_format::star) continue;
+
+        const std::string world_name = std::format("millennium-webkit-{}", item.plugin_name);
+        const std::string webkit_url = std::format("{}star/{}/webkit.js", ftp_url, item.plugin_name);
+
+        const std::string wrapper_script = std::format(m_api_shim_script, preload_url, ftp_base, webkit_url, item.plugin_name);
+
+        if (can_reload) {
+            try {
+                const json add_params = {
+                    { "source",    wrapper_script },
+                    { "worldName", world_name     }
+                };
+                auto result = m_client->send_host("Page.addScriptToEvaluateOnNewDocument", add_params, session_id).get();
+
+                if (result.contains("identifier") && result["identifier"].is_string()) {
+                    std::lock_guard<std::mutex> lock(m_targets_mutex);
+                    for (auto& [tid, ctx] : m_attached_targets) {
+                        if (ctx.session_id == session_id) {
+                            ctx.star_script_ids.push_back(result["identifier"].get<std::string>());
+                            break;
+                        }
+                    }
+                }
+                logger.log("webkit_world_mgr: registered isolated world '{}' for session {}", world_name, session_id);
+            } catch (const std::exception& e) {
+                LOG_ERROR("webkit_world_mgr: failed to register isolated world '{}': {}", world_name, e.what());
+            }
+        } else {
+            try {
+                if (!cached_frame_id.has_value()) {
+                    auto ft = m_client->send_host("Page.getFrameTree", json::object(), session_id).get();
+                    cached_frame_id = ft["frameTree"]["frame"]["id"].get<std::string>();
+                }
+
+                const json create_params = {
+                    { "frameId",              *cached_frame_id },
+                    { "worldName",            world_name       },
+                    { "grantUniversalAccess", false            }
+                };
+                auto world_result = m_client->send_host("Page.createIsolatedWorld", create_params, session_id).get();
+                const int ctx_id = world_result["executionContextId"].get<int>();
+
+                const json eval_params = {
+                    { "expression", wrapper_script },
+                    { "contextId",  ctx_id         }
+                };
+                m_client->send_host("Runtime.evaluate", eval_params, session_id).get();
+                logger.log("webkit_world_mgr: created isolated world '{}' (ctx {}) for session {}", world_name, ctx_id, session_id);
+            } catch (const std::exception& e) {
+                LOG_ERROR("webkit_world_mgr: failed to create isolated world '{}': {}", world_name, e.what());
+            }
+        }
+    }
 }

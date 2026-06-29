@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, pluginSelf, showModal, ShowModalResult } from '@steambrew/client';
+import { ConfirmModal, pluginSelf, showModal, ShowModalResult } from '@steambrew/sdk';
 import { settingsManager } from '../utils/settings-manager';
 import Markdown from 'markdown-to-jsx';
 import { locale } from '../utils/localization-manager';

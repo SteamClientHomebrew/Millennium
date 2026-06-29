@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { afterPatch, findInReactTree, getReactRoot } from '@steambrew/client';
+import { afterPatch, findInReactTree, getReactRoot } from '@steambrew/sdk';
 import { RenderSettingsModal } from '../settings';
 
 export function PatchRootMenu() {
