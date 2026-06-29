@@ -49,10 +49,21 @@
 
 #include <limits.h>
 #include <atomic>
+#include <cstdarg>
+#include <cstdio>
+
+static void fatal(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    fprintf(stderr, "\033[31m");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\033[0m\n");
+    va_end(args);
+}
 
 #ifdef __linux__
 #include <linux/limits.h>
-#include <cstdio>
 #include <dlfcn.h>
 #include <link.h>
 #include <cstring>
@@ -64,16 +75,6 @@
 
 extern "C" int tramp_cef_browser_host_create_browser(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
 static snare_inline_t g_cef_hook = nullptr;
-
-static void fatal(const char* fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    fprintf(stderr, "\033[31m");
-    vfprintf(stderr, fmt, args);
-    fprintf(stderr, "\033[0m\n");
-    va_end(args);
-}
 
 static void page_rx(void* addr)
 {
