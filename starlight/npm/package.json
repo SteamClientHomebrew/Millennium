@@ -1,6 +1,6 @@
 {
 	"name": "@steambrew/starlight",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "A compiler tool for Millennium plugins",
 	"bin": {
 		"starlight": "bin/starlight.js"
