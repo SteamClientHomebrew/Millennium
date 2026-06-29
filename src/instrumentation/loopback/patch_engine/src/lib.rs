@@ -1,3 +1,4 @@
+mod css_classes;
 mod engine;
 mod ipc;
 mod logger;
@@ -126,6 +127,12 @@ pub unsafe extern "C" fn lb_handle_request(
         .and_then(|n| n.to_str())
         .unwrap_or(path_str);
 
+    let content = if name.starts_with("chunk") && url::is_js_url(url_str) {
+        css_classes::patch(name, &content)
+    } else {
+        content
+    };
+
     let t_total = std::time::Instant::now();
     let size_kb = content.len() as f64 / 1024.0;
 
@@ -217,7 +224,7 @@ pub unsafe extern "C" fn lb_handle_request(
             }
         } else {
             log::warn!(
-                "{}: patch list not yet loaded ({:.1} KB) — serving original",
+                "{}: patch list not yet loaded ({:.1} KB). serving original",
                 name,
                 size_kb
             );
