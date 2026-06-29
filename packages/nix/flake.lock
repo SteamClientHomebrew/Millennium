@@ -3,17 +3,17 @@
     "millennium-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1782696998,
-        "narHash": "sha256-Q1wvzlpEw3mWhfQjMN9qBX2ujI/1WnGw/nc4zMnLWoE=",
+        "lastModified": 1782701549,
+        "narHash": "sha256-UTCP/BVbSzN/kaAiOSRsIRt8cl/guRCHQ0Y5Rte9+AU=",
         "owner": "SteamClientHomebrew",
         "repo": "Millennium",
-        "rev": "d05a7da161dbd2a55cd6aea0c47dd629389c77e2",
+        "rev": "94c9a408459dd1712809cbef1271f10f92e3fa9e",
         "type": "github"
       },
       "original": {
         "owner": "SteamClientHomebrew",
         "repo": "Millennium",
-        "rev": "d05a7da161dbd2a55cd6aea0c47dd629389c77e2",
+        "rev": "94c9a408459dd1712809cbef1271f10f92e3fa9e",
         "type": "github"
       }
     },
