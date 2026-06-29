@@ -31,15 +31,20 @@ use crate::ffi_types::FfiType;
 use crate::format::section::SubEntry;
 use std::path::Path;
 
-fn load_webkit_allowlist() -> Vec<String> {
+fn load_webkit_allowlist() -> anyhow::Result<Option<Vec<String>>> {
     let types_dir = std::env::var("STARLIGHT_TYPES_DIR")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|_| std::path::PathBuf::from("."));
     let json_path = types_dir.join("webkit-exports.json");
-    let Ok(data) = std::fs::read_to_string(&json_path) else {
-        return Vec::new();
-    };
-    serde_json::from_str::<Vec<String>>(&data).unwrap_or_default()
+    match std::fs::read_to_string(&json_path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(anyhow::anyhow!("webkit-exports.json: {}", e)),
+        Ok(data) => {
+            let list = serde_json::from_str::<Vec<String>>(&data)
+                .map_err(|e| anyhow::anyhow!("webkit-exports.json: invalid JSON: {}", e))?;
+            Ok(Some(list))
+        }
+    }
 }
 
 /// Returns `(exposed_frontend_fns, lua_ffi_fn_names)`.
@@ -199,19 +204,25 @@ pub fn check(
 
     // webkit import allowlist check, reject sharedjscontext symbols in webkit files
     if webkit_entry.is_some() {
-        let allowlist = load_webkit_allowlist();
-        if !allowlist.is_empty() {
-            let webkit_imports = crate::ts_ffi::scan_webkit_imports(config_dir, webkit_entry)?;
-            for imp in &webkit_imports {
-                if !allowlist.iter().any(|a| a == &imp.name) {
-                    crate::log::build_error(
-                        &format!("webkit: `{}` is not available in a webview context", imp.name),
-                        &format!(
-                            "  -> imported in {}:{}\n  -> `{}` is a frontend-only export from 'millennium'\n  -> only millennium-api exports are available in webview\n",
-                            imp.file, imp.line, imp.name,
-                        ),
-                    );
-                    errors += 1;
+        match load_webkit_allowlist()? {
+            None => {
+                crate::log::warn(
+                    "webkit: webkit-exports.json not found — import symbol checks skipped",
+                );
+            }
+            Some(allowlist) => {
+                let webkit_imports = crate::ts_ffi::scan_webkit_imports(config_dir, webkit_entry)?;
+                for imp in &webkit_imports {
+                    if !allowlist.iter().any(|a| a == &imp.name) {
+                        crate::log::build_error(
+                            &format!("webkit: `{}` is not available in a webview context", imp.name),
+                            &format!(
+                                "  -> imported in {}:{}\n  -> `{}` is a frontend-only export from 'millennium'\n  -> only millennium-api exports are available in webview\n",
+                                imp.file, imp.line, imp.name,
+                            ),
+                        );
+                        errors += 1;
+                    }
                 }
             }
         }
@@ -223,7 +234,10 @@ pub fn check(
         )?;
         for imp in &banned {
             crate::log::build_error(
-                &format!("webkit: `{}` is deprecated and cannot be used with the starlight compiler", imp.package),
+                &format!(
+                    "webkit: `{}` is deprecated and cannot be used with the starlight compiler",
+                    imp.package
+                ),
                 &format!(
                     "  -> imported in {}:{}\n  -> use the `millennium` package instead\n",
                     imp.file, imp.line,
@@ -241,7 +255,10 @@ pub fn check(
         )?;
         for imp in &banned {
             crate::log::build_error(
-                &format!("frontend: `{}` is deprecated and cannot be used with the starlight compiler", imp.package),
+                &format!(
+                    "frontend: `{}` is deprecated and cannot be used with the starlight compiler",
+                    imp.package
+                ),
                 &format!(
                     "  -> imported in {}:{}\n  -> use the `millennium` package instead\n",
                     imp.file, imp.line,
