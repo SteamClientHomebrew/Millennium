@@ -325,10 +325,18 @@ void webkit_world_mgr::target_create_hdlr(const json& params)
 
     const auto& target_info = params["targetInfo"];
     if (!target_info.contains("canAccessOpener") || !target_info.contains("url") || !target_info.contains("targetId")) return;
-    if (target_info["canAccessOpener"].get<bool>()) return;
 
     std::string url = target_info["url"].get<std::string>();
     std::string target_id = target_info["targetId"].get<std::string>();
+
+    /**
+     * Middle-click "open in new tab" Steam targets retain opener access
+     * (canAccessOpener == true). Skipping every opener-accessible target means
+     * such tabs never attach, so plugins don't load until a manual refresh.
+     * Only skip opener-accessible targets that are NOT Steam-owned, so external
+     * popups (e.g. Cloudflare-protected pages) are still left untouched.
+     */
+    if (target_info["canAccessOpener"].get<bool>() && !is_steam_owned_url(url)) return;
 
     if (!is_valid_target_url(url)) return;
     if (m_shutdown.load(std::memory_order_acquire)) return;
@@ -379,12 +387,17 @@ void webkit_world_mgr::target_change_hdlr(const json& params)
     std::string target_id = target_info["targetId"].get<std::string>();
     std::string url;
 
-    if (target_info.contains("canAccessOpener") && target_info["canAccessOpener"].get<bool>()) {
-        return;
-    }
-
     if (target_info.contains("url") && target_info["url"].is_string()) {
         url = target_info["url"].get<std::string>();
+    }
+
+    /**
+     * See target_create_hdlr: only skip opener-accessible targets that are NOT
+     * Steam-owned, so middle-click Steam tabs still attach while external
+     * popups remain untouched.
+     */
+    if (target_info.contains("canAccessOpener") && target_info["canAccessOpener"].get<bool>() && !is_steam_owned_url(url)) {
+        return;
     }
 
     if (!is_valid_target_url(url)) return;
