@@ -130,56 +130,50 @@ void plugin_logger::remove_listener(int id)
     m_listeners.erase(id);
 }
 
-void plugin_logger::log(const std::string& message, bool onlyBuffer)
+static uint64_t now_us()
+{
+    return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+}
+
+void plugin_logger::log(const std::string& message, bool onlyBuffer, uint64_t timestamp_us, std::string src_file, int src_line)
 {
     std::string formatted = std::format("{} ", get_plugin_name());
-    std::string ts_bracketed = get_local_time(true);
-    std::string ts = ts_bracketed.substr(1, ts_bracketed.size() - 2);
 
     if (!onlyBuffer) {
         std::cout << std::format("{} \033[1m\033[34m{}\033[0m\033[0m", get_local_time(), formatted) << message << "\n";
-
         file << formatted << message << "\n";
         file.flush();
     }
 
-    const log_entry entry{ message, log_level::info, ts };
+    const log_entry entry{ message, log_level::info, timestamp_us ? timestamp_us : now_us(), std::move(src_file), src_line };
     logBuffer.push_back(entry);
     notify_listeners(entry);
 }
 
-void plugin_logger::warn(const std::string& message, bool onlyBuffer)
+void plugin_logger::warn(const std::string& message, bool onlyBuffer, uint64_t timestamp_us, std::string src_file, int src_line)
 {
-    std::string ts_bracketed = get_local_time(true);
-    std::string ts = ts_bracketed.substr(1, ts_bracketed.size() - 2);
-
+    const std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
     if (!onlyBuffer) {
-        std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
         std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
-
         file << formatted;
         file.flush();
     }
 
-    const log_entry entry{ message, log_level::warn, ts };
+    const log_entry entry{ message, log_level::warn, timestamp_us ? timestamp_us : now_us(), std::move(src_file), src_line };
     logBuffer.push_back(entry);
     notify_listeners(entry);
 }
 
-void plugin_logger::error(const std::string& message, bool onlyBuffer)
+void plugin_logger::error(const std::string& message, bool onlyBuffer, uint64_t timestamp_us, std::string src_file, int src_line)
 {
-    std::string ts_bracketed = get_local_time(true);
-    std::string ts = ts_bracketed.substr(1, ts_bracketed.size() - 2);
-
+    const std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
     if (!onlyBuffer) {
-        std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
         std::cout << COL_RED << formatted << COL_RESET << '\n';
-
         file << formatted;
         file.flush();
     }
 
-    const log_entry entry{ message, log_level::error, ts };
+    const log_entry entry{ message, log_level::error, timestamp_us ? timestamp_us : now_us(), std::move(src_file), src_line };
     logBuffer.push_back(entry);
     notify_listeners(entry);
 }
@@ -189,7 +183,7 @@ void plugin_logger::print(const std::string& message)
     file << message;
     file.flush();
 
-    const log_entry entry{ message, log_level::info, {} };
+    const log_entry entry{ message, log_level::info, now_us(), "", 0 };
     logBuffer.push_back(entry);
     notify_listeners(entry);
 }

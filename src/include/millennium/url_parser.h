@@ -51,6 +51,15 @@ static std::string encode_url(const std::string& value)
     return encoded.str();
 }
 
+static std::string plat_encode_url(const std::string& path)
+{
+#if defined(__linux__) || defined(__APPLE__)
+    return encode_url(!path.empty() && path[0] == '/' ? path.substr(1) : path);
+#elif _WIN32
+    return encode_url(path);
+#endif
+}
+
 static const std::string decode_url(const std::string& url)
 {
     std::string decoded;
@@ -78,11 +87,7 @@ static const std::string decode_url(const std::string& url)
 
 inline std::string get_url_from_path(const std::string baseAddress, const std::string path)
 {
-#if defined(__linux__) || defined(__APPLE__)
-    return baseAddress + encode_url(path.substr(1));
-#elif _WIN32
-    return baseAddress + encode_url(path);
-#endif
+    return baseAddress + plat_encode_url(path);
 }
 
 inline std::string get_path_from_url(const std::string& path)

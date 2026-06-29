@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, pluginSelf, showModal, ShowModalResult, TextField } from '@steambrew/client';
+import { ConfirmModal, pluginSelf, showModal, ShowModalResult, TextField } from '@steambrew/sdk';
 import React, { useEffect } from 'react';
 import { Utils } from '../../utils';
 import { locale } from '../../utils/localization-manager';

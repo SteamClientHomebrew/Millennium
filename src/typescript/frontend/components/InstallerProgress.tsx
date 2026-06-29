@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, ProgressBar } from '@steambrew/client';
+import { ConfirmModal, ProgressBar } from '@steambrew/sdk';
 import React from 'react';
 import { locale, tryResolveLocale } from '../utils/localization-manager';
 import Styles from '../utils/styles';

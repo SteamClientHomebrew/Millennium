@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, Field, IconsModule, joinClassNames, Menu, MenuItem, pluginSelf, showContextMenu } from '@steambrew/client';
+import { DialogButton, Field, IconsModule, joinClassNames, Menu, MenuItem, pluginSelf, showContextMenu } from '@steambrew/sdk';
 import { ThemeItem } from '../../types';
 import { DesktopTooltip, Separator } from '../../components/SteamComponents';
 import { Utils } from '../../utils';

@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.10)
 project(hhx64 CXX)
 include(${MILLENNIUM_BASE}/scripts/cmake/millennium_version.cmake)
 
+include(FetchContent)
+FetchContent_Declare(Corrosion URL "${MILLENNIUM_BASE}/thirdparty/corrosion-v0.6.1.tar.gz" DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(Corrosion)
+
 string(TIMESTAMP CURRENT_YEAR "%Y")
 set(VERSION_COMPANY      "Steam Homebrew")
 set(VERSION_COPYRIGHT    "Steam Homebrew ${TIMESTAMP}")
@@ -40,15 +44,7 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 include_directories("${MILLENNIUM_BASE}/src/include")
 include_directories("${snare_SOURCE_DIR}")
 
-set(SOURCE_FILES
-    main.cc
-    resource_transformer.cc
-    resource_reader.cc
-    resource_handler.cc
-    resource_query_parser.cc
-    resource_matcher.cc
-    ${MILLENNIUM_BASE}/src/state/shared_memory.cc
-)
+set(SOURCE_FILES main.cc)
 
 if(WIN32)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/include/millennium/export.version.def")
@@ -57,6 +53,11 @@ elseif(APPLE)
     enable_language(OBJCXX)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/platform/macos_window_style.mm")
 endif()
+
+corrosion_import_crate(
+    MANIFEST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/patch_engine/Cargo.toml"
+    CRATE_TYPES   staticlib
+)
 
 add_library(hhx64 SHARED ${SOURCE_FILES})
 
@@ -72,15 +73,12 @@ if(APPLE)
     target_link_libraries(hhx64 "-framework AppKit" "-framework QuartzCore")
 endif()
 
-if(MILLENNIUM_NIX_64BIT)
-    find_package(re2 REQUIRED)
-    target_link_libraries(hhx64 re2::re2)
-else()
-    include(FetchContent)
-    FetchContent_GetProperties(re2)
-    add_subdirectory("${re2_SOURCE_DIR}" "${re2_BINARY_DIR}")
-    target_link_libraries(hhx64 re2)
+target_link_libraries(hhx64 patch_engine)
+
+if(UNIX AND NOT APPLE)
+    target_link_libraries(hhx64 pthread dl)
 endif()
+
 set_target_properties(hhx64 PROPERTIES
     PREFIX ""
     OUTPUT_NAME "${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"

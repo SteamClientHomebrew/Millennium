@@ -43,6 +43,7 @@
 #include "millennium/plugin_webkit_world_mgr.h"
 #include "millennium/plugin_webkit_store.h"
 
+#include <atomic>
 #include <memory>
 #include <nlohmann/json.hpp>
 
@@ -58,8 +59,8 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     void start_plugin_frontends();
     void setup_webkit_shims();
 
-    void set_plugin_enable(std::string plugin_name, bool enabled);
-    void set_plugins_enabled(const plugin_state& plugins);
+    void set_plugin_enable(std::string plugin_name, bool enabled, bool reload_frontend = true);
+    void set_plugins_enabled(const plugin_state& plugins, bool reload_frontend = true);
 
     void inject_frontend_shims(bool reload_frontend);
 
@@ -79,6 +80,7 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     void devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp);
 
     void log_enabled_plugins();
+    void register_packed_plugin_resources(const std::vector<plugin_manager::plugin_t>& plugins);
     std::shared_ptr<std::thread> connect_steam_socket(std::shared_ptr<socket_utils> socketHelpers);
 
     std::string cdp_generate_bootstrap_module(const std::vector<std::string>& modules);
@@ -105,4 +107,6 @@ class plugin_loader : public std::enable_shared_from_this<plugin_loader>
     std::string m_shared_js_target_id;
     bool m_child_handler_installed = false;
     int m_crash_listener_id = -1;
+
+    std::atomic<bool> m_skip_next_inject_reload{ false };
 };

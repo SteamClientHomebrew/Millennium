@@ -629,11 +629,11 @@ builtin_payload head::millennium_backend::Core_GetPluginBackendLogs(const builti
     for (auto& logger : get_plugin_logger_mgr()) {
         nlohmann::json logDataItem;
 
-        for (auto [message, logLevel, timestamp] : logger->collect_logs()) {
+        for (auto& entry : logger->collect_logs()) {
             logDataItem.push_back({
-                { "message",   Base64Encode(message) },
-                { "level",     logLevel              },
-                { "timestamp", timestamp             }
+                { "message",   Base64Encode(entry.message) },
+                { "level",     entry.level                 },
+                { "timestamp", format_log_timestamp(entry.timestamp_us) }
             });
         }
 

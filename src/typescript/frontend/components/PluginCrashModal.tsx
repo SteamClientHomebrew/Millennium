@@ -1,4 +1,4 @@
-import { ConfirmModal, DialogButton, Field, IconsModule, Navigation, pluginSelf, showModal } from '@steambrew/client';
+import { ConfirmModal, DialogButton, Field, IconsModule, Navigation, pluginSelf, showModal } from '@steambrew/sdk';
 import { backend } from '../utils/ffi';
 import { settingsClasses } from '../utils/classes';
 import { SettingsDialogSubHeader } from './SteamComponents';

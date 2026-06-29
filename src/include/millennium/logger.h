@@ -34,6 +34,7 @@
 
 #include <array>
 #include <atomic>
+#include <ctime>
 #include <format>
 #include <functional>
 #include <fstream>
@@ -98,7 +99,9 @@ class logger_base
     {
         std::string message;
         log_level level;
-        std::string timestamp;
+        uint64_t timestamp_us;
+        std::string file;
+        int line{ 0 };
     };
 
   protected:
@@ -129,9 +132,9 @@ class plugin_logger : public logger_base
     plugin_logger(const std::string& pluginName);
     ~plugin_logger();
 
-    void log(const std::string& message, bool onlyBuffer = false);
-    void warn(const std::string& message, bool onlyBuffer = false);
-    void error(const std::string& message, bool onlyBuffer = false);
+    void log(const std::string& message, bool onlyBuffer = false, uint64_t timestamp_us = 0, std::string file = "", int line = 0);
+    void warn(const std::string& message, bool onlyBuffer = false, uint64_t timestamp_us = 0, std::string file = "", int line = 0);
+    void error(const std::string& message, bool onlyBuffer = false, uint64_t timestamp_us = 0, std::string file = "", int line = 0);
     void print(const std::string& message);
 
     std::vector<log_entry> collect_logs();
@@ -188,25 +191,40 @@ class millennium_logger : public logger_base, public singleton<millennium_logger
 
 extern millennium_logger& logger;
 
+inline std::string format_log_timestamp(uint64_t timestamp_us)
+{
+    const time_t sec = static_cast<time_t>(timestamp_us / 1'000'000);
+    struct tm t{};
+#ifdef _WIN32
+    localtime_s(&t, &sec);
+#else
+    localtime_r(&sec, &t);
+#endif
+    char buf[16];
+    strftime(buf, sizeof(buf), "%H:%M:%S", &t);
+    return buf;
+}
+
 inline std::vector<plugin_logger*>& get_plugin_logger_mgr()
 {
     static std::vector<plugin_logger*> loggerList;
     return loggerList;
 }
 
-static void add_logger_message(const std::string pluginName, const std::string message, logger_base::log_level level)
+static void add_logger_message(const std::string pluginName, const std::string message, logger_base::log_level level, const bool v2, uint64_t timestamp_us = 0,
+                               std::string file = "", int line = 0)
 {
-    const auto add_log = [](plugin_logger* logger, const std::string& message, const logger_base::log_level& level)
+    const auto add_log = [v2, timestamp_us, &file, line](plugin_logger* logger, const std::string& message, const logger_base::log_level& level)
     {
         switch (level) {
             case logger_base::log_level::info:
-                logger->log(message);
+                logger->log(message, v2, timestamp_us, file, line);
                 break;
             case logger_base::log_level::warn:
-                logger->warn(message);
+                logger->warn(message, v2, timestamp_us, file, line);
                 break;
             case logger_base::log_level::error:
-                logger->error(message);
+                logger->error(message, v2, timestamp_us, file, line);
                 break;
         }
     };
@@ -223,19 +241,19 @@ static void add_logger_message(const std::string pluginName, const std::string m
     get_plugin_logger_mgr().push_back(newLogger);
 }
 
-inline void InfoToLogger(const std::string pluginNme, const std::string message)
+inline void InfoToLogger(const std::string pluginNme, const std::string message, const bool v2, uint64_t timestamp_us = 0, std::string file = "", int line = 0)
 {
-    add_logger_message(pluginNme, message, logger_base::log_level::info);
+    add_logger_message(pluginNme, message, logger_base::log_level::info, v2, timestamp_us, std::move(file), line);
 }
 
-inline void WarnToLogger(const std::string pluginNme, const std::string message)
+inline void WarnToLogger(const std::string pluginNme, const std::string message, const bool v2, uint64_t timestamp_us = 0, std::string file = "", int line = 0)
 {
-    add_logger_message(pluginNme, message, logger_base::log_level::warn);
+    add_logger_message(pluginNme, message, logger_base::log_level::warn, v2, timestamp_us, std::move(file), line);
 }
 
-inline void ErrorToLogger(const std::string pluginNme, const std::string message)
+inline void ErrorToLogger(const std::string pluginNme, const std::string message, const bool v2, uint64_t timestamp_us = 0, std::string file = "", int line = 0)
 {
-    add_logger_message(pluginNme, message, logger_base::log_level::error);
+    add_logger_message(pluginNme, message, logger_base::log_level::error, v2, timestamp_us, std::move(file), line);
 }
 
 inline void RawToLogger(const std::string pluginName, const std::string message)

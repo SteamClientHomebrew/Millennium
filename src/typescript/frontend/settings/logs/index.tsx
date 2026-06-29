@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, DialogControlsSection, IconsModule, SteamSpinner, TextField, joinClassNames, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, IconsModule, SteamSpinner, TextField, joinClassNames, pluginSelf } from '@steambrew/sdk';
 import { settingsClasses } from '../../utils/classes';
 import Ansi from 'ansi-to-react';
 import React, { Component } from 'react';
