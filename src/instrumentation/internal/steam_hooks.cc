@@ -303,13 +303,6 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
             logger.log("CDP pipes created (child read={}, child write={}, parent read={}, parent write={})", reinterpret_cast<uintptr_t>(hChildRead),
                        reinterpret_cast<uintptr_t>(hChildWrite), reinterpret_cast<uintptr_t>(hParentRead), reinterpret_cast<uintptr_t>(hParentWrite));
 
-            {
-                std::lock_guard<std::mutex> lock(g_cdp_pipe_mutex);
-                g_cdp_pipe_generation++;
-                g_cdp_pipes_ready = true;
-            }
-            g_cdp_pipe_cv.notify_all();
-
             g_pipe_drain_stop = false;
             g_pipe_drain_thread = std::thread([hRead = hParentRead]()
             {
@@ -324,6 +317,13 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
                 }
                 logger.log("CDP pipe drain thread exited.");
             });
+
+            {
+                std::lock_guard<std::mutex> lock(g_cdp_pipe_mutex);
+                g_cdp_pipe_generation++;
+                g_cdp_pipes_ready = true;
+            }
+            g_cdp_pipe_cv.notify_all();
         } else {
             LOG_ERROR("Failed to create CDP pipes (error {}), falling back to port-only debugging.", GetLastError());
             if (hChildRead != INVALID_HANDLE_VALUE) CloseHandle(hChildRead);
@@ -437,7 +437,8 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
             auto attr_buf = std::make_unique<char[]>(attr_size);
             auto attr_list = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attr_buf.get());
 
-            if (InitializeProcThreadAttributeList(attr_list, 1, 0, &attr_size) &&
+            bool attr_init_ok = InitializeProcThreadAttributeList(attr_list, 1, 0, &attr_size);
+            if (attr_init_ok &&
                 UpdateProcThreadAttribute(attr_list, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, inherit_handles, sizeof(inherit_handles), nullptr, nullptr)) {
                 STARTUPINFOEXW siex{};
                 siex.StartupInfo = *lpStartupInfo;
@@ -460,7 +461,7 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
                 return result;
             }
 
-            DeleteProcThreadAttributeList(attr_list);
+            if (attr_init_ok) DeleteProcThreadAttributeList(attr_list);
             LOG_ERROR("Failed to build PROC_THREAD_ATTRIBUTE_HANDLE_LIST (error {}), falling back to full inherit.", GetLastError());
 
             BOOL result = orig(hUserToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, TRUE, dwCreationFlags, lpEnvironment, lpCurrentDirectory,
