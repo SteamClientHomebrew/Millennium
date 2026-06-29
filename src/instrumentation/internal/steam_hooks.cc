@@ -63,6 +63,8 @@ HANDLE g_cdp_pipe_read = INVALID_HANDLE_VALUE;
 HANDLE g_cdp_pipe_write = INVALID_HANDLE_VALUE;
 HANDLE g_cdp_child_read = INVALID_HANDLE_VALUE;
 HANDLE g_cdp_child_write = INVALID_HANDLE_VALUE;
+static HANDLE g_lb_child_read = INVALID_HANDLE_VALUE;
+static HANDLE g_lb_child_write = INVALID_HANDLE_VALUE;
 static std::thread g_pipe_drain_thread;
 static std::atomic<bool> g_pipe_drain_stop{ false };
 #elif __linux__
@@ -125,10 +127,10 @@ static bool create_pv_shim()
 {
     cleanup_pv_shim();
 
-    int command_fd    = -1;
-    int response_fd   = -1;
-    int lb_cmd_fd     = -1;
-    int lb_resp_fd    = -1;
+    int command_fd = -1;
+    int response_fd = -1;
+    int lb_cmd_fd = -1;
+    int lb_resp_fd = -1;
 
     char tmp[] = "/tmp/.millennium-pv-XXXXXX";
     const char* mkd_temp_directory = mkdtemp(tmp);
@@ -138,29 +140,27 @@ static bool create_pv_shim()
         return false;
     }
 
-    std::string shim_directory        = mkd_temp_directory;
-    std::string binary_directory      = shim_directory + "/bin";
-    std::string command_fifo_directory  = shim_directory + "/cmd.fifo";
+    std::string shim_directory = mkd_temp_directory;
+    std::string binary_directory = shim_directory + "/bin";
+    std::string command_fifo_directory = shim_directory + "/cmd.fifo";
     std::string response_fifo_directory = shim_directory + "/resp.fifo";
-    std::string lb_cmd_fifo_path        = shim_directory + "/lb-cmd.fifo";
-    std::string lb_resp_fifo_path       = shim_directory + "/lb-resp.fifo";
+    std::string lb_cmd_fifo_path = shim_directory + "/lb-cmd.fifo";
+    std::string lb_resp_fifo_path = shim_directory + "/lb-resp.fifo";
 
     if (mkdir(binary_directory.c_str(), 0755) < 0) {
         goto cleanup;
     }
 
-    if (mkfifo(command_fifo_directory.c_str(), 0600) < 0
-        || mkfifo(response_fifo_directory.c_str(), 0600) < 0
-        || mkfifo(lb_cmd_fifo_path.c_str(), 0600) < 0
-        || mkfifo(lb_resp_fifo_path.c_str(), 0600) < 0) {
+    if (mkfifo(command_fifo_directory.c_str(), 0600) < 0 || mkfifo(response_fifo_directory.c_str(), 0600) < 0 || mkfifo(lb_cmd_fifo_path.c_str(), 0600) < 0 ||
+        mkfifo(lb_resp_fifo_path.c_str(), 0600) < 0) {
         LOG_ERROR("create_pv_shim: mkfifo failed (errno {})", errno);
         goto cleanup;
     }
 
-    command_fd  = open(command_fifo_directory.c_str(),  O_RDWR | O_CLOEXEC);
+    command_fd = open(command_fifo_directory.c_str(), O_RDWR | O_CLOEXEC);
     response_fd = open(response_fifo_directory.c_str(), O_RDWR | O_CLOEXEC);
-    lb_cmd_fd   = open(lb_cmd_fifo_path.c_str(),        O_RDWR | O_CLOEXEC);
-    lb_resp_fd  = open(lb_resp_fifo_path.c_str(),        O_RDWR | O_CLOEXEC);
+    lb_cmd_fd = open(lb_cmd_fifo_path.c_str(), O_RDWR | O_CLOEXEC);
+    lb_resp_fd = open(lb_resp_fifo_path.c_str(), O_RDWR | O_CLOEXEC);
 
     if (command_fd < 0 || response_fd < 0 || lb_cmd_fd < 0 || lb_resp_fd < 0) {
         LOG_ERROR("create_pv_shim: open FIFO failed (errno {})", errno);
@@ -168,11 +168,11 @@ static bool create_pv_shim()
     }
 
     g_cdp_pipe_write_fd = command_fd;
-    g_cdp_pipe_read_fd  = response_fd;
-    g_cdp_cmd_fifo      = command_fifo_directory;
-    g_cdp_resp_fifo     = response_fifo_directory;
-    g_lb_ipc_cmd_fifo   = lb_cmd_fifo_path;
-    g_lb_ipc_resp_fifo  = lb_resp_fifo_path;
+    g_cdp_pipe_read_fd = response_fd;
+    g_cdp_cmd_fifo = command_fifo_directory;
+    g_cdp_resp_fifo = response_fifo_directory;
+    g_lb_ipc_cmd_fifo = lb_cmd_fifo_path;
+    g_lb_ipc_resp_fifo = lb_resp_fifo_path;
 
     register_loopback_conn(lb_cmd_fd, lb_resp_fd);
 
@@ -194,10 +194,10 @@ static bool create_pv_shim()
     return true;
 
 cleanup:
-    if (command_fd >= 0)  close(command_fd);
+    if (command_fd >= 0) close(command_fd);
     if (response_fd >= 0) close(response_fd);
-    if (lb_cmd_fd >= 0)   close(lb_cmd_fd);
-    if (lb_resp_fd >= 0)  close(lb_resp_fd);
+    if (lb_cmd_fd >= 0) close(lb_cmd_fd);
+    if (lb_resp_fd >= 0) close(lb_resp_fd);
 
     unlink(command_fifo_directory.c_str());
     unlink(response_fifo_directory.c_str());
@@ -336,21 +336,22 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
             HANDLE hLbParentRead = INVALID_HANDLE_VALUE, hLbChildWrite = INVALID_HANDLE_VALUE;
             SECURITY_ATTRIBUTES sa2 = { sizeof(sa2), nullptr, TRUE };
 
-            bool lb_ok = CreatePipe(&hLbChildRead, &hLbParentWrite, &sa2, 0)
-                      && CreatePipe(&hLbParentRead, &hLbChildWrite, &sa2, 0);
+            bool lb_ok = CreatePipe(&hLbChildRead, &hLbParentWrite, &sa2, 0) && CreatePipe(&hLbParentRead, &hLbChildWrite, &sa2, 0);
 
             if (lb_ok) {
                 SetHandleInformation(hLbParentWrite, HANDLE_FLAG_INHERIT, 0);
-                SetHandleInformation(hLbParentRead,  HANDLE_FLAG_INHERIT, 0);
+                SetHandleInformation(hLbParentRead, HANDLE_FLAG_INHERIT, 0);
 
                 cmd_line.ensure_param("--millennium-loopback-ipc-handles",
-                    std::format("{},{}", reinterpret_cast<uintptr_t>(hLbChildRead),
-                                        reinterpret_cast<uintptr_t>(hLbChildWrite)).c_str());
+                                      std::format("{},{}", reinterpret_cast<uintptr_t>(hLbChildRead), reinterpret_cast<uintptr_t>(hLbChildWrite)).c_str());
+
+                g_lb_child_read = hLbChildRead;
+                g_lb_child_write = hLbChildWrite;
 
                 register_loopback_conn(hLbParentWrite, hLbParentRead);
             } else {
                 LOG_ERROR("Failed to create loopback IPC pipes (error {}).", GetLastError());
-                if (hLbChildRead  != INVALID_HANDLE_VALUE) CloseHandle(hLbChildRead);
+                if (hLbChildRead != INVALID_HANDLE_VALUE) CloseHandle(hLbChildRead);
                 if (hLbParentWrite != INVALID_HANDLE_VALUE) CloseHandle(hLbParentWrite);
             }
         }
@@ -430,7 +431,11 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
         if (cmd.find(L"steamwebhelper") != std::wstring::npos) {
             logger.log("CreateProcessInternalW hook fired for steamwebhelper (bInheritHandles: {} -> TRUE, dwCreationFlags: 0x{:X})", bInheritHandles, dwCreationFlags);
 
-            HANDLE inherit_handles[] = { g_cdp_child_read, g_cdp_child_write };
+            std::vector<HANDLE> inherit_handles;
+            if (g_cdp_child_read != INVALID_HANDLE_VALUE) inherit_handles.push_back(g_cdp_child_read);
+            if (g_cdp_child_write != INVALID_HANDLE_VALUE) inherit_handles.push_back(g_cdp_child_write);
+            if (g_lb_child_read != INVALID_HANDLE_VALUE) inherit_handles.push_back(g_lb_child_read);
+            if (g_lb_child_write != INVALID_HANDLE_VALUE) inherit_handles.push_back(g_lb_child_write);
 
             SIZE_T attr_size = 0;
             InitializeProcThreadAttributeList(nullptr, 1, 0, &attr_size);
@@ -439,7 +444,7 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
 
             bool attr_init_ok = InitializeProcThreadAttributeList(attr_list, 1, 0, &attr_size);
             if (attr_init_ok &&
-                UpdateProcThreadAttribute(attr_list, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, inherit_handles, sizeof(inherit_handles), nullptr, nullptr)) {
+                UpdateProcThreadAttribute(attr_list, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, inherit_handles.data(), inherit_handles.size() * sizeof(HANDLE), nullptr, nullptr)) {
                 STARTUPINFOEXW siex{};
                 siex.StartupInfo = *lpStartupInfo;
                 siex.StartupInfo.cb = sizeof(STARTUPINFOEXW);
@@ -458,6 +463,14 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
                     CloseHandle(g_cdp_child_write);
                     g_cdp_child_write = INVALID_HANDLE_VALUE;
                 }
+                if (g_lb_child_read != INVALID_HANDLE_VALUE) {
+                    CloseHandle(g_lb_child_read);
+                    g_lb_child_read = INVALID_HANDLE_VALUE;
+                }
+                if (g_lb_child_write != INVALID_HANDLE_VALUE) {
+                    CloseHandle(g_lb_child_write);
+                    g_lb_child_write = INVALID_HANDLE_VALUE;
+                }
                 return result;
             }
 
@@ -473,6 +486,14 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
             if (g_cdp_child_write != INVALID_HANDLE_VALUE) {
                 CloseHandle(g_cdp_child_write);
                 g_cdp_child_write = INVALID_HANDLE_VALUE;
+            }
+            if (g_lb_child_read != INVALID_HANDLE_VALUE) {
+                CloseHandle(g_lb_child_read);
+                g_lb_child_read = INVALID_HANDLE_VALUE;
+            }
+            if (g_lb_child_write != INVALID_HANDLE_VALUE) {
+                CloseHandle(g_lb_child_write);
+                g_lb_child_write = INVALID_HANDLE_VALUE;
             }
             return result;
         }
