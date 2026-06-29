@@ -33,9 +33,18 @@
 #include <algorithm>
 #include <cstring>
 #include <fstream>
-#include <openssl/evp.h>
 #include <stdexcept>
 #include <vector>
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <bcrypt.h>
+#else
+#include <openssl/evp.h>
+#endif
 
 static constexpr uint8_t STAR_MAGIC[4] = { 'S', 'T', 'A', 'R' };
 static constexpr uint32_t STAR_PARITY_SEED = 0xA7C3E91Fu;
@@ -126,6 +135,42 @@ static uint32_t fnv1a_hash_bytes(const uint8_t* data, size_t len)
     return h;
 }
 
+#ifdef _WIN32
+static bool verify_ed25519_signature(const uint8_t* message, size_t message_len, const uint8_t* signature, const uint8_t* public_key)
+{
+    BCRYPT_ALG_HANDLE hAlg = nullptr;
+    BCRYPT_KEY_HANDLE hKey = nullptr;
+
+    if (!BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_ECDSA_ALGORITHM, nullptr, 0))) return false;
+
+    if (!BCRYPT_SUCCESS(
+            BCryptSetProperty(hAlg, BCRYPT_ECC_CURVE_NAME, reinterpret_cast<PUCHAR>(const_cast<wchar_t*>(BCRYPT_ECC_CURVE_25519)), sizeof(BCRYPT_ECC_CURVE_25519), 0))) {
+        BCryptCloseAlgorithmProvider(hAlg, 0);
+        return false;
+    }
+
+    struct
+    {
+        BCRYPT_ECCKEY_BLOB hdr;
+        uint8_t key[32];
+    } blob;
+
+    blob.hdr.dwMagic = BCRYPT_ECDSA_PUBLIC_GENERIC_MAGIC;
+    blob.hdr.cbKey = 32;
+    std::memcpy(blob.key, public_key, 32);
+
+    if (!BCRYPT_SUCCESS(BCryptImportKeyPair(hAlg, nullptr, BCRYPT_ECCPUBLIC_BLOB, &hKey, reinterpret_cast<PUCHAR>(&blob), sizeof(blob), 0))) {
+        BCryptCloseAlgorithmProvider(hAlg, 0);
+        return false;
+    }
+
+    const NTSTATUS status = BCryptVerifySignature(hKey, nullptr, const_cast<PUCHAR>(message), static_cast<ULONG>(message_len), const_cast<PUCHAR>(signature), 64, 0);
+
+    BCryptDestroyKey(hKey);
+    BCryptCloseAlgorithmProvider(hAlg, 0);
+    return BCRYPT_SUCCESS(status);
+}
+#else
 static bool verify_ed25519_signature(const uint8_t* message, size_t message_len, const uint8_t* signature, const uint8_t* public_key)
 {
     EVP_PKEY* pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr, public_key, 32);
@@ -143,6 +188,7 @@ static bool verify_ed25519_signature(const uint8_t* message, size_t message_len,
     EVP_PKEY_free(pkey);
     return ok;
 }
+#endif
 
 static uint32_t fnv1a_u32(uint32_t state, uint32_t value)
 {
@@ -209,7 +255,8 @@ static std::vector<uint8_t> star_decode_section(const std::vector<uint8_t>& file
 
     if (static_cast<size_t>(sec.offset) > file_data.size() - star_start) throw std::runtime_error(std::format("section 0x{:02x} offset overflow", static_cast<uint32_t>(sec.id)));
     const size_t abs_start = star_start + static_cast<size_t>(sec.offset);
-    if (static_cast<size_t>(sec.length) > file_data.size() - abs_start) throw std::runtime_error(std::format("section 0x{:02x} extends beyond file", static_cast<uint32_t>(sec.id)));
+    if (static_cast<size_t>(sec.length) > file_data.size() - abs_start)
+        throw std::runtime_error(std::format("section 0x{:02x} extends beyond file", static_cast<uint32_t>(sec.id)));
 
     std::vector<uint8_t> blob(file_data.begin() + abs_start, file_data.begin() + abs_start + static_cast<size_t>(sec.length));
 
@@ -263,21 +310,17 @@ static std::string extract_primary_entry(const std::vector<star_sub_entry_t>& en
     return {};
 }
 
-static bool star_is_trusted(const uint8_t* star_hdr, size_t star_start,
-                             const std::vector<star_section_t>& sections,
-                             const std::vector<uint8_t>& data)
+static bool star_is_trusted(const uint8_t* star_hdr, size_t star_start, const std::vector<star_section_t>& sections, const std::vector<uint8_t>& data)
 {
     const uint8_t star_flags = star_hdr[7];
-    if (!(star_flags & STAR_FLAG_SIGNED))
-        return false;
+    if (!(star_flags & STAR_FLAG_SIGNED)) return false;
 
     constexpr size_t SIG_LEN = 64;
 
     // Content sections must not be deferred in a signed file — deferred data falls
     // outside the signed region and could be swapped without invalidating the signature.
     for (const auto& s : sections) {
-        if (s.id != SEC_ASSETS && (s.meta_flags & META_FLAG_DEFERRED))
-            return false;
+        if (s.id != SEC_ASSETS && (s.meta_flags & META_FLAG_DEFERRED)) return false;
     }
 
     // Compute the signed boundary the same way the Rust signer does: end of the last
@@ -291,8 +334,7 @@ static bool star_is_trusted(const uint8_t* star_hdr, size_t star_start,
     }
 
     const size_t sig_start = star_start + static_cast<size_t>(max_eager_end);
-    if (data.size() < sig_start + SIG_LEN)
-        return false;
+    if (data.size() < sig_start + SIG_LEN) return false;
 
     const uint8_t* signature = data.data() + sig_start;
     return verify_ed25519_signature(data.data(), sig_start, signature, STARLIGHT_PUBLIC_KEY);
@@ -442,8 +484,7 @@ std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::p
         return std::nullopt;
     }
 
-    if (!metadata.is_object() || !metadata.contains("id") || !metadata.contains("name")
-        || !metadata["id"].is_string() || !metadata["name"].is_string()) {
+    if (!metadata.is_object() || !metadata.contains("id") || !metadata.contains("name") || !metadata["id"].is_string() || !metadata["name"].is_string()) {
         LOG_ERROR("star: {} metadata is missing required fields (id, name)", star_path.string());
         return std::nullopt;
     }
