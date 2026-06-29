@@ -499,6 +499,8 @@ fn read_frame(stream: &mut UnixStream) -> anyhow::Result<Option<Vec<u8>>> {
         Err(e) => return Err(e.into()),
     }
     let len = u32::from_le_bytes(len_buf) as usize;
+    const MAX_FRAME: usize = 64 * 1024 * 1024;
+    anyhow::ensure!(len <= MAX_FRAME, "MEP frame too large ({} bytes)", len);
     let mut body = vec![0u8; len];
     stream.read_exact(&mut body)?;
     Ok(Some(body))
