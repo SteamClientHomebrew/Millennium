@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, ErrorBoundary, PanelSection, PanelSectionRow } from '@steambrew/client';
+import { DialogButton, ErrorBoundary, PanelSection, PanelSectionRow } from '@steambrew/sdk';
 import { PluginComponent } from '../types';
 import { DesktopSideBarFocusedItemType, useDesktopMenu } from './DesktopMenuContext';
 import { getPluginConfigurableStatus, getPluginRenderers, getPluginView } from '../utils/globals';

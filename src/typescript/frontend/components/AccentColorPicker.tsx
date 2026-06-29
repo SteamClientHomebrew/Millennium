@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, Field, pluginSelf } from '@steambrew/client';
+import { DialogButton, Field, pluginSelf } from '@steambrew/sdk';
 import { settingsClasses } from '../utils/classes';
 import { locale } from '../utils/localization-manager';
 import { useState, useRef } from 'react';

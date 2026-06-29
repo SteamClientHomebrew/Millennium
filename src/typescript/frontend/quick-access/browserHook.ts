@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { callOriginal, findClassModule, Patch, replacePatch, sleep, ChromeDevToolsProtocol } from '@steambrew/client';
+import { callOriginal, findClassModule, Patch, replacePatch, sleep, ChromeDevToolsProtocol } from '@steambrew/sdk';
 import { Logger } from '../utils/Logger';
 
 /**

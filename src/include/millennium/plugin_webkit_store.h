@@ -40,6 +40,7 @@ class plugin_webkit_store
     {
         std::string plugin_name;
         std::filesystem::path abs_webkit_path;
+        plugin_manager::plugin_format format = plugin_manager::plugin_format::loose_files;
 
         bool operator==(const item& other) const
         {

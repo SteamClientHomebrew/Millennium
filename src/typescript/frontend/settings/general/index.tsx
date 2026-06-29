@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, DialogButton, DialogControlsSection, Dropdown, Field, IconsModule, pluginSelf, showModal, ShowModalResult, TextField, Toggle } from '@steambrew/client';
+import { ConfirmModal, DialogButton, DialogControlsSection, Dropdown, Field, IconsModule, pluginSelf, showModal, ShowModalResult, TextField, Toggle } from '@steambrew/sdk';
 import React, { useEffect } from 'react';
 import { locale } from '../../utils/localization-manager';
 import { MillenniumUpdateChannel, OnMillenniumUpdate, OSType } from '../../types';

@@ -30,6 +30,8 @@
 
 #include "mep/console_capture.h"
 #include <algorithm>
+#include <chrono>
+#include <cstdint>
 
 namespace mep
 {
@@ -41,13 +43,23 @@ console_capture& console_capture::instance()
 
 void console_capture::start(std::shared_ptr<cdp_client> cdp, std::shared_ptr<plugin_manager> pm)
 {
+    if (m_cdp_listener_token >= 0 && m_cdp) {
+        m_cdp->off(m_cdp_listener_token);
+        m_cdp_listener_token = -1;
+    }
+
     m_pm = std::move(pm);
     m_cdp = cdp;
-    cdp->on("Runtime.consoleAPICalled", [this](const nlohmann::json& params)
+    m_cdp_listener_token = cdp->on("Runtime.consoleAPICalled", [this](const nlohmann::json& params)
     {
         on_console_event(params);
     });
     m_started.store(true);
+}
+
+static uint64_t now_us()
+{
+    return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 }
 
 void console_capture::on_console_event(const nlohmann::json& params)
@@ -55,7 +67,7 @@ void console_capture::on_console_event(const nlohmann::json& params)
     console_entry entry;
     entry.plugin = attribute_plugin(params);
     entry.raw = params;
-
+    entry.raw["millennium_ts"] = now_us();
     {
         std::lock_guard<std::mutex> lock(m_ring_mutex);
         if (m_ring.size() < RING_SIZE) {
@@ -106,6 +118,50 @@ std::string console_capture::attribute_plugin(const nlohmann::json& params) cons
     }
 
     return "millennium";
+}
+
+void console_capture::push_direct(const std::string& plugin, const std::string& level, const std::string& message, const std::string& source, const std::string& file, int line)
+{
+    console_entry entry;
+    entry.plugin = plugin;
+    entry.raw = {
+        { "level",             level    },
+        { "message",           message  },
+        { "plugin",            plugin   },
+        { "millennium_ts",     now_us() },
+        { "millennium_source", source   },
+    };
+    if (!file.empty()) {
+        entry.raw["file"] = file;
+        entry.raw["line"] = line;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_ring_mutex);
+        if (m_ring.size() < RING_SIZE) {
+            m_ring.push_back(entry);
+        } else {
+            m_ring[m_write_pos % RING_SIZE] = entry;
+        }
+        ++m_write_pos;
+    }
+
+    std::vector<listener_fn> targets;
+    {
+        std::lock_guard<std::mutex> lock(m_listener_mutex);
+        for (const auto& [id, pair] : m_listeners) {
+            if (pair.first == entry.plugin) {
+                targets.push_back(pair.second);
+            }
+        }
+    }
+
+    for (const auto& fn : targets) {
+        try {
+            fn(entry);
+        } catch (...) {
+        }
+    }
 }
 
 std::vector<console_entry> console_capture::get_recent(const std::string& plugin, std::size_t max) const

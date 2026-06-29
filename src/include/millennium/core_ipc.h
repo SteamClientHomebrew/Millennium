@@ -103,7 +103,7 @@ class ipc_main
         json to_json(const std::string& pluginName) const;
     };
 
-    javascript_evaluation_result evaluate_javascript_expression(std::string script);
+    javascript_evaluation_result evaluate_javascript_expression(std::string script, bool return_by_value = false);
     const std::string compile_javascript_expression(std::string plugin, std::string methodName, std::vector<javascript_parameter> fnParams);
     ordered_json process_message(json payload);
 

@@ -39,10 +39,16 @@
  */
 
 #include "instrumentation/chromium.h"
-#include "instrumentation/resource_query_parser.h"
-#include "instrumentation/logger.h"
-#include <atomic>
+#include "instrumentation/patch_engine.h"
+
+#ifdef _WIN32
+#define plat_strdup _strdup
+#else
+#define plat_strdup strdup
+#endif
+
 #include <limits.h>
+#include <atomic>
 
 #ifdef __linux__
 #include <linux/limits.h>
@@ -58,6 +64,16 @@
 
 extern "C" int tramp_cef_browser_host_create_browser(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
 static snare_inline_t g_cef_hook = nullptr;
+
+static void fatal(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    fprintf(stderr, "\033[31m");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\033[0m\n");
+    va_end(args);
+}
 
 static void page_rx(void* addr)
 {
@@ -91,26 +107,24 @@ static void install_hook(void)
     dl_iterate_phdr(find_cef_fn, &cef_fn);
 
     if (!cef_fn) {
-        fprintf(stderr, "hook: cef_browser_host_create_browser not found in libcef\n");
+        fatal("hook: cef_browser_host_create_browser not found in libcef");
         return;
     }
 
     g_cef_hook = snare_inline_new(cef_fn, reinterpret_cast<void*>(tramp_cef_browser_host_create_browser));
     if (!g_cef_hook) {
-        fprintf(stderr, "hook: snare_inline_new failed\n");
+        fatal("hook: snare_inline_new failed");
         return;
     }
 
     if (snare_inline_install(g_cef_hook) < 0) {
-        fprintf(stderr, "hook: snare_inline_install failed\n");
+        fatal("hook: snare_inline_install failed");
         snare_inline_free(g_cef_hook);
         g_cef_hook = nullptr;
         return;
     }
 
-    /* restore RX — snare leaves the page RWX which Chromium's sandbox detects and kills */
     page_rx(cef_fn);
-    fprintf(stderr, "hook: installed on cef_browser_host_create_browser at %p\n", cef_fn);
 }
 
 __attribute__((constructor)) static void init(void)
@@ -140,259 +154,241 @@ extern struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*
 
 typedef struct
 {
-    cef_response_filter_t filter;
+    cef_resource_request_handler_t handler;
+    char* url;
     std::atomic<int> ref_count;
-    char* pending; /** buffered output waiting to be flushed */
-    size_t pending_size;
-    size_t pending_pos;
-    bool injected; /** true once the tag has been spliced in */
-    char inject_tag[512];
-    int inject_tag_len;
-} html_inject_filter_t;
+} steamloopback_request_handler_t;
 
-static void CEF_CALLBACK hif_add_ref(void* self)
+typedef struct
 {
-    ((html_inject_filter_t*)self)->ref_count.fetch_add(1);
+    cef_resource_handler_t handler;
+    char* url;
+    char* data;
+    size_t size;
+    size_t pos;
+    const char* mime_type;
+    std::atomic<int> ref_count;
+} steamloopback_resource_handler_t;
+
+void* create_steamloopback_resource_handler(const char* url);
+
+struct _cef_client_t* orig_c = NULL;
+struct _cef_request_handler_t* (*original_get_request_handler)(void*) = NULL;
+struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*, void*, struct _cef_request_t*, int, int, void*, int*) = NULL;
+
+void CEF_CALLBACK lb_res_add_ref(void* base)
+{
+    steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)base;
+    handler->ref_count.fetch_add(1);
 }
-static int CEF_CALLBACK hif_release(void* self)
+
+int CEF_CALLBACK lb_res_release(void* base)
 {
-    auto* f = (html_inject_filter_t*)self;
-    if (f->ref_count.fetch_sub(1) == 1) {
-        free(f->pending);
-        free(f);
+    steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)base;
+    if (handler->ref_count.fetch_sub(1) == 1) {
+        free(handler->url);
+        free(handler->data);
+        free(handler);
         return 1;
     }
     return 0;
 }
-static int CEF_CALLBACK hif_has_one_ref(void* self)
+
+int CEF_CALLBACK lb_res_has_one_ref(void* base)
 {
-    return ((html_inject_filter_t*)self)->ref_count.load() == 1;
-}
-static int CEF_CALLBACK hif_has_at_least_one_ref(void* self)
-{
-    return ((html_inject_filter_t*)self)->ref_count.load() >= 1;
+    steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)base;
+    return handler->ref_count.load() == 1;
 }
 
-static int CEF_CALLBACK hif_init_filter(cef_response_filter_t* self)
+int CEF_CALLBACK lb_res_has_at_least_one_ref(void* base)
 {
+    steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)base;
+    return handler->ref_count.load() >= 1;
+}
+
+int CEF_CALLBACK lb_open(void* self, void* request, int* handle_request, void* callback)
+{
+    *handle_request = 1;
     return 1;
 }
 
-static int CEF_CALLBACK hif_filter(cef_response_filter_t* self, void* data_in, size_t data_in_size, size_t* data_in_read, void* data_out, size_t data_out_size,
-                                   size_t* data_out_written)
+void CEF_CALLBACK lb_req_add_ref(void* base)
 {
-    auto* f = (html_inject_filter_t*)self;
-    *data_in_read = 0;
-    *data_out_written = 0;
-
-    /** flush any pending output from a previous call */
-    if (f->pending && f->pending_pos < f->pending_size) {
-        size_t remaining = f->pending_size - f->pending_pos;
-        size_t to_write = remaining < data_out_size ? remaining : data_out_size;
-        memcpy(data_out, f->pending + f->pending_pos, to_write);
-        f->pending_pos += to_write;
-        *data_out_written = to_write;
-
-        if (f->pending_pos >= f->pending_size) {
-            free(f->pending);
-            f->pending = NULL;
-            f->pending_size = 0;
-            f->pending_pos = 0;
-        }
-
-        /** don't consume new input yet - flush first */
-        return CEF_RESPONSE_FILTER_NEED_MORE_DATA;
-    }
-
-    /** after injection, pass through directly */
-    if (f->injected) {
-        if (!data_in || data_in_size == 0) return CEF_RESPONSE_FILTER_DONE;
-        size_t to_write = data_in_size < data_out_size ? data_in_size : data_out_size;
-        memcpy(data_out, data_in, to_write);
-        *data_in_read = to_write;
-        *data_out_written = to_write;
-        return CEF_RESPONSE_FILTER_NEED_MORE_DATA;
-    }
-
-    /** no more input and we never found <head> - just finish */
-    if (!data_in || data_in_size == 0) {
-        f->injected = true;
-        return CEF_RESPONSE_FILTER_DONE;
-    }
-
-    /** buffer the chunk and look for <head...> */
-    size_t old_size = f->pending_size;
-    size_t new_size = old_size + data_in_size;
-    char* buf = (char*)realloc(f->pending, new_size + 1);
-    if (!buf) {
-        /** OOM - pass through */
-        *data_in_read = data_in_size;
-        size_t to_write = data_in_size < data_out_size ? data_in_size : data_out_size;
-        memcpy(data_out, data_in, to_write);
-        *data_out_written = to_write;
-        f->injected = true;
-        return CEF_RESPONSE_FILTER_NEED_MORE_DATA;
-    }
-    memcpy(buf + old_size, data_in, data_in_size);
-    buf[new_size] = '\0';
-    f->pending = buf;
-    f->pending_size = new_size;
-    f->pending_pos = 0;
-    *data_in_read = data_in_size;
-
-    const char* head = strstr(f->pending, "<head");
-    if (!head && new_size < 4096) {
-        /** haven't found <head> yet and buffer is small - wait for more */
-        *data_out_written = 0;
-        return CEF_RESPONSE_FILTER_NEED_MORE_DATA;
-    }
-
-    if (head) {
-        const char* head_close = strchr(head, '>');
-        if (head_close) {
-            head_close++; /** past '>' */
-            size_t offset = head_close - f->pending;
-
-            /** build new buffer: prefix + tag + suffix */
-            size_t injected_size = f->pending_size + (size_t)f->inject_tag_len;
-            char* injected = (char*)malloc(injected_size);
-            if (injected) {
-                memcpy(injected, f->pending, offset);
-                memcpy(injected + offset, f->inject_tag, f->inject_tag_len);
-                memcpy(injected + offset + f->inject_tag_len, f->pending + offset, f->pending_size - offset);
-                free(f->pending);
-                f->pending = injected;
-                f->pending_size = injected_size;
-                f->pending_pos = 0;
-                log_info("Injected modulepreload tags into HTML response\n");
-            }
-        }
-    }
-
-    /** start flushing the (possibly modified) buffer */
-    f->injected = true;
-    size_t to_write = f->pending_size < data_out_size ? f->pending_size : data_out_size;
-    memcpy(data_out, f->pending, to_write);
-    f->pending_pos = to_write;
-    *data_out_written = to_write;
-
-    if (f->pending_pos >= f->pending_size) {
-        free(f->pending);
-        f->pending = NULL;
-        f->pending_size = 0;
-        f->pending_pos = 0;
-    }
-
-    return CEF_RESPONSE_FILTER_NEED_MORE_DATA;
+    steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
+    handler->ref_count.fetch_add(1);
 }
 
-static cef_response_filter_t* create_html_inject_filter(void)
+int CEF_CALLBACK lb_req_release(void* base)
 {
-    char* ftp_token = NULL;
-#ifdef _WIN32
-    size_t token_len = 0;
-    if (_dupenv_s(&ftp_token, &token_len, "MILLENNIUM__FTP_TOKEN") != 0 || !ftp_token) {
-        log_error("MILLENNIUM__FTP_TOKEN not set\n");
+    steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
+    if (handler->ref_count.fetch_sub(1) == 1) {
+        free(handler->url);
+        free(handler);
+        return 1;
+    }
+    return 0;
+}
+
+int CEF_CALLBACK lb_req_has_one_ref(void* base)
+{
+    steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
+    return handler->ref_count.load() == 1;
+}
+
+int CEF_CALLBACK lb_req_has_at_least_one_ref(void* base)
+{
+    steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
+    return handler->ref_count.load() >= 1;
+}
+
+void* CEF_CALLBACK lb_on_before_load_hdl(void* self, void* browser, void* frame, void* request, void* callback)
+{
+    return (void*)1; /** continue */
+}
+
+void* CEF_CALLBACK lb_get_resource_hdl(void* self, void* browser, void* frame, void* request)
+{
+    steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)self;
+    return (void*)create_steamloopback_resource_handler(handler->url);
+}
+
+static void set_cef_header(struct _cef_response_t* response, const char* name, const char* value)
+{
+    CEF_LAZY_LOAD(cef_string_utf8_set, int, (const char*, size_t, cef_string_utf8_t*, int));
+    CEF_LAZY_LOAD(cef_string_utf8_clear, void, (cef_string_utf8_t*));
+
+    cef_string_t name_str = {}, value_str = {};
+    lazy_cef_string_utf8_set(name, strlen(name), &name_str, 1);
+    lazy_cef_string_utf8_set(value, strlen(value), &value_str, 1);
+    response->set_header_by_name(response, &name_str, &value_str, 1);
+    lazy_cef_string_utf8_clear(&name_str);
+    lazy_cef_string_utf8_clear(&value_str);
+}
+
+void CEF_CALLBACK lb_get_response_headers(struct _cef_resource_handler_t* self, struct _cef_response_t* response, int64_t* response_length, cef_string_t* redirectUrl)
+{
+    steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)self;
+    CEF_LAZY_LOAD(cef_string_utf8_set, int, (const char*, size_t, cef_string_utf8_t*, int));
+    CEF_LAZY_LOAD(cef_string_utf8_clear, void, (cef_string_utf8_t*));
+
+    response->set_status(response, 200);
+
+    const char* mime = handler->mime_type ? handler->mime_type : "application/octet-stream";
+    cef_string_t mime_str = {};
+    lazy_cef_string_utf8_set(mime, strlen(mime), &mime_str, 1);
+    response->set_mime_type(response, &mime_str);
+    lazy_cef_string_utf8_clear(&mime_str);
+
+    set_cef_header(response, "X-Millennium-Hooked", "1");
+    set_cef_header(response, "Cache-Control", "no-cache"); /** steam uses no-cache, and they internally health-check for this header */
+
+    *response_length = handler->size;
+}
+
+int CEF_CALLBACK lb_read(void* self, void* data_out, int bytes_to_read, int* bytes_read, void* callback)
+{
+    steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)self;
+    size_t available = handler->size - handler->pos;
+    *bytes_read = (int)((bytes_to_read < available) ? bytes_to_read : available);
+
+    if (*bytes_read > 0) {
+        memcpy(data_out, handler->data + handler->pos, *bytes_read);
+        handler->pos += *bytes_read;
+    }
+
+    return (*bytes_read > 0);
+}
+
+cef_resource_request_handler_t* create_steamloopback_request_handler(const char* url)
+{
+    steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)calloc(1, sizeof(steamloopback_request_handler_t));
+
+    handler->url = plat_strdup(url);
+    handler->ref_count.store(1);
+
+    char* p = handler->handler._base;
+    *(size_t*)(p + 0x0) = sizeof(cef_resource_request_handler_t);
+    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x0) = (void (*)(void*))lb_req_add_ref;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x1) = (int (*)(void*))lb_req_release;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x2) = (int (*)(void*))lb_req_has_one_ref;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x3) = (int (*)(void*))lb_req_has_at_least_one_ref;
+
+    handler->handler.on_before_resource_load = lb_on_before_load_hdl;
+    handler->handler.get_resource_handler = lb_get_resource_hdl;
+    handler->handler._1 = NULL;
+    handler->handler._2 = NULL;
+    handler->handler._3 = NULL;
+    handler->handler._4 = NULL;
+    handler->handler._5 = NULL;
+    handler->handler._6 = NULL;
+    return &handler->handler;
+}
+
+void* create_steamloopback_resource_handler(const char* url)
+{
+    steamloopback_resource_handler_t* handler = (steamloopback_resource_handler_t*)calloc(1, sizeof(steamloopback_resource_handler_t));
+
+    char* data = NULL;
+    uint32_t size = 0;
+    const char* mime_type = NULL;
+    if (lb_handle_request(url, &data, &size, &mime_type) != 0 || !data) {
+        free(handler);
         return NULL;
     }
-#else
-    const char* env_val = getenv("MILLENNIUM__FTP_TOKEN");
-    if (!env_val || !env_val[0]) {
-        log_error("MILLENNIUM__FTP_TOKEN not set\n");
-        return NULL;
-    }
-    ftp_token = strdup(env_val);
-#endif
 
-    auto* f = (html_inject_filter_t*)calloc(1, sizeof(html_inject_filter_t));
-    f->ref_count.store(1);
-    f->inject_tag_len = snprintf(f->inject_tag, sizeof(f->inject_tag),
-                                 "<link rel=\"modulepreload\" href=\"https://millennium.ftp/%s/millennium.js\">"
-                                 "<link rel=\"modulepreload\" href=\"https://millennium.ftp/%s/millennium-frontend.js\">",
-                                 ftp_token, ftp_token);
-    free(ftp_token);
+    handler->ref_count.store(1);
+    handler->data = data;
+    handler->size = size;
+    handler->mime_type = mime_type;
+    handler->url = plat_strdup(url);
+    handler->pos = 0;
 
-    char* p = f->filter._base;
-    *(size_t*)(p + 0x0) = sizeof(cef_response_filter_t);
-    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0) = (void (*)(void*))hif_add_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 1) = (int (*)(void*))hif_release;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 2) = (int (*)(void*))hif_has_one_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 3) = (int (*)(void*))hif_has_at_least_one_ref;
+    char* p = handler->handler._base;
+    *(size_t*)(p + 0x0) = sizeof(cef_resource_handler_t);
+    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0) = (void (*)(void*))lb_res_add_ref;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 1) = (int (*)(void*))lb_res_release;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 2) = (int (*)(void*))lb_res_has_one_ref;
+    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 3) = (int (*)(void*))lb_res_has_at_least_one_ref;
 
-    f->filter.init_filter = hif_init_filter;
-    f->filter.filter = hif_filter;
-    return &f->filter;
-}
-
-/** saved original GetResourceResponseFilter from Steam's handler */
-static void*(CEF_CALLBACK* orig_get_response_filter)(void*, void*, void*, void*, void*) = NULL;
-
-static void* CEF_CALLBACK hooked_get_response_filter(void* self, void* browser, void* frame, void* request, void* response)
-{
-    cef_response_filter_t* filter = create_html_inject_filter();
-    if (filter) return filter;
-
-    /** fallback to Steam's original if we failed */
-    if (orig_get_response_filter) return orig_get_response_filter(self, browser, frame, request, response);
-    return NULL;
-}
-
-/** check if a URL is an HTML request to steamloopback.host */
-static int is_steamloopback_html(cef_string_userfree_t url)
-{
-    if (!url || !url->str) return 0;
-    const char* s = url->str;
-
-    if (strncmp(s, "http", 4) != 0) return 0;
-    s += 4;
-    if (*s == 's') s++;
-    if (strncmp(s, "://steamloopback.host", 21) != 0) return 0;
-
-    const char* query = strchr(url->str, '?');
-    const char* dot = strrchr(url->str, '.');
-    if (!dot || (query && dot > query)) return 0;
-
-    size_t ext_len = query ? (size_t)(query - dot) : strlen(dot);
-    return ext_len == 5 && strncmp(dot, ".html", 5) == 0;
+    handler->handler.get_response_headers = lb_get_response_headers;
+    handler->handler.open = lb_open;
+    handler->handler.read = lb_read;
+    handler->handler.cancel = NULL;
+    handler->handler.process_request = NULL;
+    handler->handler.skip = NULL;
+    return &handler->handler;
 }
 
 /**
- * hook resource request handler to block steamloopback.host requests.
+ * hook resource request handler to block steamloopback.host .js requests.
  *
  * This function wraps cef get_resource_request_handler to intercept all
- * resource requests. Requests to steamloopback.host are blocked by returning
- * NULL, preventing Steam's internal handlers from serving the content.
+ * resource requests. Requests to steamloopback.host .js files are blocked by
+ * returning our own handler, preventing Steam's internal handlers from serving
+ * the content so we can apply plugin patches.
  */
 void* hooked_get_resource(void* _1, void* _2, void* _3, struct _cef_request_t* request, int _5, int _6, void* _7, int* _8)
 {
     CEF_LAZY_LOAD(cef_string_userfree_utf8_free, void, (cef_string_userfree_utf8_t));
     cef_string_userfree_t url = request->get_url(request);
 
-    if (url && url->str) {
-        log_info("hooked_get_resource: %s\n", url->str);
-    }
+    if (url && url->str && lb_url_is_patchable(url->str) && lb_url_has_local_file(url->str)) {
+        /** call Steam's handler to trigger any internal setup, then discard the result */
+        if (orig_get_resource) {
+            void* steam_handler = orig_get_resource(_1, _2, _3, request, _5, _6, _7, _8);
+            if (steam_handler) {
+                /** vtable: [size_t size] [add_ref] [release] ... */
+                char* base = (char*)steam_handler;
+                int (*release_fn)(void*) = *(int (**)(void*))(base + sizeof(size_t) + sizeof(void*));
+                if (release_fn) release_fn(steam_handler);
+            }
+        }
 
-    if (urlp_should_block_lb_req(url)) {
         cef_resource_request_handler_t* custom_handler = create_steamloopback_request_handler(url->str);
-        if (url && lazy_cef_string_userfree_utf8_free) lazy_cef_string_userfree_utf8_free((cef_string_userfree_utf8_t)url);
+        if (lazy_cef_string_userfree_utf8_free) lazy_cef_string_userfree_utf8_free((cef_string_userfree_utf8_t)url);
         return custom_handler;
     }
 
-    /** for HTML files, let Steam's handler run but attach our response filter */
-    if (is_steamloopback_html(url)) {
-        if (url && lazy_cef_string_userfree_utf8_free) lazy_cef_string_userfree_utf8_free((cef_string_userfree_utf8_t)url);
-
-        cef_resource_request_handler_t* handler = (cef_resource_request_handler_t*)orig_get_resource(_1, _2, _3, request, _5, _6, _7, _8);
-        if (handler) {
-            if (!orig_get_response_filter) {
-                orig_get_response_filter = reinterpret_cast<decltype(orig_get_response_filter)>(handler->_4);
-            }
-            handler->_4 = reinterpret_cast<decltype(handler->_4)>(hooked_get_response_filter);
-        }
-        return handler;
-    }
-
-    /** free the requested url */
     if (url && lazy_cef_string_userfree_utf8_free) {
         lazy_cef_string_userfree_utf8_free((cef_string_userfree_utf8_t)url);
     }
@@ -445,7 +441,7 @@ extern "C" int tramp_cef_browser_host_create_browser(const void* _1, struct _cef
     return orig(_1, c, _3, _4, _5, _6);
 #elif __linux__
     if (!g_cef_hook) {
-        fprintf(stderr, "cef_browser_host_create_browser: hook not installed, call dropped\n");
+        fatal("cef_browser_host_create_browser: hook not installed, call dropped");
         return 0;
     }
 
@@ -490,24 +486,22 @@ void win32_initialize_trampoline()
 {
     void* proc = get_fn_address();
     if (!proc) {
-        log_error("ordinate %s not found in %s\n", hook_fn_name, hook_target_dll);
+        fatal("ordinate %s not found in %s", hook_fn_name, hook_target_dll);
         return;
     }
 
     g_win32_cef_hook = snare_inline_new(proc, reinterpret_cast<void*>(&tramp_cef_browser_host_create_browser));
     if (!g_win32_cef_hook) {
-        log_error("failed to create hook on %s...\n", hook_fn_name);
+        fatal("failed to create hook on %s...", hook_fn_name);
         return;
     }
 
     if (snare_inline_install(g_win32_cef_hook) < 0) {
-        log_error("failed to install hook on %s...\n", hook_fn_name);
+        fatal("failed to install hook on %s...", hook_fn_name);
         snare_inline_free(g_win32_cef_hook);
         g_win32_cef_hook = nullptr;
         return;
     }
-
-    log_info("successfully hooked %s in %s\n", hook_fn_name, hook_target_dll);
 }
 
 /**

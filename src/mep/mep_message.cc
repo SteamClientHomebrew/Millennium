@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "mep_message.h"
+#include "mep/mep_message.h"
 
 namespace mep
 {

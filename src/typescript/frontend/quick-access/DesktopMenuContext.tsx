@@ -31,7 +31,7 @@
 import React, { createContext, useContext, ReactNode, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { PluginComponent, ThemeItem } from '../types';
 import { backend } from '../utils/ffi';
-import { pluginSelf } from '@steambrew/client';
+import { pluginSelf } from '@steambrew/sdk';
 import { Utils } from '../utils';
 import { locale } from '../utils/localization-manager';
 

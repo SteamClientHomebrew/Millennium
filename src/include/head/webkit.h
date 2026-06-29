@@ -51,7 +51,7 @@ class theme_webkit_mgr
     theme_webkit_mgr(std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<network_hook_ctl> network_hook_ctl);
 
     void unregister_all();
-    void add_conditional_data(const std::string& path, const nlohmann::json& data, const std::string& theme_name);
+    void add_conditional_data(const nlohmann::json& data, const std::string& theme_name);
     unsigned long long add_browser_hook(const std::string& path, const std::string& regex = ".*", network_hook_ctl::TagTypes type = network_hook_ctl::STYLESHEET);
     bool remove_browser_hook(unsigned long long hookId);
     std::vector<webkit_item> parse_conditional_data(const nlohmann::json& conditional_patches, const std::string& theme_name);

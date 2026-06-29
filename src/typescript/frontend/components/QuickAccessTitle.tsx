@@ -29,7 +29,7 @@
  */
 
 import { PropsWithChildren, ReactNode } from 'react';
-import { Focusable, joinClassNames, Navigation, quickAccessMenuClasses } from '@steambrew/client';
+import { Focusable, joinClassNames, Navigation, quickAccessMenuClasses } from '@steambrew/sdk';
 import { DesktopSideBarFocusedItemType, useDesktopMenu } from '../quick-access/DesktopMenuContext';
 import { getPluginView } from '../utils/globals';
 import { IconButton } from './IconButton';

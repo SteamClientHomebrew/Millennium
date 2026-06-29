@@ -33,7 +33,9 @@
 #include "millennium/life_cycle.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_ipc.h"
-#include "state/shared_memory.h"
+#include "millennium/star_parser.h"
+#include "instrumentation/patch_registry.h"
+#include "mep/patch_update_notifier.h"
 
 #include <format>
 #include <thread>
@@ -159,6 +161,28 @@ bool backend_manager::spawn_plugin(plugin_manager::plugin_t& plugin)
 #endif
     };
 
+    if (plugin.format == plugin_manager::plugin_format::star) {
+        init_params["backend_file"] = plugin.plugin_base_dir.string();
+        init_params.erase("backend_dir");
+        if (!plugin.backend_entry.empty()) {
+            init_params["backend_entry"] = plugin.backend_entry;
+        }
+
+        const auto asset_index = star_read_asset_index(plugin.plugin_base_dir);
+        nlohmann::json index_json = nlohmann::json::array();
+        for (const auto& [name, entry] : asset_index) {
+            index_json.push_back({
+                { "name",                name                        },
+                { "file_offset",         entry.file_offset           },
+                { "compressed_length",   entry.compressed_length     },
+                { "uncompressed_length", entry.uncompressed_length   },
+            });
+        }
+        init_params["asset_index"] = std::move(index_json);
+    }
+
+    init_params["plugin_format"] = plugin.format;
+
     auto process = spawn_plugin_process(plugin.plugin_name, exe_path, socket_path, init_params, m_child_request_handler);
     if (!process) {
         LOG_ERROR("Failed to spawn child process for plugin '{}'", plugin.plugin_name);
@@ -191,10 +215,8 @@ bool backend_manager::destroy_plugin(const std::string& pluginName, bool isShutt
         logger.log("Stopping plugin '{}'...", pluginName);
         process->shutdown();
 
-        /* remove patches from shared memory */
-        if (g_lb_patch_arena) {
-            hashmap_remove(g_lb_patch_arena, pluginName.c_str());
-        }
+        patch_registry_remove(pluginName);
+        patch_update_notifier::instance().notify();
 
         process.reset();
     }

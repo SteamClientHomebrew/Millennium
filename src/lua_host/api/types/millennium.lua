@@ -4,16 +4,6 @@
 ---@class millennium
 local millennium = {}
 
----Plugin log entry
----@class PluginLogEntry
----@field message string Base64 encoded log message
----@field level integer Log level (0=debug, 1=info, 2=warn, 3=error)
-
----Plugin logs collection
----@class PluginLogs
----@field name string Display name of the plugin
----@field logs PluginLogEntry[] Array of log entries for this plugin
-
 ---Called one time after your plugin has finished bootstrapping.
 ---Used to let Millennium know what plugins crashed/loaded etc.
 ---@return boolean success True if the ready message was sent successfully
@@ -82,20 +72,11 @@ function millennium.steam_path() end
 ---@return string installPath Full path to Millennium installation directory
 function millennium.get_install_path() end
 
----Get all current stored logs from all loaded and previously loaded plugins during this instance
----@return string logsJson JSON string containing array of PluginLogs objects
-function millennium.get_plugin_logs() end
-
 ---Call a JavaScript method on the frontend
 ---@param methodName string Name of the method to call on the frontend
 ---@param params? (string|number|boolean)[] Array of parameters (only string, number, boolean supported)
 ---@return any result Result from the frontend method call
 function millennium.call_frontend_method(methodName, params) end
-
----Toggle the status of a plugin (Use with caution, this is an internal function and may change without notice)
----@param pluginName string Name of the plugin to toggle
----@return any result Result of the toggle operation
-function millennium.change_plugin_status(pluginName) end
 
 ---Check if a plugin is enabled (Use with caution, this is an internal function and may change without notice)
 ---@param pluginName string Name of the plugin to check
@@ -113,5 +94,37 @@ function millennium.is_plugin_enabled(pluginName) end
 ---@param version2 string version2
 ---@return number status -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2, -2 if there was an error parsing or comparing versions.
 function millennium.cmp_version(version1, version2) end
+
+---Asset sub-module for reading files bundled into the .star at compile time.
+---Data is never preloaded; every call opens the .star file and reads only the requested entry.
+---@class millennium.assets
+millennium.assets = {}
+
+---Read the raw bytes of a bundled asset.
+---Decompresses on the fly. Returns nil if path is not found.
+---@param path string Asset path as it appears in the .star (e.g. "assets/icon.png")
+---@return string|nil data Raw file contents, or nil if not found
+function millennium.assets.read(path) end
+
+---Return the uncompressed size of a bundled asset without reading its data.
+---@param path string Asset path
+---@return integer|nil bytes Uncompressed size in bytes, or nil if not found
+function millennium.assets.size(path) end
+
+---Return the base name (last path component) of a path.
+---@param path string Asset path or directory path
+---@return string name The final path component, with no trailing slash
+function millennium.assets.name(path) end
+
+---Return whether a path points to a "file" or "directory" inside the asset bundle.
+---@param path string Asset path (no trailing slash)
+---@return "file"|"directory"|nil kind Type of entry, or nil if not found
+function millennium.assets.type(path) end
+
+---List the direct children of a directory inside the asset bundle.
+---File entries are returned as plain names; directory entries have a trailing "/".
+---@param dir? string Directory path (default: "" for root). Trailing slash is stripped automatically.
+---@return string[] children Sorted list of direct children
+function millennium.assets.list(dir) end
 
 return millennium

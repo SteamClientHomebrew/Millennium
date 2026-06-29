@@ -50,7 +50,10 @@ void sdk_ready_bus::notify(const sdk_ready_event& ev)
         }
     }
     for (const auto& fn : targets) {
-        try { fn(ev); } catch (...) {}
+        try {
+            fn(ev);
+        } catch (...) {
+        }
     }
 }
 
@@ -66,7 +69,10 @@ int sdk_ready_bus::add_listener(listener_fn fn)
     }
     /* replay immediately if the event already fired before this listener registered */
     if (replay) {
-        try { fn(*replay); } catch (...) {}
+        try {
+            fn(*replay);
+        } catch (...) {
+        }
     }
     return id;
 }

@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { DialogButton, DialogControlsSection, joinClassNames, pluginSelf } from '@steambrew/client';
+import { DialogButton, DialogControlsSection, joinClassNames, pluginSelf } from '@steambrew/sdk';
 import { Theme, ThemeItem } from '../../types';
 import { locale } from '../../utils/localization-manager';
 import { Placeholder } from '../../components/Placeholder';

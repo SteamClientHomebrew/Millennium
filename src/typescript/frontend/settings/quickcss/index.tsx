@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
 import { css } from '@codemirror/lang-css';
 import { vscodeDark } from '@uiw/codemirror-theme-vscode';
-import { ffi, DialogButton, DialogControlsSection, DialogHeader, Field, IconsModule, Millennium, pluginSelf, Toggle } from '@steambrew/client';
+import { ffi, DialogButton, DialogControlsSection, DialogHeader, Field, IconsModule, Millennium, pluginSelf, Toggle } from '@steambrew/sdk';
 import { ViewUpdate } from '@codemirror/view';
 import ReactDOM from 'react-dom';
 import {

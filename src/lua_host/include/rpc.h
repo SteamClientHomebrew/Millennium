@@ -41,13 +41,6 @@
 
 #include <lua.hpp>
 
-/**
- * Child-side RPC client — single-threaded, blocking.
- *
- * When we need something from the parent (like calling a frontend method), we just
- * block and read frames until our response shows up. This works because the parent
- * never sends us a new request while we're already handling one.
- */
 class rpc_client
 {
   public:
@@ -80,6 +73,11 @@ class rpc_client
     std::atomic<int> m_next_id{ 1 };
     std::mutex m_write_mutex;
 
+    request_handler m_handler;
+
+    /* responses received out-of-order (nested call() consumed them first) */
+    std::unordered_map<int, nlohmann::json> m_stashed_responses;
+
     std::vector<nlohmann::json> m_deferred_notifications;
 
     /* coroutines waiting for their first resume */
@@ -87,3 +85,6 @@ class rpc_client
     /* fd -> coroutine blocked on that fd becoming readable */
     std::unordered_map<uintptr_t, lua_State*> m_fd_watches;
 };
+
+void log_runtime_error(const std::string& message);
+void log_lua_error(const char* context, const char* lua_err);

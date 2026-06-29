@@ -32,6 +32,7 @@
 #include "millennium/types.h"
 
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 rpc_client::rpc_client(plugin_ipc::socket_fd fd) : m_fd(fd)
@@ -64,6 +65,15 @@ bool rpc_client::send_message(const json& msg)
 
 json rpc_client::call(const std::string& method, const json& params)
 {
+    /*
+     * if we already know the link is dead, yield briefly before throwing so that
+     * any caller looping on IPC errors doesn't busy-spin at full CPU.
+     */
+    if (!m_connected.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        throw std::runtime_error("rpc_client: not connected");
+    }
+
     int id = m_next_id.fetch_add(1);
 
     json req = {
@@ -77,8 +87,21 @@ json rpc_client::call(const std::string& method, const json& params)
         throw std::runtime_error("rpc_client: failed to send request");
     }
 
-    /* notifications can interleave while we wait for our response — defer them */
+    /* notifications and nested requests can interleave while we wait */
     while (m_connected.load()) {
+        /* a nested call() may have already consumed our response, check */
+        {
+            auto it = m_stashed_responses.find(id);
+            if (it != m_stashed_responses.end()) {
+                json resp = std::move(it->second);
+                m_stashed_responses.erase(it);
+                if (resp.contains("error")) {
+                    throw std::runtime_error(resp["error"].get<std::string>());
+                }
+                return resp.value("result", json(nullptr));
+            }
+        }
+
         json msg;
         if (!read_message(msg)) {
             throw std::runtime_error("rpc_client: disconnected while waiting for response");
@@ -86,15 +109,33 @@ json rpc_client::call(const std::string& method, const json& params)
 
         std::string type = msg.value("type", "");
 
-        if (type == plugin_ipc::TYPE_RESPONSE && msg.value("id", -1) == id) {
-            if (msg.contains("error")) {
-                throw std::runtime_error(msg["error"].get<std::string>());
+        if (type == plugin_ipc::TYPE_RESPONSE) {
+            int resp_id = msg.value("id", -1);
+            if (resp_id == id) {
+                if (msg.contains("error")) {
+                    throw std::runtime_error(msg["error"].get<std::string>());
+                }
+                return msg.value("result", json(nullptr));
             }
-            return msg.value("result", json(nullptr));
+            /* response for an outer (stacked) call .stash it for that frame */
+            m_stashed_responses[resp_id] = std::move(msg);
+            continue;
         }
 
         if (type == plugin_ipc::TYPE_NOTIFY) {
             m_deferred_notifications.push_back(std::move(msg));
+            continue;
+        }
+
+        if (type == plugin_ipc::TYPE_REQUEST && m_handler) {
+            int req_id = msg.value("id", -1);
+            std::string method = msg.value("method", "");
+            json params = msg.value("params", json(nullptr));
+            try {
+                respond(req_id, m_handler(method, params));
+            } catch (const std::exception& e) {
+                respond_error(req_id, e.what());
+            }
             continue;
         }
 
@@ -149,13 +190,15 @@ void rpc_client::resume_coroutine(lua_State* co)
     int rc = lua_resume(co, 0);
     if (rc != LUA_OK && rc != LUA_YIELD) {
         const char* err = lua_tostring(co, -1);
-        fprintf(stderr, "[lua-host] coroutine error: %s\n", err ? err : "unknown");
+        log_lua_error("coroutine error", err);
         lua_pop(co, 1);
     }
 }
 
 void rpc_client::run(request_handler handler)
 {
+    m_handler = handler;
+
     auto dispatch_notification = [&](const json& notif)
     {
         try {
@@ -226,6 +269,7 @@ void rpc_client::run(request_handler handler)
         }
 
         /* handle IPC message if ready */
+        if (pfds[0].revents & (POLLHUP | POLLERR)) break;
         if (!(pfds[0].revents & POLLIN)) {
             drain_pending_coroutines();
             continue;
