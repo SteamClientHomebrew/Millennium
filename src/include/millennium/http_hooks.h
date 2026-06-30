@@ -47,11 +47,11 @@
 #include <string>
 #include <vector>
 
+
 extern std::atomic<unsigned long long> g_hookedModuleId;
 std::string get_cdp_isolated_ctx_script();
 
-/** Millennium will not load JavaScript into the following URLs (CSS injection is still allowed). */
-extern const std::vector<std::regex> g_js_hook_blacklist;
+
 
 /** Canonical list of Steam-owned TLDs. Both the CDP network interceptor and the webkit world manager derive their domain checks from this. */
 static constexpr const char* k_steam_tlds[] = {
@@ -59,9 +59,7 @@ static constexpr const char* k_steam_tlds[] = {
 };
 static constexpr const char* k_steam_loopback = "steamloopback.host";
 
-/** Millennium will not hook the following URLs to favor user safety. (Neither JavaScript nor CSS will be injected into these URLs.) */
-extern const std::vector<std::regex> g_js_and_css_hook_blacklist;
-
+class target_url;
 class network_hook_ctl
 {
   public:
@@ -167,6 +165,6 @@ class network_hook_ctl
     void vfs_request_handler(const nlohmann::basic_json<>& message);
     void mime_doc_request_handler(const nlohmann::basic_json<>& message);
     std::filesystem::path path_from_url(const std::string& requestUrl);
-    processed_hooks apply_user_webkit_hooks(const std::string& requestUrl) const;
+    processed_hooks apply_user_webkit_hooks(const target_url& target) const;
     std::string inject_into_document_head(const std::string& original, const std::string& content) const;
 };
