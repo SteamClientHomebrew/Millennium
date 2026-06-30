@@ -27,75 +27,433 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-use regex::Regex;
-use std::sync::OnceLock;
 
-fn is_css_hash(hash: &str) -> bool {
+fn is_css_hash(hash: &[u8]) -> bool {
     let len = hash.len();
     if len < 18 || len > 30 {
         return false;
     }
     if !hash
-        .bytes()
-        .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+        .iter()
+        .all(|&b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
     {
         return false;
     }
-    let has_digit = hash.bytes().any(|b| b.is_ascii_digit());
-    let has_upper = hash.bytes().any(|b| b.is_ascii_uppercase());
+    let has_digit = hash.iter().any(|b| b.is_ascii_digit());
     let has_consec_upper = hash
-        .as_bytes()
         .windows(2)
         .any(|w| w[0].is_ascii_uppercase() && w[1].is_ascii_uppercase());
-    let has_hyphen_mixed = hash.contains('-') && (has_digit || has_upper);
+    let has_upper = hash.iter().any(|b| b.is_ascii_uppercase());
+    let has_hyphen_mixed = hash.contains(&b'-') && (has_digit || has_upper);
 
     has_digit || has_consec_upper || has_hyphen_mixed
 }
 
-static RE: OnceLock<Regex> = OnceLock::new();
+#[inline]
+fn is_key_start(c: u8) -> bool {
+    c.is_ascii_alphabetic() || c == b'_'
+}
+#[inline]
+fn is_key_cont(c: u8, hyphen_ok: bool) -> bool {
+    c.is_ascii_alphanumeric() || c == b'_' || (hyphen_ok && c == b'-')
+}
+#[inline]
+fn is_hash_char(c: u8) -> bool {
+    c.is_ascii_alphanumeric() || c == b'_' || c == b'-'
+}
+#[inline]
+fn js_ident_start(c: u8) -> bool {
+    c.is_ascii_alphabetic() || c == b'_' || c == b'$'
+}
+#[inline]
+fn js_ident_cont(c: u8) -> bool {
+    c.is_ascii_alphanumeric() || c == b'_' || c == b'$'
+}
 
-fn re() -> &'static Regex {
-    RE.get_or_init(|| {
-        // 1: quoted key name (ex: "ItemFocusAnim-darkGrey")
-        // 2: bare key name   (ex: coinFlip)
-        // 3: hash value
-        Regex::new(
-            r#"(?:"([a-zA-Z_][a-zA-Z0-9_-]*)"|([a-zA-Z_][a-zA-Z0-9_]*)):"([a-zA-Z0-9_-]{18,30})""#,
-        )
-        .unwrap()
-    })
+fn skip_ws(src: &[u8], mut p: usize) -> usize {
+    while p < src.len() && matches!(src[p], b' ' | b'\t' | b'\n' | b'\r') {
+        p += 1;
+    }
+    p
+}
+
+fn match_exports_open(src: &[u8], p: usize) -> Option<usize> {
+    let n = src.len();
+    if p == 0 || !js_ident_cont(src[p - 1]) {
+        return None;
+    }
+    if p + 8 > n || &src[p..p + 8] != b".exports" {
+        return None;
+    }
+    let mut q = skip_ws(src, p + 8);
+    if q >= n || src[q] != b'=' {
+        return None;
+    }
+    q += 1;
+    if q < n && src[q] == b'=' {
+        return None; // == or ===
+    }
+    q = skip_ws(src, q);
+    if q >= n || src[q] != b'{' {
+        return None;
+    }
+    Some(q + 1)
+}
+
+fn patch_css_classes(src: &[u8]) -> (Vec<u8>, usize) {
+    let n = src.len();
+    let mut out = Vec::with_capacity(n + n / 4 + 4096);
+    let mut flush = 0usize;
+    let mut count = 0usize;
+    let mut p = 0usize;
+    let mut in_block = false;
+
+    while p < n {
+        if !in_block {
+            let Some(rel) = src[p..].iter().position(|&b| b == b'.') else {
+                break;
+            };
+            p += rel;
+            match match_exports_open(src, p) {
+                Some(after) => {
+                    p = after;
+                    in_block = true;
+                }
+                None => p += 1,
+            }
+            continue;
+        }
+
+        if src[p] == b'}' {
+            in_block = false;
+            p += 1;
+            continue;
+        }
+
+        let match_start = p;
+        let key_start;
+        let key_len;
+        let is_quoted;
+
+        if src[p] == b'"' {
+            is_quoted = true;
+            let mut q = p + 1;
+            if q >= n || !is_key_start(src[q]) {
+                p += 1;
+                continue;
+            }
+            q += 1;
+            while q < n && is_key_cont(src[q], true) {
+                q += 1;
+            }
+            if q >= n || src[q] != b'"' {
+                p = match_start + 1;
+                continue;
+            }
+            key_start = p + 1;
+            key_len = q - key_start;
+            p = q + 1;
+        } else if is_key_start(src[p]) {
+            is_quoted = false;
+            key_start = p;
+            p += 1;
+            while p < n && is_key_cont(src[p], false) {
+                p += 1;
+            }
+            key_len = p - key_start;
+        } else {
+            p += 1;
+            continue;
+        }
+
+        if p + 2 > n || src[p] != b':' || src[p + 1] != b'"' {
+            if is_quoted {
+                p = match_start + 1;
+            }
+            continue;
+        }
+        p += 2;
+
+        let hash_start = p;
+        while p < n && is_hash_char(src[p]) {
+            p += 1;
+        }
+        let hash_len = p - hash_start;
+
+        if hash_len < 18 || hash_len > 30 || p >= n || src[p] != b'"' {
+            continue;
+        }
+        p += 1;
+
+        if !is_css_hash(&src[hash_start..hash_start + hash_len]) {
+            continue;
+        }
+
+        out.extend_from_slice(&src[flush..match_start]);
+        let key = &src[key_start..key_start + key_len];
+        let hash = &src[hash_start..hash_start + hash_len];
+        if is_quoted {
+            out.push(b'"');
+            out.extend_from_slice(key);
+            out.extend_from_slice(b"\":\"");
+            out.extend_from_slice(hash);
+            out.push(b' ');
+            out.extend_from_slice(key);
+            out.push(b'"');
+        } else {
+            out.extend_from_slice(key);
+            out.extend_from_slice(b":\"");
+            out.extend_from_slice(hash);
+            out.push(b' ');
+            out.extend_from_slice(key);
+            out.push(b'"');
+        }
+        flush = p;
+        count += 1;
+    }
+
+    out.extend_from_slice(&src[flush..]);
+    (out, count)
+}
+
+fn patch_classlist(src: &[u8]) -> (Vec<u8>, usize) {
+    let mut out = Vec::with_capacity(src.len() + src.len() / 8 + 4096);
+    let mut count = 0usize;
+    let n = src.len();
+    let mut p = 0usize;
+    let mut flush = 0usize;
+
+    while p < n {
+        let rel = match src[p..].iter().position(|&b| b == b'c') {
+            Some(r) => r,
+            None => break,
+        };
+        p += rel;
+
+        let after_paren;
+        if p + 14 <= n && &src[p..p + 14] == b"classList.add(" {
+            after_paren = p + 14;
+        } else if p + 17 <= n && &src[p..p + 17] == b"classList.remove(" {
+            after_paren = p + 17;
+        } else {
+            p += 1;
+            continue;
+        }
+
+        let mut q = after_paren;
+        if q >= n || !js_ident_start(src[q]) {
+            p += 1;
+            continue;
+        }
+        let mod_start = q;
+        while q < n && js_ident_cont(src[q]) {
+            q += 1;
+        }
+        if q + 1 < n && src[q] == b'(' && src[q + 1] == b')' {
+            q += 2;
+        }
+        if q >= n || src[q] != b'.' {
+            p += 1;
+            continue;
+        }
+        q += 1;
+        if q >= n || !js_ident_start(src[q]) {
+            p += 1;
+            continue;
+        }
+        while q < n && js_ident_cont(src[q]) {
+            q += 1;
+        }
+        let expr_end = q;
+        if q >= n || src[q] != b')' {
+            p += 1;
+            continue;
+        }
+        q += 1;
+
+        out.extend_from_slice(&src[flush..after_paren]);
+        out.extend_from_slice(b"...");
+        out.extend_from_slice(&src[mod_start..expr_end]);
+        out.extend_from_slice(b".split(\" \")");
+        out.push(b')');
+
+        flush = q;
+        p = q;
+        count += 1;
+    }
+
+    out.extend_from_slice(&src[flush..]);
+    (out, count)
 }
 
 pub fn patch(name: &str, content: &[u8]) -> Vec<u8> {
-    let source = match std::str::from_utf8(content) {
-        Ok(s) => s,
-        Err(_) => return content.to_vec(),
-    };
-
     let t0 = std::time::Instant::now();
-    let mut count = 0usize;
 
-    let result = re().replace_all(source, |caps: &regex::Captures| {
-        let hash = &caps[3];
-        if !is_css_hash(hash) {
-            return caps[0].to_string();
-        }
-        count += 1;
-        if let Some(qkey) = caps.get(1) {
-            let key = qkey.as_str();
-            format!("\"{key}\":\"{hash} {key}\"")
-        } else {
-            let key = &caps[2];
-            format!("{key}:\"{hash} {key}\"")
-        }
-    });
+    let (patched, count) = patch_css_classes(content);
+    let (patched, cl_count) = patch_classlist(&patched);
 
     log::info!(
-        "{}: css reclass: {} class(es) in {:.2}ms",
+        "{}: css reclass: {} class(es) rewritten, {} classList call(s) spread in {:.2}ms",
         name,
         count,
+        cl_count,
         t0.elapsed().as_secs_f64() * 1000.0,
     );
 
-    result.into_owned().into_bytes()
+    patched
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn hash_accepts_digit() {
+        assert!(is_css_hash(b"ioCYZzrMW1sGR7VpkN806"));
+    }
+    #[test]
+    fn hash_rejects_all_lowercase() {
+        assert!(!is_css_hash(b"abcdefghijklmnopqrstu"));
+    }
+    #[test]
+    fn hash_rejects_too_short() {
+        assert!(!is_css_hash(b"ABC1"));
+    }
+    #[test]
+    fn hash_rejects_too_long() {
+        assert!(!is_css_hash(b"abcdefghijklmnopqrstuvwxyz12345"));
+    }
+    #[test]
+    fn hash_accepts_consec_upper() {
+        assert!(is_css_hash(b"FocusNavigationRootABcd"));
+    }
+    #[test]
+    fn hash_accepts_hyphen_with_upper() {
+        assert!(is_css_hash(b"ItemFocusAnim-darkGrey1234"));
+    }
+    #[test]
+    fn css_classes_bare_key() {
+        let (out, count) = patch_css_classes(b"e.exports={coinFlip:\"ioCYZzrMW1sGR7VpkN806\"}");
+        assert_eq!(count, 1);
+        assert_eq!(
+            out,
+            b"e.exports={coinFlip:\"ioCYZzrMW1sGR7VpkN806 coinFlip\"}"
+        );
+    }
+    #[test]
+    fn css_classes_quoted_key() {
+        let (out, count) =
+            patch_css_classes(b"e.exports={\"ItemFocusAnim-darkGrey\":\"ioCYZzrMW1sGR7VpkN806\"}");
+        assert_eq!(count, 1);
+        assert_eq!(
+            out,
+            b"e.exports={\"ItemFocusAnim-darkGrey\":\"ioCYZzrMW1sGR7VpkN806 ItemFocusAnim-darkGrey\"}"
+        );
+    }
+    #[test]
+    fn css_classes_skips_non_hash() {
+        let (out, count) = patch_css_classes(b"e.exports={key:\"tooshort\"}");
+        assert_eq!(count, 0);
+        assert_eq!(out, b"e.exports={key:\"tooshort\"}");
+    }
+    #[test]
+    fn css_classes_skips_all_lowercase_value() {
+        let (out, count) = patch_css_classes(b"e.exports={key:\"abcdefghijklmnopqrstu\"}");
+        assert_eq!(count, 0);
+        assert_eq!(out, b"e.exports={key:\"abcdefghijklmnopqrstu\"}");
+    }
+    #[test]
+    fn css_classes_multiple_matches() {
+        let input = b"e.exports={a:\"ioCYZzrMW1sGR7VpkN806\",b:\"FocusNavigationRootABcd\"}";
+        let (out, count) = patch_css_classes(input);
+        assert_eq!(count, 2);
+        assert!(out.starts_with(b"e.exports={a:\"ioCYZzrMW1sGR7VpkN806 a\""));
+    }
+    #[test]
+    fn css_classes_multiple_export_blocks() {
+        let input =
+            b"a.exports={x:\"ioCYZzrMW1sGR7VpkN806\"};b.exports={y:\"FocusNavigationRootABcd\"}";
+        let (_, count) = patch_css_classes(input);
+        assert_eq!(count, 2);
+    }
+    #[test]
+    fn css_classes_idempotent_on_already_patched() {
+        let input = b"e.exports={coinFlip:\"ioCYZzrMW1sGR7VpkN806 coinFlip\"}";
+        let (out, count) = patch_css_classes(input);
+        assert_eq!(count, 0);
+        assert_eq!(out, input.to_vec());
+    }
+    #[test]
+    fn css_classes_skips_outside_exports() {
+        let input = b"menuItems=[{urlName:\"SteamIDFriendsPage\"}]";
+        let (out, count) = patch_css_classes(input);
+        assert_eq!(count, 0);
+        assert_eq!(out, input.to_vec());
+    }
+    #[test]
+    fn css_classes_skips_equality_operator() {
+        let input = b"if(e.exports=={}){}";
+        let (out, count) = patch_css_classes(input);
+        assert_eq!(count, 0);
+        assert_eq!(out, input.to_vec());
+    }
+    #[test]
+    fn css_classes_exports_with_spaces() {
+        let (out, count) = patch_css_classes(b"e.exports = {coinFlip:\"ioCYZzrMW1sGR7VpkN806\"}");
+        assert_eq!(count, 1);
+        assert_eq!(
+            out,
+            b"e.exports = {coinFlip:\"ioCYZzrMW1sGR7VpkN806 coinFlip\"}"
+        );
+    }
+    #[test]
+    fn classlist_factory_call_remove() {
+        let (out, count) = patch_classlist(b"e.current?.classList.remove(We().ErrorShake)");
+        assert_eq!(count, 1);
+        assert_eq!(
+            out,
+            b"e.current?.classList.remove(...We().ErrorShake.split(\" \"))"
+        );
+    }
+    #[test]
+    fn classlist_factory_call_add() {
+        let (out, count) = patch_classlist(b"n.classList.add(We().ErrorShake)");
+        assert_eq!(count, 1);
+        assert_eq!(out, b"n.classList.add(...We().ErrorShake.split(\" \"))");
+    }
+    #[test]
+    fn classlist_direct_property() {
+        let (out, count) = patch_classlist(b"el.classList.add(styles.focusRing)");
+        assert_eq!(count, 1);
+        assert_eq!(out, b"el.classList.add(...styles.focusRing.split(\" \"))");
+    }
+    #[test]
+    fn classlist_dollar_sign_ident() {
+        let (out, count) = patch_classlist(b"el.classList.add($s.focusRing)");
+        assert_eq!(count, 1);
+        assert_eq!(out, b"el.classList.add(...$s.focusRing.split(\" \"))");
+    }
+    #[test]
+    fn classlist_no_match_complex_arg() {
+        let input = b"el.classList.add(computeClass(x))";
+        let (out, count) = patch_classlist(input);
+        assert_eq!(count, 0);
+        assert_eq!(out, input.to_vec());
+    }
+    #[test]
+    fn classlist_no_match_string_arg() {
+        let input = b"el.classList.add(\"someClass\")";
+        let (out, count) = patch_classlist(input);
+        assert_eq!(count, 0);
+        assert_eq!(out, input.to_vec());
+    }
+    #[test]
+    fn classlist_multiple_calls() {
+        let input = b"a.classList.add(s.foo);b.classList.remove(t().bar)";
+        let (out, count) = patch_classlist(input);
+        assert_eq!(count, 2);
+        assert_eq!(
+            out,
+            b"a.classList.add(...s.foo.split(\" \"));b.classList.remove(...t().bar.split(\" \"))"
+        );
+    }
 }
