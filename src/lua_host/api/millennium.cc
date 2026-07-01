@@ -89,15 +89,19 @@ static int RPC_CallFrontendMethod(lua_State* L)
         int len = static_cast<int>(lua_objlen(L, 2));
         for (int i = 1; i <= len; ++i) {
             lua_rawgeti(L, 2, i);
-            if (lua_isstring(L, -1)) {
-                params.push_back(lua_tostring(L, -1));
-            } else if (lua_isboolean(L, -1)) {
-                params.push_back(static_cast<bool>(lua_toboolean(L, -1)));
-            } else if (lua_isnumber(L, -1)) {
-                params.push_back(lua_tonumber(L, -1));
-            } else {
-                lua_pop(L, 1);
-                return luaL_error(L, "Millennium's IPC can only handle [boolean, string, number]");
+            switch (lua_type(L, -1)) {
+                case LUA_TSTRING:
+                    params.push_back(lua_tostring(L, -1));
+                    break;
+                case LUA_TBOOLEAN:
+                    params.push_back(static_cast<bool>(lua_toboolean(L, -1)));
+                    break;
+                case LUA_TNUMBER:
+                    params.push_back(lua_tonumber(L, -1));
+                    break;
+                default:
+                    lua_pop(L, 1);
+                    return luaL_error(L, "Millennium's IPC can only handle [boolean, string, number]");
             }
             lua_pop(L, 1);
         }
