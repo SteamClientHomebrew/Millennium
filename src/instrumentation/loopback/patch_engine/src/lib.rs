@@ -76,58 +76,22 @@ pub unsafe extern "C" fn lb_url_is_patchable(url: *const libc::c_char) -> libc::
         return 0;
     }
     let s = unsafe { std::ffi::CStr::from_ptr(url).to_str().unwrap_or("") };
-    if url::is_steamloopback_patchable(s) {
+    let patchable = if url::is_steamloopback_patchable(s) {
         1
     } else {
         0
-    }
+    };
+
+    patchable
 }
 
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn lb_handle_request(
-    url: *const libc::c_char,
-    out_data: *mut *mut u8,
-    out_size: *mut u32,
-    out_mime_type: *mut *const libc::c_char,
-) -> libc::c_int {
-    if url.is_null() || out_data.is_null() || out_size.is_null() {
-        return -1;
-    }
-
-    let url_str = unsafe { std::ffi::CStr::from_ptr(url).to_str().unwrap_or("") };
-
-    if !out_mime_type.is_null() {
-        unsafe {
-            *out_mime_type = url::mime_type_for_url(url_str).as_ptr();
-        }
-    }
-
-    let local_path = match url::local_path_from_lb_url(url_str) {
-        Some(p) => p,
-        None => {
-            log::error!(
-                "could not resolve steamloopback URL to a local path: {}",
-                url_str
-            );
-            return -1;
-        }
-    };
-
-    let content = match std::fs::read(&local_path) {
-        Ok(c) => c,
-        Err(e) => {
-            log::error!("failed to read '{}': {}", local_path.display(), e);
-            return -1;
-        }
-    };
-
-    let path_str = local_path.to_str().unwrap_or(url_str);
+fn patch_bytes(url_str: &str, path_str: &str, content: Vec<u8>) -> Vec<u8> {
     let name = Path::new(path_str)
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or(path_str);
 
-    let content = if name.starts_with("chunk") && url::is_js_url(url_str) {
+    let content = if url::is_js_url(url_str) {
         css_classes::patch(name, &content)
     } else {
         content
@@ -136,9 +100,8 @@ pub unsafe extern "C" fn lb_handle_request(
     let t_total = std::time::Instant::now();
     let size_kb = content.len() as f64 / 1024.0;
 
-    let final_content = {
+    {
         let engine = get_engine();
-
         {
             let (lock, cvar) = &*engine.ready;
             let ready = lock.lock().unwrap();
@@ -149,7 +112,7 @@ pub unsafe extern "C" fn lb_handle_request(
 
         let guard = match engine.patch_set.read() {
             Ok(g) => g,
-            Err(_) => return -1,
+            Err(_) => return content,
         };
 
         if let Some(patch_set) = guard.as_ref() {
@@ -230,17 +193,101 @@ pub unsafe extern "C" fn lb_handle_request(
             );
             content
         }
-    };
+    }
+}
 
-    let len = final_content.len();
+unsafe fn write_output(
+    content: Vec<u8>,
+    out_data: *mut *mut u8,
+    out_size: *mut u32,
+) -> libc::c_int {
+    let len = content.len();
     let ptr = unsafe { libc::malloc(len) as *mut u8 };
     if ptr.is_null() {
         return -1;
     }
     unsafe {
-        std::ptr::copy_nonoverlapping(final_content.as_ptr(), ptr, len);
+        std::ptr::copy_nonoverlapping(content.as_ptr(), ptr, len);
         *out_data = ptr;
         *out_size = len as u32;
     }
     0
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lb_handle_request(
+    url: *const libc::c_char,
+    out_data: *mut *mut u8,
+    out_size: *mut u32,
+    out_mime_type: *mut *const libc::c_char,
+) -> libc::c_int {
+    if url.is_null() || out_data.is_null() || out_size.is_null() {
+        return -1;
+    }
+
+    let url_str = unsafe { std::ffi::CStr::from_ptr(url).to_str().unwrap_or("") };
+
+    if !out_mime_type.is_null() {
+        unsafe {
+            *out_mime_type = url::mime_type_for_url(url_str).as_ptr();
+        }
+    }
+
+    let local_path = match url::local_path_from_lb_url(url_str) {
+        Some(p) => p,
+        None => {
+            log::error!(
+                "could not resolve steamloopback URL to a local path: {}",
+                url_str
+            );
+            return -1;
+        }
+    };
+
+    let content = match std::fs::read(&local_path) {
+        Ok(c) => c,
+        Err(e) => {
+            log::error!("failed to read '{}': {}", local_path.display(), e);
+            return -1;
+        }
+    };
+
+    let path_str = local_path.to_str().unwrap_or(url_str);
+    let final_content = patch_bytes(url_str, path_str, content);
+
+    unsafe { write_output(final_content, out_data, out_size) }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lb_patch_content(
+    url: *const libc::c_char,
+    in_data: *const u8,
+    in_size: u32,
+    out_data: *mut *mut u8,
+    out_size: *mut u32,
+    out_mime_type: *mut *const libc::c_char,
+) -> libc::c_int {
+    if url.is_null() || in_data.is_null() || out_data.is_null() || out_size.is_null() {
+        return -1;
+    }
+
+    let url_str = unsafe { std::ffi::CStr::from_ptr(url).to_str().unwrap_or("") };
+
+    if !out_mime_type.is_null() {
+        unsafe {
+            *out_mime_type = url::mime_type_for_url(url_str).as_ptr();
+        }
+    }
+
+    let content = unsafe { std::slice::from_raw_parts(in_data, in_size as usize) }.to_vec();
+
+    let local_path = url::local_path_from_lb_url(url_str);
+    let path_str = local_path
+        .as_deref()
+        .and_then(|p| p.to_str())
+        .unwrap_or(url_str);
+
+    let final_content = patch_bytes(url_str, path_str, content);
+
+    unsafe { write_output(final_content, out_data, out_size) }
 }

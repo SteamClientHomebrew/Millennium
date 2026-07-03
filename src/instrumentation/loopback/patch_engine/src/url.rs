@@ -67,6 +67,18 @@ fn steam_install_path() -> PathBuf {
     .clone()
 }
 
+#[cfg(not(any(windows, target_os = "macos")))]
+fn steam_install_path() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/home".into());
+    PathBuf::from(home).join(".steam/steam")
+}
+
+#[cfg(target_os = "macos")]
+fn steam_install_path() {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/Users".into());
+    PathBuf::from(home).join("Library/Application Support/Steam")
+}
+
 pub fn local_path_from_lb_url(url: &str) -> Option<PathBuf> {
     let host_end = url.find("steamloopback.host")?;
     let slash = url[host_end..].find('/')? + host_end;
@@ -74,22 +86,5 @@ pub fn local_path_from_lb_url(url: &str) -> Option<PathBuf> {
     let path = &path[..path.find('?').unwrap_or(path.len())];
     let rel = path.trim_start_matches('/');
 
-    #[cfg(windows)]
-    {
-        Some(steam_install_path().join("steamui").join(rel))
-    }
-    #[cfg(target_os = "macos")]
-    {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/Users".into());
-        Some(
-            PathBuf::from(home)
-                .join("Library/Application Support/Steam/steamui")
-                .join(rel),
-        )
-    }
-    #[cfg(not(any(windows, target_os = "macos")))]
-    {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/home".into());
-        Some(PathBuf::from(home).join(".steam/steam/steamui").join(rel))
-    }
+    Some(steam_install_path().join("steamui").join(rel))
 }

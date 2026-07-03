@@ -17,24 +17,25 @@ pub struct PatchSet {
 
 impl PatchSet {
     pub fn build(defs: Vec<PatchDef>) -> Option<Self> {
-        if defs.is_empty() {
-            return None;
-        }
-
         let file_patterns: Vec<&str> = defs.iter().map(|d| d.file.as_str()).collect();
-        let file_set = RegexSet::new(&file_patterns).ok()?;
+        let file_set = match RegexSet::new(&file_patterns) {
+            Ok(s) => s,
+            Err(e) => {
+                log::error!(
+                    "PatchSet::build: failed to compile {} file pattern(s), discarding entire patch list: {}",
+                    file_patterns.len(),
+                    e
+                );
+                return None;
+            }
+        };
 
         let mut patches = Vec::with_capacity(defs.len());
         for def in defs {
             let find = match Regex::new(&def.find) {
                 Ok(r) => r,
                 Err(e) => {
-                    log::warn!(
-                        "'{}' — invalid find regex {:?}: {}",
-                        def.plugin,
-                        def.find,
-                        e
-                    );
+                    log::warn!("'{}': invalid find regex {:?}: {}", def.plugin, def.find, e);
                     continue;
                 }
             };
@@ -46,7 +47,7 @@ impl PatchSet {
                         transforms.push((pat, re2_to_rust_rep(&r)));
                     }
                     Err(e) => {
-                        log::warn!("'{}' — invalid transform regex {:?}: {}", def.plugin, m, e);
+                        log::warn!("'{}': invalid transform regex {:?}: {}", def.plugin, m, e);
                     }
                 }
             }
@@ -154,7 +155,7 @@ pub fn apply_patches(
 
     let plugin_names: Vec<&str> = matched_patches.iter().map(|p| p.plugin.as_str()).collect();
     log::info!(
-        "{}: {} plugin(s) matched ({:.1} KB) — [{}]",
+        "{}: {} plugin(s) matched ({:.1} KB): [{}]",
         name,
         matched_patches.len(),
         kb,
@@ -176,7 +177,7 @@ pub fn apply_patches(
             Some(m) => m,
             None => {
                 log::warn!(
-                    "{}: '{}' — find pattern had no match in current buffer (patch skipped)",
+                    "{}: '{}': find pattern had no match in current buffer (patch skipped)",
                     name,
                     patch.plugin
                 );
@@ -216,7 +217,7 @@ pub fn apply_patches(
         let after_text = cap_text(&after_str);
 
         log::info!(
-            "{}: '{}' — matched [{}, {}), {} transform(s), {:+} B",
+            "{}: '{}': matched [{}, {}), {} transform(s), {:+} B",
             name,
             patch.plugin,
             from,
@@ -269,7 +270,7 @@ fn detect_conflicts(patches: &[&CompiledPatch], content: &str, filename: &str) {
                         (&patches[j].plugin, &patches[i].plugin)
                     };
                     log::warn!(
-                        "{}: CONFLICT — '{}' and '{}' overlap [{},{}) ∩ [{},{}) — '{}' wins, '{}' will be skipped",
+                        "{} CONFLICT: '{}' and '{}' overlap [{},{}) ∩ [{},{}) - '{}' wins, '{}' will be skipped",
                         name, winner, loser, a, b, c, d, winner, loser
                     );
                     let detail = format!("[{a}, {b}) vs [{c}, {d})");

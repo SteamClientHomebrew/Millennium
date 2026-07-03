@@ -293,7 +293,7 @@ pub fn patch(name: &str, content: &[u8]) -> Vec<u8> {
     let (patched, cl_count) = patch_classlist(&patched);
 
     log::info!(
-        "{}: css reclass: {} class(es) rewritten, {} classList call(s) spread in {:.2}ms",
+        "{}: resident: {} class(es) rewritten, {} classList call(s) spread in {:.2}ms",
         name,
         count,
         cl_count,

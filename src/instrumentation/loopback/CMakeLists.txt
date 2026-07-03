@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(hhx64 CXX)
+project(hhx64 C CXX)
 include(${MILLENNIUM_BASE}/scripts/cmake/millennium_version.cmake)
 
 include(FetchContent)
@@ -44,7 +44,7 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 include_directories("${MILLENNIUM_BASE}/src/include")
 include_directories("${snare_SOURCE_DIR}")
 
-set(SOURCE_FILES main.cc)
+set(SOURCE_FILES main.c)
 
 if(WIN32)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/include/millennium/export.version.def")
@@ -62,7 +62,7 @@ corrosion_import_crate(
 add_library(hhx64 SHARED ${SOURCE_FILES})
 
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set_source_files_properties(main.cc PROPERTIES COMPILE_OPTIONS "-Wno-stringop-overflow")
+    set_source_files_properties(main.c PROPERTIES COMPILE_OPTIONS "-Wno-stringop-overflow")
 endif()
 
 if(WIN32)
