@@ -40,7 +40,13 @@ const EvaluatePatches = (activeTheme: ThemeItem, documentTitle: string, classLis
 		const match = patch.MatchRegexString;
 		popup.window.HAS_INJECTED_THEME = true;
 
-		if (!documentTitle.match(match) && !classListMatch(classList, match)) {
+		const alternateMatch = match === '^Steam$' ? '^Steam Games List$' : undefined;
+
+		const isMatch =
+			(documentTitle.match(match) || classListMatch(classList, match)) ||
+			(alternateMatch !== undefined && (documentTitle.match(alternateMatch) || classListMatch(classList, alternateMatch)));
+
+		if (!isMatch) {
 			return;
 		}
 
