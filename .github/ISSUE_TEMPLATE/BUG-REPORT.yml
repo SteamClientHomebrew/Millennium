@@ -14,7 +14,7 @@ body:
           required: true
         - label: My issue is not caused by a plugin
           required: true
-        - label: "Linux: My issue is not caused by an external repository. ex: AUR, NixOS, etc. Help links for external packages can be found in the project README.md"
+        - label: "Linux only: My issue is not caused by an external repository. ex: AUR, NixOS, etc. Help links for external packages can be found in the project README.md"
           required: true
   - type: dropdown
     attributes:
