@@ -14,6 +14,8 @@ body:
           required: true
         - label: My issue is not caused by a plugin
           required: true
+        - label: Linux: My issue is not caused by an external repository. ex: AUR, NixOS, etc. Help links for external packages can be found in the project README.md
+          required: true
   - type: dropdown
     attributes:
       label: Operating System
@@ -23,61 +25,6 @@ body:
         - Linux
     validations:
       required: true
-  - type: checkboxes
-    attributes:
-      label: (if-applicable) Linux Distribution Check
-      description: "verify the following conditions:"
-      options:
-        - label: I am not a NixOS user. SteamClientHomebrew does not maintain the NixOS package, all contributions are made by external contributors like you!
-          required: false
-  - type: dropdown
-    attributes:
-      label: (if-applicable) Linux Distribution
-      description: Which distribution are you using?
-      options:
-        - Alpine
-        - Arch Linux
-        - Artix Linux
-        - CachyOS
-        - CentOS
-        - Debian
-        - Deepin
-        - Elementary OS
-        - EndeavourOS
-        - Fedora
-        - Garuda Linux
-        - Gentoo
-        - KDE Neon
-        - Kali Linux
-        - Linux Mint
-        - MX Linux
-        - Manjaro
-        - Nobara
-        - OpenSUSE Leap
-        - OpenSUSE Tumbleweed
-        - Parrot OS
-        - Pop!_OS
-        - Raspberry Pi OS
-        - RHEL
-        - Rocky Linux
-        - Slackware
-        - Solus
-        - Ubuntu
-        - Void Linux
-        - Zorin OS
-        - Other (write in issue description)
-    validations:
-      required: false
-  - type: dropdown
-    attributes:
-      label: (if-applicable) Linux Install Method
-      description: How did you install Millennium?
-      options:
-        - Install Script (curl -fsSL "https://steambrew.app/install.sh" | bash)
-        - Arch User Repository (AUR)
-        - Other (write in issue description)
-    validations:
-      required: false
   - type: textarea
     attributes:
       label: Describe the Bug
