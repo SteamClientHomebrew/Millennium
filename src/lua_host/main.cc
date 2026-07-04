@@ -46,6 +46,7 @@
 
 #include <format>
 #include <lua.hpp>
+#include <luajit.h>
 #include <nlohmann/json.hpp>
 
 #include <cstdio>
@@ -494,6 +495,9 @@ int main(int argc, char* argv[])
 
     g_L = L;
     luaL_openlibs(L);
+    
+    /* Disable JIT by default. Plugins must call jit.on() to enable it. */
+    luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_OFF);
 
     lua_pushcfunction(L, lua_millennium_decompress);
     lua_setglobal(L, "MILLENNIUM_DECOMPRESS");
