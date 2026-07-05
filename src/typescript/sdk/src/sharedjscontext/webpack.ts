@@ -18,6 +18,50 @@ type FindFn = (module: any) => any;
 
 export let modules = new Map<ModuleID, Module>();
 
+export function isCssHash(hash: string): boolean {
+	const len = hash.length;
+	if (len < 18 || len > 30) return false;
+	if (!/^[A-Za-z0-9_-]+$/.test(hash)) return false;
+
+	const hasDigit = /[0-9]/.test(hash);
+	const hasConsecUpper = /[A-Z]{2}/.test(hash);
+	const hasUpper = /[A-Z]/.test(hash);
+	const hasHyphenMixed = hash.includes('-') && (hasDigit || hasUpper);
+
+	return hasDigit || hasConsecUpper || hasHyphenMixed;
+}
+
+export function firstClass(value: string): string {
+	const parts = value.split(' ');
+	return parts.length === 2 ? parts[0] : value;
+}
+
+export function isClassModule(m: Module): boolean {
+	if (typeof m !== 'object' || m == null || m.__esModule) return false;
+	const keys = Object.keys(m);
+	if (keys.length === 0) return false;
+
+	let hasHash = false;
+	for (const k of keys) {
+		if (Object.getOwnPropertyDescriptor(m, k)?.get || typeof m[k] !== 'string') return false;
+		if (isCssHash(firstClass(m[k]))) hasHash = true;
+	}
+	return hasHash;
+}
+
+const resolvedModuleCache = new WeakMap<object, Module>();
+
+function resolveModule(m: Module): Module {
+	if (typeof m !== 'object' || m == null) return m;
+
+	const cached = resolvedModuleCache.get(m);
+	if (cached !== undefined) return cached;
+
+	const resolved = isClassModule(m) ? Object.fromEntries((Object.entries(m) as [string, string][]).map(([key, value]) => [key, firstClass(value)])) : m;
+	resolvedModuleCache.set(m, resolved);
+	return resolved;
+}
+
 function initModuleCache() {
 	// Webpack 5, currently on beta
 	// Generate a fake module ID
@@ -50,8 +94,8 @@ initModuleCache();
 
 export const findModule = (filter: FilterFn) => {
 	for (const m of modules.values()) {
-		if (m.default && filter(m.default)) return m.default;
-		if (filter(m)) return m;
+		if (m.default && filter(m.default)) return resolveModule(m.default);
+		if (filter(m)) return resolveModule(m);
 	}
 };
 
@@ -112,8 +156,8 @@ export const findAllModules = (filter: FilterFn) => {
 	const out = [];
 
 	for (const m of modules.values()) {
-		if (m.default && filter(m.default)) out.push(m.default);
-		if (filter(m)) out.push(m);
+		if (m.default && filter(m.default)) out.push(resolveModule(m.default));
+		if (filter(m)) out.push(resolveModule(m));
 	}
 
 	return out;
@@ -123,8 +167,8 @@ export const createModuleMapping = (filter: FilterFn) => {
 	const mapping = new Map<ModuleID, Module>();
 
 	for (const [id, m] of modules) {
-		if (m.default && filter(m.default)) mapping.set(id, m.default);
-		if (filter(m)) mapping.set(id, m);
+		if (m.default && filter(m.default)) mapping.set(id, resolveModule(m.default));
+		if (filter(m)) mapping.set(id, resolveModule(m));
 	}
 
 	return mapping;
