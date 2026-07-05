@@ -44,7 +44,7 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS OFF)
 include_directories("${MILLENNIUM_BASE}/src/include")
 include_directories("${snare_SOURCE_DIR}")
 
-set(SOURCE_FILES main.c)
+set(SOURCE_FILES hook.c)
 
 if(WIN32)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/include/millennium/export.version.def")
@@ -77,7 +77,7 @@ if(APPLE)
     target_link_libraries(hhx64 "-framework AppKit" "-framework QuartzCore")
 endif()
 
-target_link_libraries(hhx64 patch_engine)
+target_link_libraries(hhx64 millennium)
 
 if(UNIX AND NOT APPLE)
     target_link_libraries(hhx64 pthread dl)
