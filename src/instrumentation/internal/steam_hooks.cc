@@ -33,7 +33,6 @@
 #include <mutex>
 #include <string>
 #include <string_view>
-#include <thread>
 
 #ifdef __linux__
 #include <dlfcn.h>
@@ -59,6 +58,7 @@ std::atomic<bool> g_cdp_pipes_ready{ false };
 int g_cdp_pipe_generation = 0;
 
 #ifdef _WIN32
+#include <thread>
 HANDLE g_cdp_pipe_read = INVALID_HANDLE_VALUE;
 HANDLE g_cdp_pipe_write = INVALID_HANDLE_VALUE;
 HANDLE g_cdp_child_read = INVALID_HANDLE_VALUE;

@@ -62,7 +62,7 @@ corrosion_import_crate(
 add_library(hhx64 SHARED ${SOURCE_FILES})
 
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set_source_files_properties(main.c PROPERTIES COMPILE_OPTIONS "-Wno-stringop-overflow")
+    set_source_files_properties(hook.c PROPERTIES COMPILE_OPTIONS "-Wno-stringop-overflow")
 endif()
 
 if(MSVC)
