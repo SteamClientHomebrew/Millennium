@@ -55,7 +55,7 @@ elseif(APPLE)
 endif()
 
 corrosion_import_crate(
-    MANIFEST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/patch_engine/Cargo.toml"
+    MANIFEST_PATH "${CMAKE_CURRENT_SOURCE_DIR}/Cargo.toml"
     CRATE_TYPES   staticlib
 )
 

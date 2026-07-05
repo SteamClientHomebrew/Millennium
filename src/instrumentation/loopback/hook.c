@@ -84,18 +84,6 @@ static void fatal(const char* fmt, ...)
 extern int tramp_cef_browser_host_create_browser(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
 static snare_inline_t g_cef_hook = NULL;
 
-static void page_rx(void* addr)
-{
-    long ps = sysconf(_SC_PAGESIZE);
-    mprotect((void*)((uintptr_t)addr & ~(ps - 1)), ps, PROT_READ | PROT_EXEC);
-}
-
-static void page_rwx(void* addr)
-{
-    long ps = sysconf(_SC_PAGESIZE);
-    mprotect((void*)((uintptr_t)addr & ~(ps - 1)), ps, PROT_READ | PROT_WRITE | PROT_EXEC);
-}
-
 static int find_cef_fn(struct dl_phdr_info* info, size_t size, void* data)
 {
     (void)size;
@@ -134,7 +122,8 @@ static void install_hook(void)
         return;
     }
 
-    page_rx(cef_fn);
+    long ps = sysconf(_SC_PAGESIZE);
+    mprotect((void*)((uintptr_t)cef_fn & ~(ps - 1)), ps, PROT_READ | PROT_EXEC);
 }
 
 __attribute__((constructor)) static void init(void)

@@ -1,10 +1,10 @@
 [package]
-name = "millennium_patch_engine"
+name = "millennium"
 version = "0.0.0"
 edition = "2021"
 
 [lib]
-name = "patch_engine"
+name = "millennium"
 crate-type = ["staticlib"]
 
 [dependencies]
