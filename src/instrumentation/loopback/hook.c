@@ -80,59 +80,7 @@ static void fatal(const char* fmt, ...)
 #define SNARE_STATIC
 #define SNARE_IMPLEMENTATION
 #include "libsnare.h"
-
-extern int tramp_cef_browser_host_create_browser(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
-static snare_inline_t g_cef_hook = NULL;
-
-static int find_cef_fn(struct dl_phdr_info* info, size_t size, void* data)
-{
-    (void)size;
-    if (!info->dlpi_name || !strstr(info->dlpi_name, "libcef")) return 0;
-
-    void* h = dlopen(info->dlpi_name, RTLD_NOLOAD | RTLD_NOW);
-    if (!h) return 0;
-
-    void** out = (void**)data;
-    *out = dlsym(h, "cef_browser_host_create_browser");
-    dlclose(h);
-
-    return *out ? 1 : 0; /* stop iterating once found */
-}
-
-static void install_hook(void)
-{
-    void* cef_fn = NULL;
-    dl_iterate_phdr(find_cef_fn, &cef_fn);
-
-    if (!cef_fn) {
-        fatal("hook: cef_browser_host_create_browser not found in libcef");
-        return;
-    }
-
-    g_cef_hook = snare_inline_new(cef_fn, (void*)tramp_cef_browser_host_create_browser);
-    if (!g_cef_hook) {
-        fatal("hook: snare_inline_new failed");
-        return;
-    }
-
-    if (snare_inline_install(g_cef_hook) < 0) {
-        fatal("hook: snare_inline_install failed");
-        snare_inline_free(g_cef_hook);
-        g_cef_hook = NULL;
-        return;
-    }
-
-    long ps = sysconf(_SC_PAGESIZE);
-    mprotect((void*)((uintptr_t)cef_fn & ~(ps - 1)), ps, PROT_READ | PROT_EXEC);
-}
-
-__attribute__((constructor)) static void init(void)
-{
-    install_hook();
-}
-#endif
-
-#ifdef _WIN32
+#elif _WIN32
 #define SNARE_STATIC
 #define SNARE_IMPLEMENTATION
 #ifdef __clang__
@@ -143,9 +91,11 @@ __attribute__((constructor)) static void init(void)
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-extern snare_inline_t g_win32_cef_hook;
 #endif
 
+#if defined(__linux__) || defined(_WIN32)
+static snare_inline_t g_cef_hook = NULL;
+#endif
 extern cef_resource_request_handler_t* create_steamloopback_request_handler(const char* url, cef_resource_request_handler_t* inner);
 extern struct _cef_client_t* orig_c;
 extern struct _cef_request_handler_t* (*original_get_request_handler)(void*);
@@ -211,55 +161,73 @@ struct _cef_client_t* orig_c = NULL;
 struct _cef_request_handler_t* (*original_get_request_handler)(void*) = NULL;
 struct _cef_resource_request_handler_t* (*orig_get_resource)(void*, void*, void*, struct _cef_request_t*, int, int, void*, int*) = NULL;
 
-/**
- * generic helpers for calling add_ref()/release() on any hand-rolled CEF
- * ref-counted object given just its base pointer
- */
+typedef struct
+{
+    size_t size;
+    void (*add_ref)(void*);
+    int (*release)(void*);
+    int (*has_one_ref)(void*);
+    int (*has_at_least_one_ref)(void*);
+} base_vtable_t;
+
+#define SET_VTABLE(base_field, obj_size, fn_add_ref, fn_release, fn_has_one_ref, fn_has_at_least_one_ref)                                                                          \
+    do {                                                                                                                                                                           \
+        base_vtable_t* _v = (base_vtable_t*)(base_field);                                                                                                                          \
+        _v->size = (obj_size);                                                                                                                                                     \
+        _v->add_ref = (void (*)(void*))(fn_add_ref);                                                                                                                               \
+        _v->release = (int (*)(void*))(fn_release);                                                                                                                                \
+        _v->has_one_ref = (int (*)(void*))(fn_has_one_ref);                                                                                                                        \
+        _v->has_at_least_one_ref = (int (*)(void*))(fn_has_at_least_one_ref);                                                                                                      \
+    } while (0)
+
 static void cef_base_add_ref(void* obj)
 {
     if (!obj) return;
-    char* p = (char*)obj;
-    void (*fn)(void*) = *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0);
-    if (fn) fn(obj);
+    base_vtable_t* v = (base_vtable_t*)obj;
+    if (v->add_ref) v->add_ref(obj);
 }
+
 static int cef_base_release(void* obj)
 {
     if (!obj) return 0;
-    char* p = (char*)obj;
-    int (*fn)(void*) = *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 1);
-    if (fn) return fn(obj);
-    return 0;
+    base_vtable_t* v = (base_vtable_t*)obj;
+    return v->release ? v->release(obj) : 0;
 }
-void CEF_CALLBACK lb_req_add_ref(void* base)
-{
-    steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
-    atomic_fetch_add(&handler->ref_count, 1);
-}
-int CEF_CALLBACK lb_req_release(void* base)
-{
-    steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
-    if (atomic_fetch_sub(&handler->ref_count, 1) == 1) {
-        cef_base_release(handler->inner_req_handler);
-        free(handler->url);
-        free(handler);
-        return 1;
+
+#define DEFINE_REFCOUNT_OPS(prefix, ref_expr, cleanup)                                                                                                                             \
+    void CEF_CALLBACK prefix##_add_ref(void* base)                                                                                                                                 \
+    {                                                                                                                                                                              \
+        atomic_fetch_add(ref_expr, 1);                                                                                                                                             \
+    }                                                                                                                                                                              \
+    int CEF_CALLBACK prefix##_release(void* base)                                                                                                                                  \
+    {                                                                                                                                                                              \
+        if (atomic_fetch_sub(ref_expr, 1) == 1) {                                                                                                                                  \
+            cleanup;                                                                                                                                                               \
+            return 1;                                                                                                                                                              \
+        }                                                                                                                                                                          \
+        return 0;                                                                                                                                                                  \
+    }                                                                                                                                                                              \
+    int CEF_CALLBACK prefix##_has_one_ref(void* base)                                                                                                                              \
+    {                                                                                                                                                                              \
+        return atomic_load(ref_expr) == 1;                                                                                                                                         \
+    }                                                                                                                                                                              \
+    int CEF_CALLBACK prefix##_has_at_least_one_ref(void* base)                                                                                                                     \
+    {                                                                                                                                                                              \
+        return atomic_load(ref_expr) >= 1;                                                                                                                                         \
     }
-    return 0;
-}
-int CEF_CALLBACK lb_req_has_one_ref(void* base)
-{
+
+DEFINE_REFCOUNT_OPS(lb_req, &((steamloopback_request_handler_t*)base)->ref_count, {
     steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
-    return atomic_load(&handler->ref_count) == 1;
-}
-int CEF_CALLBACK lb_req_has_at_least_one_ref(void* base)
-{
-    steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)base;
-    return atomic_load(&handler->ref_count) >= 1;
-}
+    cef_base_release(handler->inner_req_handler);
+    free(handler->url);
+    free(handler);
+})
+
 void* CEF_CALLBACK lb_on_before_load_hdl(void* self, void* browser, void* frame, void* request, void* callback)
 {
     return (void*)1; /** continue */
 }
+
 void* CEF_CALLBACK lb_get_resource_hdl(void* self, void* browser, void* frame, void* request)
 {
     steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)self;
@@ -278,6 +246,7 @@ void* CEF_CALLBACK lb_get_resource_hdl(void* self, void* browser, void* frame, v
         return create_proxy_passthrough(handler->url, (cef_resource_handler_t*)steam_resource_handler);
     }
 }
+
 static void set_cef_header(struct _cef_response_t* response, const char* name, const char* value)
 {
     CEF_LAZY_LOAD(cef_string_utf8_set, int, (const char*, size_t, cef_string_utf8_t*, int));
@@ -290,81 +259,62 @@ static void set_cef_header(struct _cef_response_t* response, const char* name, c
     lazy_cef_string_utf8_clear(&name_str);
     lazy_cef_string_utf8_clear(&value_str);
 }
-void CEF_CALLBACK lb_pass_add_ref(void* base)
-{
-    atomic_fetch_add(&((steamloopback_passthrough_handler_t*)base)->ref_count, 1);
-}
-int CEF_CALLBACK lb_pass_release(void* base)
-{
+
+DEFINE_REFCOUNT_OPS(lb_pass, &((steamloopback_passthrough_handler_t*)base)->ref_count, {
     steamloopback_passthrough_handler_t* handler = (steamloopback_passthrough_handler_t*)base;
-    if (atomic_fetch_sub(&handler->ref_count, 1) == 1) {
-        cef_base_release(handler->inner);
-        free(handler->url);
-        free(handler);
-        return 1;
-    }
-    return 0;
-}
-int CEF_CALLBACK lb_pass_has_one_ref(void* base)
+    cef_base_release(handler->inner);
+    free(handler->url);
+    free(handler);
+})
+
+int CEF_CALLBACK lb_pass_open(steamloopback_passthrough_handler_t* self, void* request, int* handle_request, void* callback)
 {
-    return atomic_load(&((steamloopback_passthrough_handler_t*)base)->ref_count) == 1;
+    return self->inner->open(self->inner, request, handle_request, callback);
 }
-int CEF_CALLBACK lb_pass_has_at_least_one_ref(void* base)
+
+void CEF_CALLBACK lb_pass_get_response_headers(steamloopback_passthrough_handler_t* self, struct _cef_response_t* response, int64_t* response_length, cef_string_t* redirectUrl)
 {
-    return atomic_load(&((steamloopback_passthrough_handler_t*)base)->ref_count) >= 1;
+    self->inner->get_response_headers(self->inner, response, response_length, redirectUrl);
 }
-int CEF_CALLBACK lb_pass_open(void* self, void* request, int* handle_request, void* callback)
+
+int CEF_CALLBACK lb_pass_read(steamloopback_passthrough_handler_t* self, void* data_out, int bytes_to_read, int* bytes_read, void* callback)
 {
-    steamloopback_passthrough_handler_t* h = (steamloopback_passthrough_handler_t*)self;
-    return h->inner->open(h->inner, request, handle_request, callback);
+    return self->inner->read(self->inner, data_out, bytes_to_read, bytes_read, callback);
 }
-void CEF_CALLBACK lb_pass_get_response_headers(struct _cef_resource_handler_t* self, struct _cef_response_t* response, int64_t* response_length, cef_string_t* redirectUrl)
-{
-    steamloopback_passthrough_handler_t* h = (steamloopback_passthrough_handler_t*)self;
-    h->inner->get_response_headers(h->inner, response, response_length, redirectUrl);
-}
-int CEF_CALLBACK lb_pass_read(void* self, void* data_out, int bytes_to_read, int* bytes_read, void* callback)
-{
-    steamloopback_passthrough_handler_t* h = (steamloopback_passthrough_handler_t*)self;
-    return h->inner->read(h->inner, data_out, bytes_to_read, bytes_read, callback);
-}
+
 void CEF_CALLBACK lb_pass_cancel(void* self)
 {
     steamloopback_passthrough_handler_t* h = (steamloopback_passthrough_handler_t*)self;
     if (h->inner->cancel) h->inner->cancel(h->inner);
 }
+
 cef_resource_handler_t* create_proxy_passthrough(const char* url, cef_resource_handler_t* inner)
 {
     steamloopback_passthrough_handler_t* handler = (steamloopback_passthrough_handler_t*)calloc(1, sizeof(steamloopback_passthrough_handler_t));
-
     handler->inner = inner;
     handler->url = plat_strdup(url);
     atomic_store(&handler->ref_count, 1);
-
-    char* p = handler->handler._base;
-    *(size_t*)(p + 0x0) = sizeof(cef_resource_handler_t);
-    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0) = (void (*)(void*))lb_pass_add_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 1) = (int (*)(void*))lb_pass_release;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 2) = (int (*)(void*))lb_pass_has_one_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 3) = (int (*)(void*))lb_pass_has_at_least_one_ref;
-
-    handler->handler.open = lb_pass_open;
-    handler->handler.get_response_headers = lb_pass_get_response_headers;
-    handler->handler.read = lb_pass_read;
+    SET_VTABLE(handler->handler._base, sizeof(cef_resource_handler_t), lb_pass_add_ref, lb_pass_release, lb_pass_has_one_ref, lb_pass_has_at_least_one_ref);
+    handler->handler.open = (void*)lb_pass_open;
+    handler->handler.get_response_headers = (void*)lb_pass_get_response_headers;
+    handler->handler.read = (void*)lb_pass_read;
     handler->handler.cancel = lb_pass_cancel;
     handler->handler.process_request = NULL;
     handler->handler.skip = NULL;
     handler->handler.read_response = NULL;
     return &handler->handler;
 }
+
 static steamloopback_proxy_resource_handler_t* lb_buf_from_open_cb(cef_callback_t* cb)
 {
     return (steamloopback_proxy_resource_handler_t*)((char*)cb - offsetof(steamloopback_proxy_resource_handler_t, open_cb_to_inner));
 }
+
 static steamloopback_proxy_resource_handler_t* lb_buf_from_read_cb(cef_resource_read_callback_t* cb)
 {
     return (steamloopback_proxy_resource_handler_t*)((char*)cb - offsetof(steamloopback_proxy_resource_handler_t, read_cb_to_inner));
 }
+
 /** append n bytes to h->raw_data, growing geometrically. false on OOM. */
 static bool lb_buf_append(steamloopback_proxy_resource_handler_t* h, const uint8_t* data, size_t n)
 {
@@ -381,65 +331,19 @@ static bool lb_buf_append(steamloopback_proxy_resource_handler_t* h, const uint8
     h->raw_len += n;
     return true;
 }
-int CEF_CALLBACK lb_buf_release(void* base)
-{
+
+DEFINE_REFCOUNT_OPS(lb_buf, &((steamloopback_proxy_resource_handler_t*)base)->ref_count, {
     steamloopback_proxy_resource_handler_t* h = (steamloopback_proxy_resource_handler_t*)base;
-    int prev = atomic_fetch_sub(&h->ref_count, 1);
-    if (prev == 1) {
-        cef_base_release(h->inner);
-        free(h->url);
-        free(h->served_data);
-        free(h->raw_data);
-        free(h->read_chunk);
-        free(h);
-        return 1;
-    }
-    return 0;
-}
-void CEF_CALLBACK lb_buf_add_ref(void* base)
-{
-    atomic_fetch_add(&((steamloopback_proxy_resource_handler_t*)base)->ref_count, 1);
-}
-int CEF_CALLBACK lb_buf_has_one_ref(void* base)
-{
-    return atomic_load(&((steamloopback_proxy_resource_handler_t*)base)->ref_count) == 1;
-}
-int CEF_CALLBACK lb_buf_has_at_least_one_ref(void* base)
-{
-    return atomic_load(&((steamloopback_proxy_resource_handler_t*)base)->ref_count) >= 1;
-}
-void CEF_CALLBACK lb_buf_opencb_add_ref(void* base)
-{
-    atomic_fetch_add(&lb_buf_from_open_cb((cef_callback_t*)base)->open_cb_ref_count, 1);
-}
-int CEF_CALLBACK lb_buf_opencb_release(void* base)
-{
-    return atomic_fetch_sub(&lb_buf_from_open_cb((cef_callback_t*)base)->open_cb_ref_count, 1) == 1 ? 1 : 0;
-}
-int CEF_CALLBACK lb_buf_opencb_has_one_ref(void* base)
-{
-    return atomic_load(&lb_buf_from_open_cb((cef_callback_t*)base)->open_cb_ref_count) == 1;
-}
-int CEF_CALLBACK lb_buf_opencb_has_at_least_one_ref(void* base)
-{
-    return atomic_load(&lb_buf_from_open_cb((cef_callback_t*)base)->open_cb_ref_count) >= 1;
-}
-void CEF_CALLBACK lb_buf_readcb_add_ref(void* base)
-{
-    atomic_fetch_add(&lb_buf_from_read_cb((cef_resource_read_callback_t*)base)->read_cb_ref_count, 1);
-}
-int CEF_CALLBACK lb_buf_readcb_release(void* base)
-{
-    return atomic_fetch_sub(&lb_buf_from_read_cb((cef_resource_read_callback_t*)base)->read_cb_ref_count, 1) == 1 ? 1 : 0;
-}
-int CEF_CALLBACK lb_buf_readcb_has_one_ref(void* base)
-{
-    return atomic_load(&lb_buf_from_read_cb((cef_resource_read_callback_t*)base)->read_cb_ref_count) == 1;
-}
-int CEF_CALLBACK lb_buf_readcb_has_at_least_one_ref(void* base)
-{
-    return atomic_load(&lb_buf_from_read_cb((cef_resource_read_callback_t*)base)->read_cb_ref_count) >= 1;
-}
+    cef_base_release(h->inner);
+    free(h->url);
+    free(h->served_data);
+    free(h->raw_data);
+    free(h->read_chunk);
+    free(h);
+})
+/** these embedded callback objects don't own memory, so release() has nothing to free. */
+DEFINE_REFCOUNT_OPS(lb_buf_opencb, &lb_buf_from_open_cb((cef_callback_t*)base)->open_cb_ref_count, )
+DEFINE_REFCOUNT_OPS(lb_buf_readcb, &lb_buf_from_read_cb((cef_resource_read_callback_t*)base)->read_cb_ref_count, )
 
 static void lb_buf_advance(steamloopback_proxy_resource_handler_t* h);
 
@@ -633,15 +537,6 @@ void CEF_CALLBACK lb_buf_cancel(void* self)
     }
 }
 
-typedef struct
-{
-    size_t size;
-    void (*add_ref)(void*);
-    int (*release)(void*);
-    int (*has_one_ref)(void*);
-    int (*has_at_least_one_ref)(void*);
-} base_vtable_t;
-
 cef_resource_handler_t* create_proxy_buffered(const char* url, cef_resource_handler_t* inner)
 {
     steamloopback_proxy_resource_handler_t* handler = (steamloopback_proxy_resource_handler_t*)calloc(1, sizeof(steamloopback_proxy_resource_handler_t));
@@ -654,12 +549,7 @@ cef_resource_handler_t* create_proxy_buffered(const char* url, cef_resource_hand
     atomic_store(&handler->open_cb_ref_count, 1);
     atomic_store(&handler->read_cb_ref_count, 1);
 
-    base_vtable_t* p = (base_vtable_t*)&handler->handler._base;
-    p->size = sizeof(cef_resource_handler_t);
-    p->add_ref = lb_buf_add_ref;
-    p->release = lb_buf_release;
-    p->has_one_ref = lb_buf_has_one_ref;
-    p->has_at_least_one_ref = lb_buf_has_at_least_one_ref;
+    SET_VTABLE(&handler->handler._base, sizeof(cef_resource_handler_t), lb_buf_add_ref, lb_buf_release, lb_buf_has_one_ref, lb_buf_has_at_least_one_ref);
 
     handler->handler.open = lb_buf_open;
     handler->handler.get_response_headers = lb_buf_get_response_headers;
@@ -673,23 +563,14 @@ cef_resource_handler_t* create_proxy_buffered(const char* url, cef_resource_hand
      * synthetic cb objects handed to inner->open()/inner->read().
      * each logically needs its own working base vtable.
      */
-    base_vtable_t* ocb = (base_vtable_t*)&handler->open_cb_to_inner._base;
-    ocb->size = sizeof(cef_callback_t);
-    ocb->add_ref = lb_buf_opencb_add_ref;
-    ocb->release = lb_buf_opencb_release;
-    ocb->has_one_ref = lb_buf_opencb_has_one_ref;
-    ocb->has_at_least_one_ref = lb_buf_opencb_has_at_least_one_ref;
+    SET_VTABLE(&handler->open_cb_to_inner._base, sizeof(cef_callback_t), lb_buf_opencb_add_ref, lb_buf_opencb_release, lb_buf_opencb_has_one_ref,
+               lb_buf_opencb_has_at_least_one_ref);
 
     handler->open_cb_to_inner.cont = lb_buf_opencb_cont;
     handler->open_cb_to_inner.cancel = lb_buf_opencb_cancel;
 
-    base_vtable_t* rcb = (base_vtable_t*)&handler->read_cb_to_inner._base;
-    rcb->size = sizeof(cef_resource_read_callback_t);
-    rcb->add_ref = lb_buf_readcb_add_ref;
-    rcb->release = lb_buf_readcb_release;
-    rcb->has_one_ref = lb_buf_readcb_has_one_ref;
-    rcb->has_at_least_one_ref = lb_buf_readcb_has_at_least_one_ref;
-
+    SET_VTABLE(&handler->read_cb_to_inner._base, sizeof(cef_resource_read_callback_t), lb_buf_readcb_add_ref, lb_buf_readcb_release, lb_buf_readcb_has_one_ref,
+               lb_buf_readcb_has_at_least_one_ref);
     handler->read_cb_to_inner.cont = lb_buf_readcb_cont;
     return &handler->handler;
 }
@@ -702,12 +583,7 @@ cef_resource_request_handler_t* create_steamloopback_request_handler(const char*
     handler->inner_req_handler = inner;
     atomic_store(&handler->ref_count, 1);
 
-    char* p = handler->handler._base;
-    *(size_t*)(p + 0x0) = sizeof(cef_resource_request_handler_t);
-    *(void (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x0) = (void (*)(void*))lb_req_add_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x1) = (int (*)(void*))lb_req_release;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x2) = (int (*)(void*))lb_req_has_one_ref;
-    *(int (**)(void*))(p + sizeof(size_t) + sizeof(void*) * 0x3) = (int (*)(void*))lb_req_has_at_least_one_ref;
+    SET_VTABLE(handler->handler._base, sizeof(cef_resource_request_handler_t), lb_req_add_ref, lb_req_release, lb_req_has_one_ref, lb_req_has_at_least_one_ref);
 
     handler->handler.on_before_resource_load = lb_on_before_load_hdl;
     handler->handler.get_resource_handler = lb_get_resource_hdl;
@@ -786,17 +662,17 @@ int tramp_cef_browser_host_create_browser(const void* _1, struct _cef_client_t* 
         c->get_request_handler = (struct _cef_request_handler_t * (CEF_CALLBACK*)(void*)) hooked_get_request_handler;
     }
 
-#ifdef _WIN32
-    typedef int(__cdecl * cef_create_browser_fn)(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
-    cef_create_browser_fn orig = (cef_create_browser_fn)snare_inline_get_trampoline(g_win32_cef_hook);
-    return orig(_1, c, _3, _4, _5, _6);
-#elif __linux__
+#if defined(_WIN32) || defined(__linux__)
     if (!g_cef_hook) {
         fatal("cef_browser_host_create_browser: hook not installed, call dropped");
         return 0;
     }
 
+#ifdef _WIN32
+    typedef int(__cdecl * cef_create_browser_fn)(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
+#else
     typedef int (*cef_create_browser_fn)(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
+#endif
     cef_create_browser_fn orig = (cef_create_browser_fn)snare_inline_get_trampoline(g_cef_hook);
     return orig(_1, c, _3, _4, _5, _6);
 #else
@@ -804,7 +680,46 @@ int tramp_cef_browser_host_create_browser(const void* _1, struct _cef_client_t* 
 #endif
 }
 
-#if defined(_WIN32)
+#if defined(__linux__)
+static int find_cef_fn(struct dl_phdr_info* info, size_t size, void* data)
+{
+    (void)size;
+    if (!info->dlpi_name || !strstr(info->dlpi_name, "libcef")) return 0;
+    void* h = dlopen(info->dlpi_name, RTLD_NOLOAD | RTLD_NOW);
+    if (!h) return 0;
+    void** out = (void**)data;
+    *out = dlsym(h, "cef_browser_host_create_browser");
+    dlclose(h);
+    return *out ? 1 : 0; /* stop iterating once found */
+}
+
+__attribute__((constructor)) static void posix_initialize_trampoline(void)
+{
+    void* cef_fn = NULL;
+    dl_iterate_phdr(find_cef_fn, &cef_fn);
+
+    if (!cef_fn) {
+        fatal("hook: cef_browser_host_create_browser not found in libcef");
+        return;
+    }
+
+    g_cef_hook = snare_inline_new(cef_fn, (void*)tramp_cef_browser_host_create_browser);
+    if (!g_cef_hook) {
+        fatal("hook: snare_inline_new failed");
+        return;
+    }
+
+    if (snare_inline_install(g_cef_hook) < 0) {
+        fatal("hook: snare_inline_install failed");
+        snare_inline_free(g_cef_hook);
+        g_cef_hook = NULL;
+        return;
+    }
+
+    long ps = sysconf(_SC_PAGESIZE);
+    mprotect((void*)((uintptr_t)cef_fn & ~(ps - 1)), ps, PROT_READ | PROT_EXEC);
+}
+#elif defined(_WIN32)
 #define fn(x) #x
 
 /** the function name we want to tramp */
@@ -827,8 +742,6 @@ void* get_fn_address(void)
     return (void*)GetProcAddress((HMODULE)libcef_base_address, hook_fn_name);
 }
 
-static snare_inline_t g_win32_cef_hook = NULL;
-
 /**
  * called when the hook is loaded into the web-helper on windows
  * as we aren't using LD_PRELOAD on windows, we have to use snare to trampoline
@@ -842,16 +755,16 @@ void win32_initialize_trampoline(void)
         return;
     }
 
-    g_win32_cef_hook = snare_inline_new(proc, (void*)&tramp_cef_browser_host_create_browser);
-    if (!g_win32_cef_hook) {
+    g_cef_hook = snare_inline_new(proc, (void*)&tramp_cef_browser_host_create_browser);
+    if (!g_cef_hook) {
         fatal("failed to create hook on %s...", hook_fn_name);
         return;
     }
 
-    if (snare_inline_install(g_win32_cef_hook) < 0) {
+    if (snare_inline_install(g_cef_hook) < 0) {
         fatal("failed to install hook on %s...", hook_fn_name);
-        snare_inline_free(g_win32_cef_hook);
-        g_win32_cef_hook = NULL;
+        snare_inline_free(g_cef_hook);
+        g_cef_hook = NULL;
         return;
     }
 }
@@ -861,10 +774,10 @@ void win32_initialize_trampoline(void)
  */
 void win32_uninitialize_trampoline(void)
 {
-    if (g_win32_cef_hook) {
-        snare_inline_remove(g_win32_cef_hook);
-        snare_inline_free(g_win32_cef_hook);
-        g_win32_cef_hook = NULL;
+    if (g_cef_hook) {
+        snare_inline_remove(g_cef_hook);
+        snare_inline_free(g_cef_hook);
+        g_cef_hook = NULL;
     }
 }
 
