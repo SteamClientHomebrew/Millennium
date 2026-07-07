@@ -285,7 +285,9 @@ static std::vector<star_sub_entry_t> star_parse_sub_entries(const std::vector<ui
         uint32_t data_len = read_u32_le(data.data() + pos + 2);
         pos += 6;
 
-        if (pos + name_len + data_len > data.size()) throw std::runtime_error("sub-entry " + std::to_string(i) + " data truncated");
+        if (static_cast<size_t>(name_len) > data.size() - pos) throw std::runtime_error("sub-entry " + std::to_string(i) + " data truncated");
+        const size_t after_name = pos + name_len;
+        if (static_cast<size_t>(data_len) > data.size() - after_name) throw std::runtime_error("sub-entry " + std::to_string(i) + " data truncated");
 
         std::string name(data.begin() + pos, data.begin() + pos + name_len);
         std::vector<uint8_t> entry_data(data.begin() + pos + name_len, data.begin() + pos + name_len + data_len);

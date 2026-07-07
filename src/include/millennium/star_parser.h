@@ -74,9 +74,13 @@ inline std::vector<uint8_t> star_decompress(const uint8_t* src, size_t src_len)
 
         size_t lit_len = static_cast<size_t>(token >> 4);
         if (lit_len == 15) {
+            const size_t max_lit_len = static_cast<size_t>(op_end - op);
             while (ip < ip_end) {
                 const uint8_t b = *ip++;
                 lit_len += b;
+
+                /** bail if accumulator exceeds output buffer size, preventing 32bit size_t overflow. */
+                if (lit_len > max_lit_len) throw std::runtime_error("star_decompress: literal overflow");
                 if (b != 255) break;
             }
         }
@@ -94,9 +98,13 @@ inline std::vector<uint8_t> star_decompress(const uint8_t* src, size_t src_len)
 
         size_t match_len = static_cast<size_t>(token & 0xFu) + 4u;
         if ((token & 0xFu) == 15u) {
+            const size_t max_match_len = static_cast<size_t>(op_end - op);
             while (ip < ip_end) {
                 const uint8_t b = *ip++;
                 match_len += b;
+
+                /** same guard as above */
+                if (match_len > max_match_len) throw std::runtime_error("star_decompress: match overflow");
                 if (b != 255) break;
             }
         }
