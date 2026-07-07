@@ -6,6 +6,7 @@
 
 **Arch Linux** (other distros need equivalent packages):
 
+[`rust`](https://repology.org/project/rust/versions)
 [`cmake`](https://repology.org/project/cmake/versions)
 [`ninja`](https://repology.org/project/ninja/versions)
 [`bun`](https://repology.org/project/bun/versions)
@@ -50,6 +51,7 @@ $ ./scripts/linux/destroy_devenv.sh
 
 - [Visual Studio Build Tools](https://aka.ms/vs/17/release/vs_buildtools.exe) (with the "Desktop development with C++" workload — includes CMake and Ninja, add them to PATH)
 - [Bun](https://bun.sh/)
+- [Rust](https://rust-lang.org/)
 
 ### Build
 
