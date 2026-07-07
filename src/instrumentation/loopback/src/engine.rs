@@ -73,9 +73,13 @@ fn re2_to_rust_rep(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut chars = s.chars().peekable();
     while let Some(c) = chars.next() {
+        if c == '$' {
+            out.push_str("$$");
+            continue;
+        }
         if c == '\\' {
             if let Some(&d) = chars.peek() {
-                if d.is_ascii_digit() && d != '0' {
+                if d.is_ascii_digit() {
                     out.push('$');
                     out.push(chars.next().unwrap());
                     continue;
@@ -85,6 +89,37 @@ fn re2_to_rust_rep(s: &str) -> String {
         out.push(c);
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::re2_to_rust_rep;
+
+    #[test]
+    fn passes_through_plain_text() {
+        assert_eq!(re2_to_rust_rep("hello world"), "hello world");
+    }
+
+    #[test]
+    fn converts_backreferences() {
+        assert_eq!(re2_to_rust_rep(r"wrap(\1, \2)"), "wrap($1, $2)");
+    }
+
+    #[test]
+    fn converts_whole_match_backreference() {
+        assert_eq!(re2_to_rust_rep(r"wrap(\0)"), "wrap($0)");
+    }
+
+    #[test]
+    fn escapes_literal_dollar_signs() {
+        assert_eq!(re2_to_rust_rep("price: $5 total"), "price: $$5 total");
+        assert_eq!(re2_to_rust_rep("template ${foo}bar"), "template $${foo}bar");
+    }
+
+    #[test]
+    fn escapes_dollar_and_converts_backreference_together() {
+        assert_eq!(re2_to_rust_rep(r"$5 -> \1"), "$$5 -> $1");
+    }
 }
 
 fn cap_text(s: &str) -> String {
