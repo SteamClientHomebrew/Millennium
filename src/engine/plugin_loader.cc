@@ -265,6 +265,12 @@ void plugin_loader::register_packed_plugin_resources(const std::vector<plugin_ma
 
         const std::string base = std::string(m_network_hook_ctl->get_ftp_url()) + "star/" + plugin.plugin_name + "/";
 
+        if (!m_plugin_manager->is_enabled(plugin.plugin_name)) {
+            if (plugin.has_frontend_js) m_network_hook_ctl->unregister_virtual_resource(base + "bundle.js");
+            if (plugin.has_webkit_js) m_network_hook_ctl->unregister_virtual_resource(base + "webkit.js");
+            continue;
+        }
+
         if (plugin.has_frontend_js) {
             auto cache = std::make_shared<std::string>();
             auto mtx = std::make_shared<std::mutex>();
