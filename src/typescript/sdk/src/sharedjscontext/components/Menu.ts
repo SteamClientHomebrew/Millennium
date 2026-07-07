@@ -129,6 +129,7 @@ export interface MenuProps extends FooterLegendProps {
 
 const MenuModule = findModuleDetailsByExport((e: Export) => e?.render?.toString()?.includes('bPlayAudio:') || (e?.prototype?.OnOKButton && e?.prototype?.OnMouseEnter));
 
+/** @component React Components */
 export const Menu: FC<MenuProps> =
 	findModuleExport((e: Export) => e?.prototype?.HideIfSubmenu && e?.prototype?.HideMenu) || // Legacy Menu
 	(Object.values(MenuModule?.[0] ?? {}).find((e) => e?.toString()?.includes?.(`useId`) && e?.toString()?.includes?.(`labelId`)) as FC<MenuProps>); // New Menu 6/15/2025
@@ -142,6 +143,7 @@ export interface MenuGroupProps {
 const MenuGoupModule = findModuleByExport(
 	(e) => e?.prototype?.Focus && e?.prototype?.OnOKButton && e?.prototype?.render?.toString().includes?.(`"emphasis"==this.props.tone`),
 );
+/** @component React Components */
 export const MenuGroup: FC<MenuGroupProps> =
 	MenuGoupModule && Object.values(MenuGoupModule).find((e: Export) => typeof e == 'function' && e?.toString?.()?.includes('bInGamepadUI:'));
 export interface MenuItemProps extends FooterLegendProps {
@@ -157,6 +159,8 @@ export interface MenuItemProps extends FooterLegendProps {
 	children?: ReactNode;
 }
 
+/** @component React Components */
 export const MenuItem: FC<MenuItemProps> = MenuModule?.[1];
 
+/** @component React Components */
 export const MenuSeparator: FC = findModuleExport((e: Export) => typeof e === 'function' && /className:.+?\.ContextMenuSeparator/.test(e.toString()));
