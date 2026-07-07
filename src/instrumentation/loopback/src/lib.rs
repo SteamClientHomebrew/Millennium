@@ -58,16 +58,38 @@ fn get_engine() -> &'static Arc<PatchEngine> {
     })
 }
 
+fn catch_ffi<F, R>(context: &str, fallback: R, f: F) -> R
+where
+    F: FnOnce() -> R + std::panic::UnwindSafe,
+{
+    match std::panic::catch_unwind(f) {
+        Ok(v) => v,
+        Err(e) => {
+            let msg = e
+                .downcast_ref::<&str>()
+                .map(|s| s.to_string())
+                .or_else(|| e.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "unknown panic payload".to_string());
+            log::error!("{context}: panicked, using fallback: {msg}");
+            fallback
+        }
+    }
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn lb_url_has_local_file(url: *const libc::c_char) -> libc::c_int {
     if url.is_null() {
         return 0;
     }
     let s = unsafe { std::ffi::CStr::from_ptr(url).to_str().unwrap_or("") };
-    match url::local_path_from_lb_url(s) {
-        Some(p) if p.exists() => 1,
-        _ => 0,
-    }
+    catch_ffi(
+        "lb_url_has_local_file",
+        0,
+        || match url::local_path_from_lb_url(s) {
+            Some(p) if p.exists() => 1,
+            _ => 0,
+        },
+    )
 }
 
 #[unsafe(no_mangle)]
@@ -76,13 +98,13 @@ pub unsafe extern "C" fn lb_url_is_patchable(url: *const libc::c_char) -> libc::
         return 0;
     }
     let s = unsafe { std::ffi::CStr::from_ptr(url).to_str().unwrap_or("") };
-    let patchable = if url::is_steamloopback_patchable(s) {
-        1
-    } else {
-        0
-    };
-
-    patchable
+    catch_ffi("lb_url_is_patchable", 0, || {
+        if url::is_steamloopback_patchable(s) {
+            1
+        } else {
+            0
+        }
+    })
 }
 
 fn patch_bytes(url_str: &str, path_str: &str, content: Vec<u8>) -> Vec<u8> {
@@ -253,7 +275,13 @@ pub unsafe extern "C" fn lb_handle_request(
     };
 
     let path_str = local_path.to_str().unwrap_or(url_str);
-    let final_content = patch_bytes(url_str, path_str, content);
+    let final_content = catch_ffi("lb_handle_request", None, || {
+        Some(patch_bytes(url_str, path_str, content))
+    });
+    let final_content = match final_content {
+        Some(c) => c,
+        None => return -1,
+    };
 
     unsafe { write_output(final_content, out_data, out_size) }
 }
@@ -287,7 +315,13 @@ pub unsafe extern "C" fn lb_patch_content(
         .and_then(|p| p.to_str())
         .unwrap_or(url_str);
 
-    let final_content = patch_bytes(url_str, path_str, content);
+    let final_content = catch_ffi("lb_patch_content", None, || {
+        Some(patch_bytes(url_str, path_str, content))
+    });
+    let final_content = match final_content {
+        Some(c) => c,
+        None => return -1,
+    };
 
     unsafe { write_output(final_content, out_data, out_size) }
 }
