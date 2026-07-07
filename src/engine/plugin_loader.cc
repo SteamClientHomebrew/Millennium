@@ -367,7 +367,7 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
      * add the initial binding for the shared js context.
      * the rest is handled by the ffi_binder.
      */
-    const auto insert_ipc = std::make_shared<std::function<void()>>([self, cdp, reload_frontend]()
+    const auto insert_ipc = std::make_shared<std::function<void()>>([self, cdp]()
     {
         cdp->send("Runtime.enable").get();
 
@@ -386,55 +386,60 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
         };
         cdp->send("Runtime.addBinding", add_cdp_proxy_params).get();
 
-        if (reload_frontend) {
-            logger.log("Frontend notifier skipped isolated world injection (page reload pending)");
-            return;
-        }
-
-        /** create an isolated world per enabled plugin and inject the CDP context script */
-        const std::string isolated_ctx_script = get_cdp_isolated_ctx_script();
-        const std::string shared_js_session = cdp->get_shared_js_session_id();
-
-        if (!isolated_ctx_script.empty()) {
-            const auto plugins = self->m_plugin_manager->get_enabled_plugins();
-            for (const auto& plugin : plugins) {
-                try {
-                    auto frame_result = cdp->send("Page.getFrameTree").get();
-                    const std::string frame_id = frame_result["frameTree"]["frame"]["id"].get<std::string>();
-
-                    const json create_world_params = {
-                        { "frameId", frame_id },
-                        { "worldName", std::format("millennium-{}", plugin.plugin_name) },
-                        { "grantUniversalAccess", false }
-                    };
-                    auto world_result = cdp->send("Page.createIsolatedWorld", create_world_params).get();
-                    const int ctx_id = world_result["executionContextId"].get<int>();
-
-                    const json eval_params = {
-                        { "expression", isolated_ctx_script },
-                        { "contextId",  ctx_id              }
-                    };
-                    cdp->send("Runtime.evaluate", eval_params).get();
-
-                    if (self->m_ffi_binder) {
-                        self->m_ffi_binder->register_isolated_ctx(plugin.plugin_name, ctx_id, shared_js_session);
-                    }
-
-                    logger.log("Created isolated CDP world for plugin '{}' (ctx {})", plugin.plugin_name, ctx_id);
-                } catch (const std::exception& e) {
-                    LOG_ERROR("Failed to create isolated world for plugin '{}': {}", plugin.plugin_name, e.what());
-                }
-            }
-        }
-
         logger.log("Frontend notifier finished!");
     });
 
     /**
-     * reload the frontend of Steam if need be.
-     * sometimes we need to queue a change instead of instantly applying it.
+     * create an isolated world per enabled plugin and inject the CDP context script.
+     * isolated worlds are torn down by chromium on navigation, so this must run against
+     * whatever document is current when it's called - i.e. after any pending reload
+     * below has actually finished, never before it.
      */
-    const auto reload = std::make_shared<std::function<void()>>([reload_frontend, self, cdp]()
+    const auto create_isolated_worlds = std::make_shared<std::function<void()>>([self, cdp]()
+    {
+        const std::string isolated_ctx_script = get_cdp_isolated_ctx_script();
+        const std::string shared_js_session = cdp->get_shared_js_session_id();
+
+        if (isolated_ctx_script.empty()) return;
+
+        const auto plugins = self->m_plugin_manager->get_enabled_plugins();
+        for (const auto& plugin : plugins) {
+            try {
+                auto frame_result = cdp->send("Page.getFrameTree").get();
+                const std::string frame_id = frame_result["frameTree"]["frame"]["id"].get<std::string>();
+
+                const json create_world_params = {
+                    { "frameId", frame_id },
+                    { "worldName", std::format("millennium-{}", plugin.plugin_name) },
+                    { "grantUniversalAccess", false }
+                };
+                auto world_result = cdp->send("Page.createIsolatedWorld", create_world_params).get();
+                const int ctx_id = world_result["executionContextId"].get<int>();
+
+                const json eval_params = {
+                    { "expression", isolated_ctx_script },
+                    { "contextId",  ctx_id              }
+                };
+                cdp->send("Runtime.evaluate", eval_params).get();
+
+                if (self->m_ffi_binder) {
+                    self->m_ffi_binder->register_isolated_ctx(plugin.plugin_name, ctx_id, shared_js_session);
+                }
+
+                logger.log("Created isolated CDP world for plugin '{}' (ctx {})", plugin.plugin_name, ctx_id);
+            } catch (const std::exception& e) {
+                LOG_ERROR("Failed to create isolated world for plugin '{}': {}", plugin.plugin_name, e.what());
+            }
+        }
+    });
+
+    /**
+     * reload the frontend of Steam if need be, then (re)create isolated worlds against
+     * whichever document ends up current - the freshly reloaded one if we just navigated,
+     * or the existing one otherwise. Isolated worlds must never be created before a pending
+     * reload actually completes, since chromium destroys them on navigation.
+     */
+    const auto reload = std::make_shared<std::function<void()>>([reload_frontend, self, cdp, create_isolated_worlds]()
     {
         json reload_params = {
             { "ignoreCache", true }
@@ -458,8 +463,11 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
                 /* CDP died before/during reload — clear the flag so the next genuine
                    reconnect still gets its own reload rather than silently skipping it. */
                 self->m_skip_next_inject_reload.store(false, std::memory_order_release);
+                return;
             }
         }
+
+        (*create_isolated_worlds)();
     });
 
     /**
