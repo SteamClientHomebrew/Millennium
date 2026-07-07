@@ -102,7 +102,7 @@ local function strip_parity(woven)
         local xc     = 0
         for j = 1, #chunk do xc = bxor32(xc, chunk:byte(j)) end
 
-        local e_roll = fnv1a_u32(bxor32(rolling, xc), xc)
+        local e_roll = fnv1a_u32(rolling, xc)
 
         assert(s_xor == xc, "parity xor mismatch at block " .. idx)
         assert(s_roll == e_roll, "parity chain broken at block " .. idx)
