@@ -37,6 +37,7 @@
 #include "mep/sdk_ready_bus.h"
 #include "mep/patch_stream_recorder.h"
 #include "mep/patch_update_notifier.h"
+#include "mep/log_normalize.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/plugin_manager.h"
 #include "millennium/backend_mgr.h"
@@ -101,76 +102,6 @@ struct stream_sub_state
     std::atomic<int> patch_listener_id{ -1 };
 };
 
-json normalize_log_entry(const logger_base::log_entry& e)
-{
-    json obj = {
-        { "source",       "backend"          },
-        { "level",        level_str(e.level) },
-        { "message",      e.message          },
-        { "timestamp_us", e.timestamp_us     },
-    };
-    if (!e.file.empty()) {
-        obj["file"] = e.file;
-        obj["line"] = e.line;
-    }
-    return obj;
-}
-
-json normalize_console_entry(const console_entry& e)
-{
-    const json& r = e.raw;
-    uint64_t ts = r.contains("millennium_ts") ? r["millennium_ts"].get<uint64_t>() : uint64_t(0);
-
-    std::string level = "log";
-    if (r.contains("level") && r["level"].is_string())
-        level = r["level"].get<std::string>();
-    else if (r.contains("type") && r["type"].is_string())
-        level = r["type"].get<std::string>();
-
-    std::string message;
-    if (r.contains("message") && r["message"].is_string()) message = r["message"].get<std::string>();
-
-    std::string src_file;
-    int src_line = 0;
-    if (r.contains("file") && r["file"].is_string()) {
-        src_file = r["file"].get<std::string>();
-        if (r.contains("line") && r["line"].is_number()) src_line = r["line"].get<int>();
-    } else if (r.contains("stackTrace") && r["stackTrace"].contains("callFrames")) {
-        for (const auto& frame : r["stackTrace"]["callFrames"]) {
-            if (!frame.contains("url") || !frame["url"].is_string()) continue;
-            const std::string url = frame["url"].get<std::string>();
-            if (url.empty()) continue;
-            if (url.rfind("chrome://", 0) == 0 || url.rfind("chrome-extension://", 0) == 0) continue;
-
-            std::string path = url;
-            for (const auto& prefix : { "file://", "https://", "http://" }) {
-                if (path.rfind(prefix, 0) == 0) {
-                    path = path.substr(strlen(prefix));
-                    break;
-                }
-            }
-            const size_t slash = path.rfind('/');
-            src_file = (slash != std::string::npos) ? path.substr(slash + 1) : path;
-            if (frame.contains("lineNumber") && frame["lineNumber"].is_number()) src_line = frame["lineNumber"].get<int>() + 1;
-            break;
-        }
-    }
-
-    std::string source = "frontend";
-    if (r.contains("millennium_source") && r["millennium_source"].is_string()) source = r["millennium_source"].get<std::string>();
-
-    json obj = {
-        { "source",       source  },
-        { "level",        level   },
-        { "message",      message },
-        { "timestamp_us", ts      },
-    };
-    if (!src_file.empty()) {
-        obj["file"] = src_file;
-        obj["line"] = src_line;
-    }
-    return obj;
-}
 } // namespace
 
 void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader)
@@ -712,38 +643,7 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
 
         auto& capture = console_capture::instance();
 
-        std::vector<json> raw_entries;
-        for (const auto& e : backend_logger->collect_logs()) {
-            raw_entries.push_back(normalize_log_entry(e));
-        }
-        for (const auto& e : capture.get_recent(*name, 200)) {
-            raw_entries.push_back(normalize_console_entry(e));
-        }
-        for (const auto& e : patch_stream_recorder::instance().get_recent(*name, 200)) {
-            raw_entries.push_back({
-                { "source",             "hhx64"                  },
-                { "event_type",         e.event_type             },
-                { "filename",           e.filename               },
-                { "detail",             e.detail                 },
-                { "other_plugin",       e.other_plugin           },
-                { "find_pattern",       e.find_pattern           },
-                { "transform_patterns", e.transform_patterns     },
-                { "before_text",        e.before_text            },
-                { "after_text",         e.after_text             },
-                { "timestamp_ms",       e.timestamp_ms           },
-                { "timestamp_us",       e.timestamp_ms * 1000ULL },
-            });
-        }
-
-        std::sort(raw_entries.begin(), raw_entries.end(), [](const json& a, const json& b)
-        {
-            return a.value("timestamp_us", uint64_t(0)) < b.value("timestamp_us", uint64_t(0));
-        });
-
-        json snapshot = json::array();
-        for (auto& e : raw_entries) {
-            snapshot.push_back(std::move(e));
-        }
+        json snapshot = collect_log_snapshot(*backend_logger, 200);
 
         auto state = std::make_shared<stream_sub_state>();
 
@@ -800,23 +700,10 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
             auto ctx_s = ctx_weak.lock();
             if (!ctx_s) return;
             ctx_s->push({
-                { "type",            "event"         },
-                { "subscription_id", captured_sub_id },
-                { "plugin",          captured_name   },
-                { "data",
-                 {
-                      { "source", "hhx64" },
-                      { "event_type", ev.event_type },
-                      { "plugin", ev.plugin_name },
-                      { "filename", ev.filename },
-                      { "detail", ev.detail },
-                      { "other_plugin", ev.other_plugin },
-                      { "find_pattern", ev.find_pattern },
-                      { "transform_patterns", ev.transform_patterns },
-                      { "before_text", ev.before_text },
-                      { "after_text", ev.after_text },
-                      { "timestamp_ms", ev.timestamp_ms },
-                  }                                  },
+                { "type",            "event"                    },
+                { "subscription_id", captured_sub_id            },
+                { "plugin",          captured_name              },
+                { "data",            normalize_patch_entry(ev)  },
             });
         });
         state->patch_listener_id.store(patch_id);

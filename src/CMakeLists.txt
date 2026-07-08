@@ -91,6 +91,7 @@ set(SOURCE_FILES
     mep/mep_router.cc
     mep/mep_server.cc
     mep/mep_hooks.cc
+    mep/log_normalize.cc
     mep/ffi_recorder.cc
     mep/console_capture.cc
     mep/exception_capture.cc

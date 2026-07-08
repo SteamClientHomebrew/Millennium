@@ -42,6 +42,9 @@ export type LogItem = {
 	level: LogLevel;
 	message: string;
 	timestamp?: string;
+	source?: string;
+	file?: string;
+	line?: number;
 };
 
 export interface LogData {
@@ -127,7 +130,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		if (!selectedLog) return;
 
 		const logsToCopy = (searchQuery.length ? searchedLogs : selectedLog.logs)
-			.map((log) => (log.timestamp ? `${log.timestamp} ` : '') + atob(log.message))
+			.map((log) => (log.timestamp ? `${log.timestamp} ` : '') + (log.source ? `[${log.source}] ` : '') + atob(log.message))
 			.join('')
 			/** Strip all ANSI colors that were provided by Millennium */
 			.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
@@ -255,12 +258,21 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 				<pre className="MillenniumLogs_Text DialogInput DialogTextInputBase" style={{ fontSize: logFontSize + 'px' }}>
 					{(searchQuery?.length ? searchedLogs : selectedLog?.logs)?.map((log, index) => {
 						const decoded = atob(log?.message);
-						const line = decoded.endsWith('\n') ? decoded : decoded + '\n';
+						const line = decoded.endsWith('\n') ? decoded.slice(0, -1) : decoded;
 						const color = log.level === LogLevel.ERROR ? '#ff4444' : log.level === LogLevel.WARNING ? '#ffc82c' : undefined;
 						return (
 							<span key={index} style={color ? { color } : undefined}>
 								{log.timestamp && <span style={{ color: '#888', userSelect: 'text' }}>{log.timestamp} </span>}
+								{log.source && <span style={{ color: '#888', userSelect: 'text' }}>[{log.source}] </span>}
 								<Ansi>{line}</Ansi>
+								{log.file && (
+									<span style={{ color: '#888', userSelect: 'text' }}>
+										{' '}
+										({log.file}
+										{log.line ? `:${log.line}` : ''})
+									</span>
+								)}
+								{'\n'}
 							</span>
 						);
 					})}
