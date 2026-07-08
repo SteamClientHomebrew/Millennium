@@ -216,12 +216,59 @@ fn patch_css_classes(src: &[u8]) -> (Vec<u8>, usize) {
     (out, count)
 }
 
+#[inline]
+fn is_recv_ident_char(c: u8) -> bool {
+    c.is_ascii_alphanumeric() || c == b'_' || c == b'$'
+}
+
+fn scan_receiver_start(src: &[u8], dot_pos: usize) -> Option<usize> {
+    const MAX_SCAN: usize = 512;
+    let scan_floor = dot_pos.saturating_sub(MAX_SCAN);
+    let mut cur_dot = dot_pos;
+
+    loop {
+        let connector_start = if cur_dot > 0 && src[cur_dot - 1] == b'?' {
+            cur_dot - 1
+        } else {
+            cur_dot
+        };
+        if connector_start == 0 || connector_start < scan_floor {
+            return None;
+        }
+
+        let mut k = connector_start;
+        while k > 0 && is_recv_ident_char(src[k - 1]) {
+            k -= 1;
+        }
+        if k == connector_start {
+            return None;
+        }
+
+        if k > 0 && src[k - 1] == b'.' {
+            cur_dot = k - 1;
+            continue;
+        }
+
+        if !(src[k].is_ascii_alphabetic() || src[k] == b'_' || src[k] == b'$') {
+            return None;
+        }
+        return Some(k);
+    }
+}
+
 fn patch_classlist(src: &[u8]) -> (Vec<u8>, usize) {
     let mut out = Vec::with_capacity(src.len() + src.len() / 8 + 4096);
     let mut count = 0usize;
     let n = src.len();
     let mut p = 0usize;
     let mut flush = 0usize;
+
+    enum Kind {
+        Add,
+        Remove,
+        Toggle,
+        Contains,
+    }
 
     while p < n {
         let rel = match src[p..].iter().position(|&b| b == b'c') {
@@ -230,15 +277,19 @@ fn patch_classlist(src: &[u8]) -> (Vec<u8>, usize) {
         };
         p += rel;
 
-        let after_paren;
-        if p + 14 <= n && &src[p..p + 14] == b"classList.add(" {
-            after_paren = p + 14;
-        } else if p + 17 <= n && &src[p..p + 17] == b"classList.remove(" {
-            after_paren = p + 17;
-        } else {
-            p += 1;
-            continue;
-        }
+        let (kind, method_start, after_paren) =
+            if p + 14 <= n && &src[p..p + 14] == b"classList.add(" {
+                (Kind::Add, p, p + 14)
+            } else if p + 17 <= n && &src[p..p + 17] == b"classList.remove(" {
+                (Kind::Remove, p, p + 17)
+            } else if p + 17 <= n && &src[p..p + 17] == b"classList.toggle(" {
+                (Kind::Toggle, p, p + 17)
+            } else if p + 19 <= n && &src[p..p + 19] == b"classList.contains(" {
+                (Kind::Contains, p, p + 19)
+            } else {
+                p += 1;
+                continue;
+            };
 
         let mut q = after_paren;
         if q >= n || !js_ident_start(src[q]) {
@@ -271,11 +322,40 @@ fn patch_classlist(src: &[u8]) -> (Vec<u8>, usize) {
         }
         q += 1;
 
-        out.extend_from_slice(&src[flush..after_paren]);
-        out.extend_from_slice(b"...");
-        out.extend_from_slice(&src[mod_start..expr_end]);
-        out.extend_from_slice(b".split(\" \")");
-        out.push(b')');
+        match kind {
+            Kind::Add | Kind::Remove => {
+                out.extend_from_slice(&src[flush..after_paren]);
+                out.extend_from_slice(b"...");
+                out.extend_from_slice(&src[mod_start..expr_end]);
+                out.extend_from_slice(b".split(\" \")");
+                out.push(b')');
+            }
+            Kind::Contains => {
+                out.extend_from_slice(&src[flush..after_paren]);
+                out.extend_from_slice(&src[mod_start..expr_end]);
+                out.extend_from_slice(b".split(\" \")[0]");
+                out.push(b')');
+            }
+            Kind::Toggle => {
+                if method_start == 0 || src[method_start - 1] != b'.' {
+                    p = q;
+                    continue;
+                }
+                let Some(recv_start) = scan_receiver_start(src, method_start - 1) else {
+                    p = q;
+                    continue;
+                };
+
+                out.extend_from_slice(&src[flush..recv_start]);
+                out.extend_from_slice(b"((__milTgC)=>{const __milTgS=(");
+                out.extend_from_slice(&src[mod_start..expr_end]);
+                out.extend_from_slice(
+                    b").split(\" \");const __milTgH=__milTgC.contains(__milTgS[0]);__milTgH?__milTgC.remove(...__milTgS):__milTgC.add(...__milTgS);return!__milTgH;})(",
+                );
+                out.extend_from_slice(&src[recv_start..method_start]);
+                out.extend_from_slice(b"classList)");
+            }
+        }
 
         flush = q;
         p = q;
@@ -293,7 +373,7 @@ pub fn patch(name: &str, content: &[u8]) -> Vec<u8> {
     let (patched, cl_count) = patch_classlist(&patched);
 
     log::info!(
-        "{}: resident: {} class(es) rewritten, {} classList call(s) spread in {:.2}ms",
+        "{}: resident: {} class(es) rewritten, {} classList call(s) patched in {:.2}ms",
         name,
         count,
         cl_count,
@@ -454,6 +534,68 @@ mod tests {
         assert_eq!(
             out,
             b"a.classList.add(...s.foo.split(\" \"));b.classList.remove(...t().bar.split(\" \"))"
+        );
+    }
+    #[test]
+    fn classlist_contains_rewrite() {
+        let (out, count) = patch_classlist(b"el.classList.contains(styles.focusRing)");
+        assert_eq!(count, 1);
+        assert_eq!(
+            out,
+            b"el.classList.contains(styles.focusRing.split(\" \")[0])"
+        );
+    }
+    #[test]
+    fn classlist_contains_factory_call() {
+        let (out, count) = patch_classlist(b"n.classList.contains(We().ErrorShake)");
+        assert_eq!(count, 1);
+        assert_eq!(
+            out,
+            b"n.classList.contains(We().ErrorShake.split(\" \")[0])"
+        );
+    }
+    #[test]
+    fn classlist_toggle_simple_receiver() {
+        let (out, count) = patch_classlist(b"el.classList.toggle(styles.focusRing)");
+        assert_eq!(count, 1);
+        assert_eq!(
+            out,
+            b"((__milTgC)=>{const __milTgS=(styles.focusRing).split(\" \");const __milTgH=__milTgC.contains(__milTgS[0]);__milTgH?__milTgC.remove(...__milTgS):__milTgC.add(...__milTgS);return!__milTgH;})(el.classList)"
+        );
+    }
+    #[test]
+    fn classlist_toggle_optional_chaining_receiver() {
+        let (out, count) = patch_classlist(b"e.current?.classList.toggle(We().ErrorShake)");
+        assert_eq!(count, 1);
+        assert_eq!(
+            out,
+            b"((__milTgC)=>{const __milTgS=(We().ErrorShake).split(\" \");const __milTgH=__milTgC.contains(__milTgS[0]);__milTgH?__milTgC.remove(...__milTgS):__milTgC.add(...__milTgS);return!__milTgH;})(e.current?.classList)"
+        );
+    }
+    #[test]
+    fn classlist_toggle_dotted_chain_receiver() {
+        let (out, count) = patch_classlist(b"e.current.classList.toggle(s.foo)");
+        assert_eq!(count, 1);
+        assert_eq!(
+            out,
+            b"((__milTgC)=>{const __milTgS=(s.foo).split(\" \");const __milTgH=__milTgC.contains(__milTgS[0]);__milTgH?__milTgC.remove(...__milTgS):__milTgC.add(...__milTgS);return!__milTgH;})(e.current.classList)"
+        );
+    }
+    #[test]
+    fn classlist_toggle_bails_on_call_expr_receiver() {
+        let input = b"document.querySelector(x).classList.toggle(s.foo)";
+        let (out, count) = patch_classlist(input);
+        assert_eq!(count, 0);
+        assert_eq!(out, input.to_vec());
+    }
+    #[test]
+    fn classlist_toggle_preserves_add_remove_around_it() {
+        let input = b"a.classList.add(s.foo);b.classList.toggle(t.bar);c.classList.remove(u.baz)";
+        let (out, count) = patch_classlist(input);
+        assert_eq!(count, 3);
+        assert_eq!(
+            out,
+            b"a.classList.add(...s.foo.split(\" \"));((__milTgC)=>{const __milTgS=(t.bar).split(\" \");const __milTgH=__milTgC.contains(__milTgS[0]);__milTgH?__milTgC.remove(...__milTgS):__milTgC.add(...__milTgS);return!__milTgH;})(b.classList);c.classList.remove(...u.baz.split(\" \"))"
         );
     }
 }
