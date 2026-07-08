@@ -65,7 +65,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #if defined(__linux__)
-#include <sys/prctl.h>
+#include <csignal>
 #endif
 #endif
 
@@ -406,6 +406,17 @@ static json handle_shutdown(lua_State* L)
     };
 }
 
+#if defined(__linux__)
+static pid_t g_expected_ppid = 0;
+
+static void handle_parent_death_signal(int)
+{
+    if (getppid() != g_expected_ppid) {
+        _exit(1);
+    }
+}
+#endif
+
 int main(int argc, char* argv[])
 {
     if (argc >= 2 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0)) {
@@ -433,13 +444,12 @@ int main(int argc, char* argv[])
     const char* socket_path = argv[1];
 
 #if defined(__linux__)
-    /*
-     * the parent thread that called fork() may be an ephemeral MEP handler thread
-     * that exits after processing plugin.restart. prctl(PR_SET_PDEATHSIG) is tied
-     * to the forking thread (not the process), so when that thread exits we'd get
-     * a spurious SIGTERM. Clear it immediately, socket EOF is our death signal.
-     */
-    prctl(PR_SET_PDEATHSIG, 0);
+    g_expected_ppid = getppid();
+    struct sigaction sa{};
+    sa.sa_handler = handle_parent_death_signal;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGTERM, &sa, nullptr);
 #endif
 
     plugin_ipc::socket_fd fd = connect_to_parent(socket_path);
@@ -603,9 +613,9 @@ int main(int argc, char* argv[])
 
             for (const auto& e : init_params.value("asset_index", json::array())) {
                 AssetEntry ae;
-                ae.file_offset         = e.value("file_offset",         size_t{0});
-                ae.compressed_length   = e.value("compressed_length",   size_t{0});
-                ae.uncompressed_length = e.value("uncompressed_length", size_t{0});
+                ae.file_offset = e.value("file_offset", size_t{ 0 });
+                ae.compressed_length = e.value("compressed_length", size_t{ 0 });
+                ae.uncompressed_length = e.value("uncompressed_length", size_t{ 0 });
                 g_asset_index[e.value("name", "")] = ae;
             }
 
