@@ -90,7 +90,7 @@ let
   };
 
   cargoDeps = rustPlatform.importCargoLock {
-    lockFile = "${millennium-src}/src/instrumentation/loopback/patch_engine/Cargo.lock";
+    lockFile = "${millennium-src}/src/instrumentation/loopback/Cargo.lock";
   };
 
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
@@ -164,8 +164,8 @@ let
     ];
 
     postPatch = ''
-      mkdir -p src/instrumentation/loopback/patch_engine/.cargo
-      cat > src/instrumentation/loopback/patch_engine/.cargo/config.toml << 'EOF'
+      mkdir -p src/instrumentation/loopback/.cargo
+      cat > src/instrumentation/loopback/.cargo/config.toml << 'EOF'
       [source.crates-io]
       replace-with = "vendored-sources"
 
