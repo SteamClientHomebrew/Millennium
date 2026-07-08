@@ -29,7 +29,7 @@
  */
 
 #pragma once
-#include "nlohmann/json.hpp"
+#include "nlohmann/json.hpp" // IWYU pragma: keep
 #include "millennium/types.h"
 #include <filesystem>
 #include <vector>
@@ -38,6 +38,12 @@ class plugin_manager
 {
   public:
     static constexpr const char* plugin_config_file = "plugin.json";
+
+    enum class plugin_format
+    {
+        loose_files,
+        star
+    };
 
     struct plugin_t
     {
@@ -48,6 +54,12 @@ class plugin_manager
         std::filesystem::path plugin_frontend_dir;
         std::filesystem::path plugin_webkit_path;
         bool is_internal = false;
+
+        plugin_format format = plugin_format::loose_files;
+        bool is_trusted = false;
+        bool has_frontend_js = false;
+        bool has_webkit_js = false;
+        std::string backend_entry;
     };
 
     std::vector<plugin_t> get_all_plugins();

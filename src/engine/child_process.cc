@@ -559,23 +559,49 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
 
 #ifdef _WIN32
     HANDLE hProcess = INVALID_HANDLE_VALUE;
+    HANDLE hJob = INVALID_HANDLE_VALUE;
     {
+        hJob = CreateJobObjectW(nullptr, nullptr);
+        if (hJob != INVALID_HANDLE_VALUE) {
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli{};
+            jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            if (!SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli))) {
+                LOG_ERROR("[spawn] SetInformationJobObject failed for plugin '{}' (error: {})", plugin_name, GetLastError());
+                CloseHandle(hJob);
+                hJob = INVALID_HANDLE_VALUE;
+            }
+        } else {
+            LOG_ERROR("[spawn] CreateJobObjectW failed for plugin '{}' (error: {})", plugin_name, GetLastError());
+        }
+
         std::string cmd = "\"" + exe_path + "\" \"" + socket_path + "\"";
 
         STARTUPINFOA si{};
         si.cb = sizeof(si);
         PROCESS_INFORMATION pi{};
 
-        DWORD creation_flags = CommandLineArguments::has_argument("-dev") ? 0 : CREATE_NO_WINDOW;
+        DWORD creation_flags = CREATE_SUSPENDED;
+        if (!CommandLineArguments::has_argument("-dev")) creation_flags |= CREATE_NO_WINDOW;
 
         if (!CreateProcessA(nullptr, const_cast<char*>(cmd.c_str()), nullptr, nullptr, FALSE, creation_flags, nullptr, nullptr, &si, &pi)) {
             LOG_ERROR("[spawn] CreateProcess failed for plugin '{}' (error: {}, cmd: {})", plugin_name, GetLastError(), cmd);
             plugin_ipc::close_fd(server_fd);
+            if (hJob != INVALID_HANDLE_VALUE) CloseHandle(hJob);
             return nullptr;
         }
 
         child_pid = pi.dwProcessId;
         hProcess = pi.hProcess;
+
+        if (hJob != INVALID_HANDLE_VALUE) {
+            if (!AssignProcessToJobObject(hJob, hProcess)) {
+                LOG_ERROR("[spawn] AssignProcessToJobObject failed for plugin '{}' (error: {})", plugin_name, GetLastError());
+                CloseHandle(hJob);
+                hJob = INVALID_HANDLE_VALUE;
+            }
+        }
+
+        ResumeThread(pi.hThread);
         CloseHandle(pi.hThread);
     }
 #else
@@ -619,6 +645,7 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
 #ifdef _WIN32
             TerminateProcess(hProcess, 1);
             CloseHandle(hProcess);
+            if (hJob != INVALID_HANDLE_VALUE) CloseHandle(hJob);
 #else
             ::kill(child_pid, SIGTERM);
             ::waitpid(child_pid, nullptr, 0);
@@ -645,6 +672,7 @@ if (client_fd >= 0) ::fcntl(client_fd, F_SETFD, FD_CLOEXEC);
 #ifdef _WIN32
         TerminateProcess(hProcess, 1);
         CloseHandle(hProcess);
+        if (hJob != INVALID_HANDLE_VALUE) CloseHandle(hJob);
 #else
         ::kill(child_pid, SIGTERM);
         ::waitpid(child_pid, nullptr, 0);
@@ -656,26 +684,7 @@ if (client_fd >= 0) ::fcntl(client_fd, F_SETFD, FD_CLOEXEC);
 
 #ifdef _WIN32
     process->m_process_handle = hProcess;
-
-    /**
-     * on windows, explicitly kill the child proc after millennium detaches. On the win32 implementation
-     * of AF_UNIX, WSAPoll never sends POLLHUP, resulting in zombie processes that were never reaped.
-     */
-    {
-        HANDLE hJob = CreateJobObjectW(nullptr, nullptr);
-        if (hJob != INVALID_HANDLE_VALUE) {
-            JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli{};
-            jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-            if (SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli)) && AssignProcessToJobObject(hJob, hProcess)) {
-                process->m_job_handle = hJob;
-            } else {
-                LOG_ERROR("[spawn] failed to configure job object for plugin '{}' (error: {})", plugin_name, GetLastError());
-                CloseHandle(hJob);
-            }
-        } else {
-            LOG_ERROR("[spawn] CreateJobObjectW failed for plugin '{}' (error: {})", plugin_name, GetLastError());
-        }
-    }
+    process->m_job_handle = hJob;
 #endif
 
     process->m_crash_dump_dir = init_params.value("crash_dump_dir", "");

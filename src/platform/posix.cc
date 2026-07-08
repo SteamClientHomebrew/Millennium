@@ -31,7 +31,6 @@
 #include "millennium/steam_hooks.h"
 #include <memory>
 #if defined(__linux__) || defined(__APPLE__)
-#include "state/shared_memory.h"
 
 #include "millennium/millennium.h"
 #include "millennium/environment.h"
@@ -58,12 +57,6 @@ CONSTRUCTOR void Posix_InitializeEnvironment()
 
 DESTRUCTOR void Posix_UnInitializeEnvironment()
 {
-    /** destroy the shared memory pool between millennium and the web helper hook */
-    if (g_lb_patch_arena) {
-        platform::shared_memory::sclose(g_lb_patch_arena, SHM_IPC_SIZE);
-        platform::shared_memory::sunlink(SHM_IPC_NAME);
-        g_lb_patch_arena = NULL;
-    }
 }
 
 void Posix_AttachMillennium()

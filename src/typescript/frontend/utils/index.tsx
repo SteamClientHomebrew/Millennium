@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal, ConfirmModalProps, pluginSelf, showModal } from '@steambrew/client';
+import { ConfirmModal, ConfirmModalProps, pluginSelf, showModal } from '@steambrew/sdk';
 import { PluginComponent } from '../types';
 import { Logger } from './Logger';
 import { SteamLocale } from './localization-manager';

@@ -33,6 +33,7 @@
 #include "millennium/logger.h"
 #include "millennium/config.h"
 #include "millennium/environment.h"
+#include "millennium/star_parser.h"
 #include <format>
 #ifdef _WIN32
 #include <windows.h>
@@ -165,6 +166,7 @@ plugin_manager::plugin_t plugin_manager::get_plugin_internal_metadata(nlohmann::
 
     plugin_manager::plugin_t plugin;
     plugin.plugin_json = json;
+    plugin.format = plugin_manager::plugin_format::loose_files;
     plugin.plugin_name = json["name"];
     plugin.plugin_base_dir = entry.path();
     plugin.plugin_backend_dir = entry.path() / json.value("backend", "backend") / "main.lua";
@@ -188,6 +190,16 @@ std::vector<plugin_manager::plugin_t> plugin_manager::get_all_plugins()
     /** Find the remaining plugins from the user plugins folder. */
     try {
         for (const auto& entry : std::filesystem::directory_iterator(plugin_path)) {
+            /* v2 plugins */
+            if (entry.is_regular_file() && entry.path().extension() == ".star") {
+                auto result = parse_star_file(entry.path());
+                if (result.has_value()) {
+                    plugins.push_back(std::move(*result));
+                }
+                continue;
+            }
+
+            /* v1 plugins */
             if (!entry.is_directory()) {
                 continue;
             }

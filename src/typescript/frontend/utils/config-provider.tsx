@@ -30,7 +30,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { produce } from 'immer';
-import { Millennium } from '@steambrew/client';
+import { Millennium } from '@steambrew/sdk';
 import { settingsManager } from './settings-manager';
 import { backend } from './ffi';
 import { AppConfig } from './AppConfig';

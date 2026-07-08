@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { Navigation } from '@steambrew/client';
+import { Navigation } from '@steambrew/sdk';
 import { Logger } from './Logger';
 import { backend } from './ffi';
 import { ChangeActiveTheme, UIReloadProps } from '../settings/themes/ThemeComponent';

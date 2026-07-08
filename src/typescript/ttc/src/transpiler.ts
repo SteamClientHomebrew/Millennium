@@ -223,32 +223,43 @@ function tsconfigPathsPlugin(tsconfigPath: string): InputPluginOption {
 	};
 }
 
+function pluginNameInjections(ns: string): Transform[] {
+	return [
+		{ type: 'inject_arg', match: [ns, 'BindPluginSettings'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'pluginConfig', 'get'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'pluginConfig', 'set'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'pluginConfig', 'delete'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'pluginConfig', 'getAll'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'usePluginConfig'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'subscribePluginConfig'], arg: 'pluginName' },
+	];
+}
+
 const PLUGIN_NAME_INJECTIONS: Transform[] = [
-	{ type: 'inject_arg', match: ['client', 'BindPluginSettings'], arg: 'pluginName' },
-	{ type: 'inject_arg', match: ['client', 'pluginConfig', 'get'], arg: 'pluginName' },
-	{ type: 'inject_arg', match: ['client', 'pluginConfig', 'set'], arg: 'pluginName' },
-	{ type: 'inject_arg', match: ['client', 'pluginConfig', 'delete'], arg: 'pluginName' },
-	{ type: 'inject_arg', match: ['client', 'pluginConfig', 'getAll'], arg: 'pluginName' },
-	{ type: 'inject_arg', match: ['client', 'usePluginConfig'], arg: 'pluginName' },
-	{ type: 'inject_arg', match: ['client', 'subscribePluginConfig'], arg: 'pluginName' },
+	...pluginNameInjections('client'),
+	...pluginNameInjections('sdk'),
 ];
 
+function frontendTransforms(ns: string): Transform[] {
+	return [
+		{ type: 'rename', match: [ns, 'pluginSelf'], replacement: 'window.PLUGIN_LIST[pluginName]' },
+		{ type: 'inject_arg', match: [ns, 'callable'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'ffi'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'Millennium', 'callServerMethod'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'Millennium', 'exposeObj'], arg: 'exports' },
+		...pluginNameInjections(ns),
+		{
+			type: 'inject_const',
+			match: [ns, 'ChromeDevToolsProtocol'],
+			localName: 'ChromeDevToolsProtocol',
+			init: `${ns}.MillenniumChromeDevToolsProtocol ? new ${ns}.MillenniumChromeDevToolsProtocol(pluginName) : ${ns}.ChromeDevToolsProtocol`,
+		},
+	];
+}
+
 const FRONTEND_TRANSFORMS: Transform[] = [
-	/* override pluginSelf */
-	{ type: 'rename', match: ['client', 'pluginSelf'], replacement: 'window.PLUGIN_LIST[pluginName]' },
-	/* inject plugin name */
-	{ type: 'inject_arg', match: ['client', 'callable'], arg: 'pluginName' },
-	{ type: 'inject_arg', match: ['client', 'ffi'], arg: 'pluginName' },
-	{ type: 'inject_arg', match: ['client', 'Millennium', 'callServerMethod'], arg: 'pluginName' },
-	{ type: 'inject_arg', match: ['client', 'Millennium', 'exposeObj'], arg: 'exports' },
-	...PLUGIN_NAME_INJECTIONS,
-	/* hoist ChromeDevToolsProtocol to a per-plugin instance; falls back to the shared singleton on old SDKs */
-	{
-		type: 'inject_const',
-		match: ['client', 'ChromeDevToolsProtocol'],
-		localName: 'ChromeDevToolsProtocol',
-		init: 'client.MillenniumChromeDevToolsProtocol ? new client.MillenniumChromeDevToolsProtocol(pluginName) : client.ChromeDevToolsProtocol',
-	},
+	...frontendTransforms('client'),
+	...frontendTransforms('sdk'),
 ];
 
 const WEBKIT_TRANSFORMS: Transform[] = [
@@ -321,8 +332,8 @@ abstract class MillenniumBuild {
 }
 
 class FrontendBuild extends MillenniumBuild {
-	protected readonly externals = new Set(['@steambrew/client', 'react', 'react-dom', 'react-dom/client', 'react/jsx-runtime']);
-	protected readonly forbidden = new Map([['@steambrew/webkit', 'use @steambrew/client in the frontend module']]);
+	protected readonly externals = new Set(['@steambrew/client', '@steambrew/sdk', 'react', 'react-dom', 'react-dom/client', 'react/jsx-runtime']);
+	protected readonly forbidden = new Map([['@steambrew/webkit', 'use @steambrew/sdk in the frontend module']]);
 
 	constructor(
 		private readonly frontendDir: string,
@@ -370,6 +381,7 @@ class FrontendBuild extends MillenniumBuild {
 				'react-dom/client': 'window.SP_REACTDOM',
 				'react/jsx-runtime': 'SP_JSX_FACTORY',
 				'@steambrew/client': 'window.MILLENNIUM_API',
+				'@steambrew/sdk': 'window.MILLENNIUM_API',
 			},
 			exports: 'named',
 			format: 'iife',

@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#include "mep_server.h"
+#include "mep/mep_server.h"
 
 #ifdef _WIN32
 #include <winsock2.h>

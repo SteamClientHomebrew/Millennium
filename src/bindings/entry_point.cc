@@ -32,6 +32,7 @@
 #include "millennium/linux_distro_helpers.h"
 #include "head/library_updater.h"
 #include "mep/crash_event_bus.h"
+#include "mep/log_normalize.h"
 #include "head/scan.h"
 #include "head/theme_cfg.h"
 #include "head/webkit.h"
@@ -627,14 +628,22 @@ builtin_payload head::millennium_backend::Core_GetPluginBackendLogs(const builti
     std::vector<plugin_manager::plugin_t> plugins = m_plugin_manager->get_all_plugins();
 
     for (auto& logger : get_plugin_logger_mgr()) {
-        nlohmann::json logDataItem;
+        nlohmann::json logDataItem = nlohmann::json::array();
 
-        for (auto [message, logLevel, timestamp] : logger->collect_logs()) {
-            logDataItem.push_back({
-                { "message",   Base64Encode(message) },
-                { "level",     logLevel              },
-                { "timestamp", timestamp             }
-            });
+        for (auto& entry : mep::collect_log_snapshot(*logger, 200)) {
+            const std::string level = entry.value("level", std::string{ "info" });
+
+            nlohmann::json item = {
+                { "message",   Base64Encode(entry.value("message", std::string{})) },
+                { "level",     level == "error" ? 2 : level == "warn" ? 1 : 0       },
+                { "timestamp", format_log_timestamp(entry.value("timestamp_us", uint64_t(0))) },
+                { "source",    entry.value("source", std::string{ "backend" })      },
+            };
+            if (entry.contains("file")) {
+                item["file"] = entry["file"];
+                item["line"] = entry.value("line", 0);
+            }
+            logDataItem.push_back(std::move(item));
         }
 
         std::string pluginName = logger->get_plugin_name(false);

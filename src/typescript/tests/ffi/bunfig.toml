@@ -1,2 +1,2 @@
 [test]
-preload = ["../../sdk/packages/test/src/setup.ts"]
+preload = ["../harness/setup.ts"]

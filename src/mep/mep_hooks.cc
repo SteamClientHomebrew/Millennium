@@ -28,20 +28,22 @@
  * SOFTWARE.
  */
 
-#include "mep_hooks.h"
-#include "mep_message.h"
-#include "ffi_recorder.h"
-#include "console_capture.h"
-#include "exception_capture.h"
-#include "crash_event_bus.h"
-#include "sdk_ready_bus.h"
-
+#include "mep/mep_hooks.h"
+#include "mep/mep_message.h"
+#include "mep/ffi_recorder.h"
+#include "mep/console_capture.h"
+#include "mep/exception_capture.h"
+#include "mep/crash_event_bus.h"
+#include "mep/sdk_ready_bus.h"
+#include "mep/patch_stream_recorder.h"
+#include "mep/patch_update_notifier.h"
+#include "mep/log_normalize.h"
 #include "millennium/plugin_loader.h"
 #include "millennium/plugin_manager.h"
 #include "millennium/backend_mgr.h"
 #include "millennium/logger.h"
 #include "millennium/plugin_config.h"
-#include "state/shared_memory.h"
+#include "instrumentation/patch_registry.h"
 
 #include <fstream>
 
@@ -91,6 +93,15 @@ const char* level_str(logger_base::log_level lv)
             return "info";
     }
 }
+
+struct stream_sub_state
+{
+    std::atomic<bool> cancelled{ false };
+    std::atomic<int> log_listener_id{ -1 };
+    std::atomic<int> console_listener_id{ -1 };
+    std::atomic<int> patch_listener_id{ -1 };
+};
+
 } // namespace
 
 void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader)
@@ -182,13 +193,16 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         auto name = require_string(req, "name");
         if (!name) return response_t::err(req.id, "missing required param: name");
 
+        const bool reload_ui = !req.params.is_null() && req.params.contains("reload_ui") && req.params["reload_ui"].is_boolean() && req.params["reload_ui"].get<bool>();
+
         auto bm = loader->get_backend_manager();
         bm->destroy_plugin(*name);
-        loader->set_plugin_enable(*name, true);
+        loader->set_plugin_enable(*name, true, reload_ui);
 
         const json params = {
-            { "name",    *name                             },
-            { "running", bm->is_any_backend_running(*name) },
+            { "name",      *name                             },
+            { "running",   bm->is_any_backend_running(*name) },
+            { "reload_ui", reload_ui                         },
         };
         return response_t::ok(req.id, params);
     });
@@ -238,9 +252,9 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
             for (const auto& e : lgr->collect_logs()) {
                 if (e.level >= min_lv)
                     initial.push_back({
-                        { "level",     level_str(e.level) },
-                        { "message",   e.message          },
-                        { "timestamp", e.timestamp        }
+                        { "level",     level_str(e.level)                   },
+                        { "message",   e.message                            },
+                        { "timestamp", format_log_timestamp(e.timestamp_us) }
                     });
             }
         }
@@ -283,7 +297,7 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
                  {
                       { "level", level_str(entry.level) },
                       { "message", entry.message },
-                      { "timestamp", entry.timestamp },
+                      { "timestamp", format_log_timestamp(entry.timestamp_us) },
                   }                                  },
             });
         });
@@ -606,6 +620,116 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         return ok ? response_t::ok(req.id, params) : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
     });
 
+    router.register_handler("plugin.stream", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
+    {
+        if (!ctx) return response_t::err(req.id, "plugin.stream requires a live connection");
+
+        auto name = require_string(req, "name");
+        if (!name) return response_t::err(req.id, "missing required param: name");
+
+        plugin_logger* backend_logger = nullptr;
+        for (auto* l : get_plugin_logger_mgr()) {
+            if (l->get_plugin_name(false) == *name) {
+                backend_logger = l;
+                break;
+            }
+        }
+
+        /* make a new logger for the plugin so we can immediately connect to it */
+        if (!backend_logger) {
+            backend_logger = new plugin_logger(name.value());
+            get_plugin_logger_mgr().push_back(backend_logger);
+        }
+
+        auto& capture = console_capture::instance();
+
+        json snapshot = collect_log_snapshot(*backend_logger, 200);
+
+        auto state = std::make_shared<stream_sub_state>();
+
+        const auto ctx_weak = std::weak_ptr<client_context>(ctx);
+        const std::string captured_name = *name;
+
+        auto& patch_recorder = patch_stream_recorder::instance();
+
+        /* cancel hook: remove all three listeners when the connection dies */
+        const std::string sub_id = ctx->subscribe([backend_logger, &capture, &patch_recorder, state]()
+        {
+            state->cancelled.store(true);
+            const int log_id = state->log_listener_id.load();
+            if (backend_logger && log_id >= 0) backend_logger->remove_listener(log_id);
+            const int con_id = state->console_listener_id.load();
+            if (con_id >= 0) capture.remove_listener(con_id);
+            const int patch_id = state->patch_listener_id.load();
+            if (patch_id >= 0) patch_recorder.remove_listener(patch_id);
+        });
+
+        const std::string captured_sub_id = sub_id;
+
+        const int log_id = backend_logger->add_listener([ctx_weak, state, captured_sub_id, captured_name](const logger_base::log_entry& entry)
+        {
+            if (state->cancelled.load()) return;
+            auto ctx_s = ctx_weak.lock();
+            if (!ctx_s) return;
+            ctx_s->push({
+                { "type",            "event"                    },
+                { "subscription_id", captured_sub_id            },
+                { "plugin",          captured_name              },
+                { "data",            normalize_log_entry(entry) },
+            });
+        });
+        state->log_listener_id.store(log_id);
+
+        const int con_id = capture.add_listener(*name, [ctx_weak, state, captured_sub_id, captured_name](const console_entry& entry)
+        {
+            if (state->cancelled.load()) return;
+            auto ctx_s = ctx_weak.lock();
+            if (!ctx_s) return;
+            ctx_s->push({
+                { "type",            "event"                        },
+                { "subscription_id", captured_sub_id                },
+                { "plugin",          captured_name                  },
+                { "data",            normalize_console_entry(entry) },
+            });
+        });
+        state->console_listener_id.store(con_id);
+
+        const int patch_id = patch_recorder.add_listener(*name, [ctx_weak, state, captured_sub_id, captured_name](const patch_event& ev)
+        {
+            if (state->cancelled.load()) return;
+            auto ctx_s = ctx_weak.lock();
+            if (!ctx_s) return;
+            ctx_s->push({
+                { "type",            "event"                    },
+                { "subscription_id", captured_sub_id            },
+                { "plugin",          captured_name              },
+                { "data",            normalize_patch_entry(ev)  },
+            });
+        });
+        state->patch_listener_id.store(patch_id);
+
+        const json params = {
+            { "subscription_id", sub_id   },
+            { "entries",         snapshot },
+        };
+        return response_t::ok(req.id, params);
+    });
+
+    router.register_handler("plugin.stream.unsubscribe", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
+    {
+        if (!ctx) return response_t::err(req.id, "plugin.stream.unsubscribe requires a live connection");
+
+        auto sub_id = require_string(req, "subscription_id");
+        if (!sub_id) return response_t::err(req.id, "missing required param: subscription_id");
+
+        const bool ok = ctx->unsubscribe(*sub_id);
+
+        const json params = {
+            { "subscription_id", *sub_id }
+        };
+        return ok ? response_t::ok(req.id, params) : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
+    });
+
     router.register_handler("runtime.exceptions", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
     {
         if (!ctx) return response_t::err(req.id, "runtime.exceptions requires a live connection");
@@ -812,32 +936,72 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         return response_t::ok(req.id, params);
     });
 
+    router.register_handler("patch.list", [](const request_t& req, const std::shared_ptr<client_context>&)
+    {
+        return response_t::ok(req.id, patch_registry_to_json());
+    });
+
+    router.register_handler("patch.updates", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
+    {
+        if (!ctx) return response_t::err(req.id, "patch.updates requires a live connection");
+
+        struct sub_state
+        {
+            std::atomic<bool> cancelled{ false };
+            std::atomic<int> notifier_id{ -1 };
+        };
+        auto state = std::make_shared<sub_state>();
+        auto& notifier = patch_update_notifier::instance();
+
+        const std::string sub_id = ctx->subscribe([state, &notifier]()
+        {
+            state->cancelled.store(true);
+            const int id = state->notifier_id.load();
+            if (id >= 0) notifier.remove_listener(id);
+        });
+
+        const auto ctx_weak = std::weak_ptr<client_context>(ctx);
+        const std::string captured_sub_id = sub_id;
+
+        const int notifier_id = notifier.add_listener([ctx_weak, state, captured_sub_id]()
+        {
+            if (state->cancelled.load()) return;
+            auto ctx_s = ctx_weak.lock();
+            if (!ctx_s) return;
+            ctx_s->push({
+                { "type",            "event"         },
+                { "subscription_id", captured_sub_id },
+                { "data",            json::object()  },
+            });
+        });
+        state->notifier_id.store(notifier_id);
+
+        return response_t::ok(req.id, {
+                                          { "subscription_id", sub_id }
+        });
+    });
+
+    router.register_handler("patch.updates.unsubscribe", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
+    {
+        if (!ctx) return response_t::err(req.id, "patch.updates.unsubscribe requires a live connection");
+        auto sub_id = require_string(req, "subscription_id");
+        if (!sub_id) return response_t::err(req.id, "missing required param: subscription_id");
+        const bool ok = ctx->unsubscribe(*sub_id);
+        json params = {
+            { "subscription_id", *sub_id }
+        };
+        return ok ? response_t::ok(req.id, params) : response_t::err(req.id, "unknown subscription_id: " + *sub_id);
+    });
+
     router.register_handler("file.list", [](const request_t& req, const std::shared_ptr<client_context>&)
     {
         json list = json::array();
-
-        if (g_lb_patch_arena) {
-            using namespace platform::shared_memory;
-            const auto& map = g_lb_patch_arena->map;
-
-            const uint32_t* keys = SHM_PTR(g_lb_patch_arena, map.keys_off, uint32_t);
-            const lb_patch_list_shm_t* values = SHM_PTR(g_lb_patch_arena, map.values_off, lb_patch_list_shm_t);
-
-            for (uint32_t i = 0; i < map.count; ++i) {
-                const char* plugin_name = SHM_PTR(g_lb_patch_arena, keys[i], char);
-                const auto& plist = values[i];
-                const lb_patch_shm_t* patches = SHM_PTR(g_lb_patch_arena, plist.patches_off, lb_patch_shm_t);
-
-                for (uint32_t j = 0; j < plist.patch_count; ++j) {
-                    const char* file_pattern = SHM_PTR(g_lb_patch_arena, patches[j].file_off, char);
-                    list.push_back({
-                        { "plugin",  std::string(plugin_name)  },
-                        { "pattern", std::string(file_pattern) },
-                    });
-                }
-            }
+        for (const auto& entry : patch_registry_to_json()) {
+            list.push_back({
+                { "plugin",  entry.value("plugin", "") },
+                { "pattern", entry.value("file",   "") },
+            });
         }
-
         return response_t::ok(req.id, list);
     });
 

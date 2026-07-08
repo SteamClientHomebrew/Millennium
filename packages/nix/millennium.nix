@@ -6,6 +6,9 @@
   nodejs,
   cacert,
   patchelf,
+  rustPlatform,
+  cargo,
+  rustc,
 
   lib,
   stdenv,
@@ -20,13 +23,11 @@
   ...
 }:
 let
-  version = "3.3.0-beta.7";
+  version = "3.4.0-beta.7";
 
   tsPackages = [
     "src/typescript/ttc"
-    "src/typescript/sdk/packages/client"
-    "src/typescript/sdk/packages/browser"
-    "src/typescript/sdk/packages/loader"
+    "src/typescript/sdk"
     "src/typescript/frontend"
   ];
 
@@ -66,6 +67,7 @@ let
     buildPhase = ''
       export HOME=$TMPDIR
       (cd src/typescript && bun install --frozen-lockfile)
+      (cd src/typescript/ttc && bun node_modules/.bin/rollup -c)
     '';
 
     installPhase = ''
@@ -77,11 +79,18 @@ let
           cp -r "$dir" "$out/$dir"
         fi
       done
+
+      mkdir -p "$out/src/typescript/ttc"
+      cp -r src/typescript/ttc/dist "$out/src/typescript/ttc/dist"
     '';
 
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = "sha256-07kSANQ5uLwsLX+wuS0Cq2YSeTqkSVnUBGqadP0Uj4Y=";
+    outputHash = "sha256-BEupNhAlkAELGGLj6/SVUjj101hBm4JzJH9N5i1qM6A=";
+  };
+
+  cargoDeps = rustPlatform.importCargoLock {
+    lockFile = "${millennium-src}/src/instrumentation/loopback/patch_engine/Cargo.lock";
   };
 
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
@@ -115,6 +124,10 @@ let
         fi
       done
 
+      mkdir -p src/typescript/ttc
+      cp -r ${bunDeps}/src/typescript/ttc/dist src/typescript/ttc/dist
+      chmod -R u+w src/typescript/ttc/dist
+
       patchShebangs src/typescript/node_modules
       ${tsBuildCmds}
     '';
@@ -137,6 +150,11 @@ let
   build64 = stdenv.mkDerivation (commonBuild // {
     pname = "millennium-64";
 
+    nativeBuildInputs = commonBuild.nativeBuildInputs ++ [
+      cargo
+      rustc
+    ];
+
     buildInputs = [
       libx11
       libXi
@@ -144,6 +162,17 @@ let
       re2
       re2.dev
     ];
+
+    postPatch = ''
+      mkdir -p src/instrumentation/loopback/patch_engine/.cargo
+      cat > src/instrumentation/loopback/patch_engine/.cargo/config.toml << 'EOF'
+      [source.crates-io]
+      replace-with = "vendored-sources"
+
+      [source.vendored-sources]
+      directory = "${cargoDeps}"
+      EOF
+    '';
 
     cmakeFlags = commonBuild.cmakeFlags ++ [ "-DMILLENNIUM_NIX_64BIT=ON" ];
 

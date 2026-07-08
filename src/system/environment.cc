@@ -39,7 +39,6 @@
 #include "millennium/auth.h"
 
 #include <format>
-#include <print>
 #include <stdlib.h>
 #include <string>
 #if defined(__linux__) || defined(__APPLE__)
@@ -135,100 +134,60 @@ std::string platform::environment::get(std::string key, std::string fallback)
     return var.empty() ? fallback : var;
 }
 
+// clang-format off
 /**
  * @brief Set up environment variables used throughout the application.
  */
 void platform::environment::setup()
 {
-    std::map<std::string, std::string> environment = {
+    std::map<std::string, std::string> environment
+    {
         { "MILLENNIUM__VERSION",    MILLENNIUM_VERSION                  },
         { "MILLENNIUM__STEAM_PATH", platform::get_steam_path().string() },
-        { "MILLENNIUM__FTP_TOKEN",  GetScrambledApiPathToken()          }
     };
-
-#if defined(MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS)
-    const auto shimsPath = MILLENNIUM_SDK_DEVELOPMENT_MODE_ASSETS;
-#else
-#ifdef _WIN32
-    const auto shimsPath = platform::get_install_path().string() + "/ext/data/shims";
-#elif __linux__
-    const auto shimsPath = "/usr/share/millennium/shims";
-#elif __APPLE__
-    const auto shimsPath = "/usr/local/share/millennium/shims";
-#endif
-#endif
-
-#if defined(MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS)
-    const auto assetsPath = MILLENNIUM_FRONTEND_DEVELOPMENT_MODE_ASSETS;
-#else
-#ifdef _WIN32
-    const auto assetsPath = platform::get_install_path().string() + "/ext/data/assets";
-#elif __linux__
-    const auto assetsPath = "/usr/share/millennium/assets";
-#elif __APPLE__
-    const auto assetsPath = "/usr/local/share/millennium/assets";
-#endif
-#endif
-
-    const auto dataLibPath = std::filesystem::path(assetsPath).parent_path().generic_string();
-
 #ifdef _WIN32
     const auto installPath = platform::get_install_path().string();
-    std::map<std::string, std::string> environment_windows = {
+    std::map<std::string, std::string> environment_windows
+    {
         { "MILLENNIUM__PLUGINS_PATH", installPath + "/plugins" },
         { "MILLENNIUM__CONFIG_PATH",  installPath + "/config"  },
-        { "MILLENNIUM__LOGS_PATH",    installPath + "/logs"    },
-        { "MILLENNIUM__DATA_LIB",     dataLibPath              },
-        { "MILLENNIUM__SHIMS_PATH",   shimsPath                },
-        { "MILLENNIUM__ASSETS_PATH",  assetsPath               },
-        { "MILLENNIUM__INSTALL_PATH", installPath              }
+        { "MILLENNIUM__LOGS_PATH",    installPath + "/logs"    }
     };
     environment.insert(environment_windows.begin(), environment_windows.end());
 #elif __linux__
-    const std::string homeDir = get("HOME");
-    const std::string configDir = get("XDG_CONFIG_HOME", std::format("{}/.config", homeDir));
-    const std::string dataDir = get("XDG_DATA_HOME", std::format("{}/.local/share", homeDir));
-    const std::string stateDir = get("XDG_STATE_HOME", std::format("{}/.local/state", homeDir));
+    const std::string homeDir   = environment::get("HOME");
+    const std::string configDir = environment::get("XDG_CONFIG_HOME", std::format("{}/.config",      homeDir));
+    const std::string dataDir   = environment::get("XDG_DATA_HOME",   std::format("{}/.local/share", homeDir));
+    const std::string stateDir  = environment::get("XDG_STATE_HOME",  std::format("{}/.local/state", homeDir));
 
-    const std::string customLdPreload = get("MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so");
-
-    std::map<std::string, std::string> environment_unix = {
-        { "OPENSSL_CONF", "/dev/null" },
-        { "MILLENNIUM_RUNTIME_PATH", customLdPreload },
+    std::map<std::string, std::string> environment_unix
+    {
+        { "OPENSSL_CONF",              "/dev/null" },
+        { "MILLENNIUM_RUNTIME_PATH",    environment::get("MILLENNIUM_RUNTIME_PATH", "/usr/lib/millennium/libmillennium_x86.so") },
         { "MILLENNIUM__STEAM_EXE_PATH", std::format("{}/.steam/steam/ubuntu12_32/steam", homeDir) },
-        { "MILLENNIUM__PLUGINS_PATH", std::format("{}/millennium/plugins", dataDir) },
-        { "MILLENNIUM__CONFIG_PATH", std::format("{}/millennium", configDir) },
-        { "MILLENNIUM__LOGS_PATH", std::format("{}/millennium/logs", stateDir) },
-        { "MILLENNIUM__DATA_LIB", dataLibPath },
-        { "MILLENNIUM__SHIMS_PATH", shimsPath },
-        { "MILLENNIUM__ASSETS_PATH", assetsPath },
+        { "MILLENNIUM__PLUGINS_PATH",   std::format("{}/millennium/plugins",             dataDir) },
+        { "MILLENNIUM__CONFIG_PATH",    std::format("{}/millennium",                   configDir) },
+        { "MILLENNIUM__LOGS_PATH",      std::format("{}/millennium/logs",               stateDir) },
     };
     environment.insert(environment_unix.begin(), environment_unix.end());
 #elif __APPLE__
-    const std::string homeDir = platform::environment::get("HOME");
+    const std::string homeDir   = platform::environment::get("HOME");
     const std::string configDir = std::format("{}/Library/Application Support", homeDir);
-    const std::string dataDir = std::format("{}/Library/Application Support", homeDir);
-    const std::string stateDir = std::format("{}/Library/Logs", homeDir);
+    const std::string dataDir   = std::format("{}/Library/Application Support", homeDir);
+    const std::string stateDir  = std::format("{}/Library/Logs",                homeDir);
 
-    std::map<std::string, std::string> environment_macos = {
+    std::map<std::string, std::string> environment_macos
+    {
         { "MILLENNIUM_RUNTIME_PATH", "/usr/local/lib/millennium/libmillennium_x86.dylib" },
 
         { "MILLENNIUM__STEAM_EXE_PATH", std::format("{}/Library/Application Support/Steam/Steam.app/Contents/MacOS/steam_osx", homeDir) },
-        { "MILLENNIUM__PLUGINS_PATH", std::format("{}/Millennium/plugins", dataDir) },
-        { "MILLENNIUM__CONFIG_PATH", std::format("{}/Millennium", configDir) },
-        { "MILLENNIUM__LOGS_PATH", std::format("{}/Millennium/logs", stateDir) },
-        { "MILLENNIUM__DATA_LIB", dataLibPath },
-        { "MILLENNIUM__SHIMS_PATH", shimsPath },
-        { "MILLENNIUM__ASSETS_PATH", assetsPath },
+        { "MILLENNIUM__PLUGINS_PATH",   std::format("{}/Millennium/plugins", dataDir) },
+        { "MILLENNIUM__CONFIG_PATH",    std::format("{}/Millennium",       configDir) },
+        { "MILLENNIUM__LOGS_PATH",      std::format("{}/Millennium/logs",   stateDir) },
     };
     environment.insert(environment_macos.begin(), environment_macos.end());
 #endif
-
-    const bool shouldLog = !get("MLOG_ENV").empty();
     envVariables = environment;
-
-    for (const auto& [key, value] : environment) {
-        if (shouldLog) std::println("{}={}", key, value);
-        set(key, value);
-    }
+    for (const auto& [key, value] : environment) set(key, value);
 }
+// clang-format on

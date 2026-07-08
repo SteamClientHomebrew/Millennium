@@ -29,7 +29,7 @@
  */
 
 import React, { ReactNode } from 'react';
-import { findModuleDetailsByExport, findModuleExport, ModalPosition } from '@steambrew/client';
+import { findModuleDetailsByExport, findModuleExport, ModalPosition } from '@steambrew/sdk';
 import { FC } from 'react';
 import { fieldClasses } from '../utils/classes';
 

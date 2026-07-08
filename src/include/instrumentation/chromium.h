@@ -69,7 +69,7 @@ static inline void* get_cef_handle()
 #ifdef __APPLE__
         handle = dlopen("Chromium Embedded Framework", RTLD_LAZY | RTLD_NOLOAD);
         if (!handle) handle = dlopen("Chromium Embedded Framework", RTLD_LAZY);
-        if (!handle) handle = dlopen(nullptr, RTLD_LAZY);
+        if (!handle) handle = dlopen(NULL, RTLD_LAZY);
 #else
         handle = dlopen("libcef.so", RTLD_LAZY | RTLD_NOLOAD);
         if (!handle) handle = dlopen("libcef.so", RTLD_LAZY);
@@ -170,6 +170,24 @@ typedef struct _cef_client_t
 
     struct _cef_request_handler_t*(CEF_CALLBACK* get_request_handler)(void* self);
 } cef_client_t;
+
+/**
+ * generic continuation cb, handed by us to a real cef_resource_handler_t's
+ * open()/process_request()/read_response() when we need it to tell us when
+ * deferred (asynchronous) work has completed.
+ */
+typedef struct _cef_callback_t
+{
+    char _base[sizeof(size_t) + sizeof(void*) * 0x4];
+    void(CEF_CALLBACK* cont)(struct _cef_callback_t* self);
+    void(CEF_CALLBACK* cancel)(struct _cef_callback_t* self);
+} cef_callback_t;
+
+typedef struct _cef_resource_read_callback_t
+{
+    char _base[sizeof(size_t) + sizeof(void*) * 0x4];
+    void(CEF_CALLBACK* cont)(struct _cef_resource_read_callback_t* self, int bytes_read);
+} cef_resource_read_callback_t;
 
 typedef struct _cef_resource_handler_t
 {

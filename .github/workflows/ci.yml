@@ -381,7 +381,7 @@ jobs:
   update-pkgbuild:
     needs: [prepare, release]
     runs-on: ubuntu-latest
-    if: ${{ inputs.release_artifacts == true }}
+    if: ${{ inputs.release_artifacts == true && needs.prepare.outputs.version != '' }}
     outputs:
       updated_sha: ${{ steps.push.outputs.updated_sha }}
 

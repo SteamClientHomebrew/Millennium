@@ -203,15 +203,15 @@ void head::theme_config_store::start_webkit_hook(const nlohmann::json& theme, co
 
     for (const auto& item : cssItems) {
         if (theme["data"].contains(item)) {
-            m_theme_webkit_mgr->add_browser_hook((theme_path / theme["data"][item].get<std::string>()).generic_string(), ".*", network_hook_ctl::TagTypes::STYLESHEET);
+            m_theme_webkit_mgr->add_browser_hook((std::filesystem::path(name) / theme["data"][item].get<std::string>()).generic_string(), ".*", network_hook_ctl::TagTypes::STYLESHEET);
         }
     }
 
     if (theme["data"].contains("webkitJS")) {
-        m_theme_webkit_mgr->add_browser_hook((theme_path / theme["data"]["webkitJS"].get<std::string>()).generic_string(), ".*", network_hook_ctl::TagTypes::JAVASCRIPT);
+        m_theme_webkit_mgr->add_browser_hook((std::filesystem::path(name) / theme["data"]["webkitJS"].get<std::string>()).generic_string(), ".*", network_hook_ctl::TagTypes::JAVASCRIPT);
     }
 
-    m_theme_webkit_mgr->add_conditional_data(theme_path.generic_string(), theme["data"], name);
+    m_theme_webkit_mgr->add_conditional_data(theme["data"], name);
 }
 
 void head::theme_config_store::setup_colors()

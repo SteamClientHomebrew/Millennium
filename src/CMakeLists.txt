@@ -54,6 +54,7 @@ set(SOURCE_FILES
     engine/millennium_updater.cc
     engine/plugin_loader.cc
     engine/plugin_manager.cc
+    engine/star_parser.cc
     engine/plugin_webkit_store.cc
     engine/plugin_webkit_world_mgr.cc
     engine/thread_pool.cc
@@ -73,7 +74,8 @@ set(SOURCE_FILES
     bindings/theme_mgr.cc
     bindings/webkit.cc
     instrumentation/internal/steam_hooks.cc
-    state/shared_memory.cc
+    instrumentation/internal/loopback_ipc.cc
+    instrumentation/internal/patch_registry.cc
     shared/crash_report.cc
     shared/crash_handler.cc
     shared/crash_handler_core.cc
@@ -89,11 +91,13 @@ set(SOURCE_FILES
     mep/mep_router.cc
     mep/mep_server.cc
     mep/mep_hooks.cc
+    mep/log_normalize.cc
     mep/ffi_recorder.cc
     mep/console_capture.cc
     mep/exception_capture.cc
     mep/crash_event_bus.cc
     mep/sdk_ready_bus.cc
+    mep/patch_stream_recorder.cc
 )
 
 if(WIN32)
