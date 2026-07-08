@@ -482,7 +482,11 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
                 { "identifier", self->document_script_id }
             };
 
-            cdp->send("Page.removeScriptToEvaluateOnNewDocument", params).get();
+            try {
+                cdp->send("Page.removeScriptToEvaluateOnNewDocument", params).get();
+            } catch (const std::exception& e) {
+                LOG_ERROR("Page.removeScriptToEvaluateOnNewDocument failed (stale identifier?): {}", e.what());
+            }
             self->document_script_id.clear();
         }
 
