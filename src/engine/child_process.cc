@@ -530,13 +530,20 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
 #ifdef _WIN32
     plugin_ipc::socket_fd server_fd = static_cast<plugin_ipc::socket_fd>(::socket(AF_UNIX, SOCK_STREAM, 0));
     if (server_fd == INVALID_SOCKET) {
-#else
+#elif defined(__linux__)
     plugin_ipc::socket_fd server_fd = static_cast<plugin_ipc::socket_fd>(::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0));
+    if (server_fd < 0) {
+#else
+    /* macOS has no SOCK_CLOEXEC; set FD_CLOEXEC after a successful socket() below. */
+    plugin_ipc::socket_fd server_fd = static_cast<plugin_ipc::socket_fd>(::socket(AF_UNIX, SOCK_STREAM, 0));
     if (server_fd < 0) {
 #endif
         LOG_ERROR("[spawn] socket() failed for plugin '{}'", plugin_name);
         return nullptr;
     }
+#if defined(__APPLE__)
+    ::fcntl(server_fd, F_SETFD, FD_CLOEXEC);
+#endif
 
     sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
