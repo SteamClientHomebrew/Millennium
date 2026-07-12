@@ -29,7 +29,7 @@
  */
 
 #include "head/default_cfg.h"
-#include "nlohmann/json.hpp"
+#include "nlohmann/json.hpp" // IWYU pragma: keep
 #include "millennium/environment.h"
 #include <filesystem>
 

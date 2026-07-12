@@ -1,7 +1,7 @@
 # Maintainer: SteamClientHomebrew <noreply@steambrew.app>
 
 pkgname="millennium"
-pkgver=3.4.0_beta.8
+pkgver=3.4.0_beta.9
 pkgrel=1
 pkgdesc="Open-source modding framework for creating and managing Steam Client themes and plugins"
 arch=('x86_64')
@@ -10,7 +10,7 @@ license=('MIT')
 depends=('steam')
 makedepends=('git' 'bun' 'curl' 'zip' 'unzip' 'tar' 'cmake' 'ninja' 'rust' 'lib32-gcc-libs' 'lib32-openssl' 'lib32-libidn2' 'lib32-xz' 'lib32-zstd' 'lib32-brotli' 'lib32-libnghttp2' 'lib32-libpsl' 'libx11' 'libxtst')
 install=millennium.install
-source=("git+$url.git#commit=2f46a8f8722ce083c2e5db2e2aa086e1e0ac59fe")
+source=("git+$url.git#commit=78f1f71a63f18142289926ca435071500ac1cbad")
 sha256sums=('SKIP')
 
 _pkgdir="Millennium"
