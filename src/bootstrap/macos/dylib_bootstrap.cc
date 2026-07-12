@@ -20,7 +20,6 @@ extern char** environ;
 namespace
 {
 constexpr const char* kRuntimePathEnv = "MILLENNIUM_RUNTIME_PATH";
-constexpr const char* kHookHelperPathEnv = "MILLENNIUM_HOOK_HELPER_PATH";
 constexpr const char* kChildHookPathEnv = "MILLENNIUM_CHILD_HOOK_PATH";
 constexpr const char* kSteamExecutableEnv = "MILLENNIUM_STEAM_EXECUTABLE";
 constexpr const char* kBootstrapTraceEnv = "MILLENNIUM_BOOTSTRAP_TRACE_PATH";
@@ -41,22 +40,6 @@ static bool is_steam_main_process_name(const char* filename)
     return strcmp(filename, "steam_osx") == 0 || strcmp(filename, "steam_osx.real") == 0;
 }
 
-static bool is_steam_helper_process_name(const char* filename)
-{
-    if (!filename) {
-        return false;
-    }
-
-    constexpr const char* kSteamHelperPrefix = "Steam Helper";
-    constexpr size_t kSteamHelperPrefixLength = sizeof("Steam Helper") - 1;
-    if (strncmp(filename, kSteamHelperPrefix, kSteamHelperPrefixLength) != 0) {
-        return false;
-    }
-
-    const char suffix = filename[kSteamHelperPrefixLength];
-    return suffix == '\0' || suffix == ' ' || suffix == '(';
-}
-
 static bool is_steam_main_process()
 {
     char path_buffer[PATH_MAX];
@@ -74,41 +57,6 @@ static bool is_steam_main_process()
     const char* filename = strrchr(resolved, '/');
     filename = filename ? filename + 1 : resolved;
     return is_steam_main_process_name(filename);
-}
-
-static const char* get_process_type_argument(char* const argv[])
-{
-    if (!argv) {
-        return nullptr;
-    }
-
-    for (size_t index = 1; argv[index] != nullptr; ++index) {
-        if (strncmp(argv[index], "--type=", 7) == 0) {
-            return argv[index] + 7;
-        }
-    }
-
-    return nullptr;
-}
-
-static bool should_preload_helper_hook(const char* path, char* const argv[])
-{
-    const char* filename = nullptr;
-
-    if (path && path[0] != '\0') {
-        filename = strrchr(path, '/');
-        filename = filename ? filename + 1 : path;
-    } else if (argv && argv[0] && argv[0][0] != '\0') {
-        filename = strrchr(argv[0], '/');
-        filename = filename ? filename + 1 : argv[0];
-    }
-
-    if (!is_steam_helper_process_name(filename)) {
-        return false;
-    }
-
-    const char* process_type = get_process_type_argument(argv);
-    return !process_type || strcmp(process_type, "crashpad-handler") != 0;
 }
 
 static bool get_bootstrap_path(char* output, size_t output_size)
@@ -196,21 +144,6 @@ static const char* get_child_hook_path()
     }
 
     return child_hook_path;
-}
-
-static const char* get_hook_helper_path()
-{
-    static char hook_helper_path[PATH_MAX];
-    static bool initialized = false;
-
-    if (!initialized) {
-        if (!get_adjacent_or_configured_path(kHookHelperPathEnv, __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__, R_OK, hook_helper_path, sizeof(hook_helper_path))) {
-            return nullptr;
-        }
-        initialized = true;
-    }
-
-    return hook_helper_path;
 }
 
 static void append_trace(const char* stage)
@@ -344,7 +277,6 @@ struct InjectionPlan
     std::string dyldInsertLibraries;
     bool includesBootstrap = false;
     bool includesChildHook = false;
-    bool includesHelperHook = false;
 };
 
 static bool is_steam_main_exec_target(const char* path)
@@ -373,15 +305,13 @@ static bool is_steam_main_exec_target(const char* path)
     return strcmp(normalized_path, normalized_target) == 0;
 }
 
-static InjectionPlan build_injection_plan(const char* path, char* const argv[], char* const envp[], const char* bootstrap_path_ptr)
+static InjectionPlan build_injection_plan(const char* path, char* const envp[], const char* bootstrap_path_ptr)
 {
     InjectionPlan plan;
     const char* child_hook_path = get_child_hook_path();
-    const char* hook_helper_path = get_hook_helper_path();
 
     plan.includesBootstrap = bootstrap_path_ptr && is_steam_main_exec_target(path);
     plan.includesChildHook = child_hook_path && access(child_hook_path, R_OK) == 0;
-    plan.includesHelperHook = hook_helper_path && access(hook_helper_path, R_OK) == 0 && should_preload_helper_hook(path, argv);
 
     std::vector<const char*> injected_libraries;
     if (plan.includesBootstrap) {
@@ -390,9 +320,6 @@ static InjectionPlan build_injection_plan(const char* path, char* const argv[], 
     if (plan.includesChildHook) {
         injected_libraries.push_back(child_hook_path);
     }
-    if (plan.includesHelperHook) {
-        injected_libraries.push_back(hook_helper_path);
-    }
 
     plan.dyldInsertLibraries = rewrite_injected_libraries(injected_libraries, plan.includesBootstrap ? nullptr : bootstrap_path_ptr, envp);
     return plan;
@@ -400,26 +327,14 @@ static InjectionPlan build_injection_plan(const char* path, char* const argv[], 
 
 static const char* describe_injection_plan(const InjectionPlan& plan)
 {
-    if (plan.includesBootstrap && plan.includesChildHook && plan.includesHelperHook) {
-        return "bootstrap+child-hook+helper-hook";
-    }
     if (plan.includesBootstrap && plan.includesChildHook) {
         return "bootstrap+child-hook";
-    }
-    if (plan.includesBootstrap && plan.includesHelperHook) {
-        return "bootstrap+helper-hook";
-    }
-    if (plan.includesChildHook && plan.includesHelperHook) {
-        return "child-hook+helper-hook";
     }
     if (plan.includesBootstrap) {
         return "bootstrap";
     }
     if (plan.includesChildHook) {
         return "child-hook";
-    }
-    if (plan.includesHelperHook) {
-        return "helper-hook";
     }
     return "";
 }
@@ -471,7 +386,7 @@ static int millennium_execve(const char* path, char* const argv[], char* const e
 
     char bootstrap_path[PATH_MAX];
     const char* bootstrap_path_ptr = get_bootstrap_path(bootstrap_path, sizeof(bootstrap_path)) ? bootstrap_path : nullptr;
-    const InjectionPlan plan = build_injection_plan(path, argv, envp, bootstrap_path_ptr);
+    const InjectionPlan plan = build_injection_plan(path, envp, bootstrap_path_ptr);
     std::vector<std::string> owned_environment = build_child_environment(envp, plan.dyldInsertLibraries);
     std::vector<char*> exec_environment;
     exec_environment.reserve(owned_environment.size() + 1);
@@ -480,7 +395,7 @@ static int millennium_execve(const char* path, char* const argv[], char* const e
     }
     exec_environment.push_back(nullptr);
 
-    const char* trace_stage = plan.includesBootstrap || plan.includesChildHook || plan.includesHelperHook ? "exec-pass-through" : "exec-missing-injection";
+    const char* trace_stage = plan.includesBootstrap || plan.includesChildHook ? "exec-pass-through" : "exec-missing-injection";
     append_exec_trace(trace_stage, path, argv, describe_injection_plan(plan));
     return call_execve_syscall(path, argv, exec_environment.data());
 }
