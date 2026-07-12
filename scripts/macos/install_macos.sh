@@ -213,9 +213,10 @@ copy_wrapper_assets_into_runtime() {
     local loader_target_dir="${asset_root}/loader"
     local chunks_target_dir="${loader_target_dir}/chunks"
 
-    local loader_entry="${REPO_ROOT}/src/typescript/sdk/packages/loader/build/millennium.js"
-    local chunks_source_dir="${REPO_ROOT}/src/typescript/sdk/packages/loader/build/chunks"
-    local frontend_source="${REPO_ROOT}/build/frontend.bin"
+    local loader_build_dir="${REPO_ROOT}/src/typescript/sdk/build"
+    local loader_entry="${loader_build_dir}/millennium.js"
+    local chunks_source_dir="${loader_build_dir}/chunks"
+    local frontend_source="${REPO_ROOT}/src/typescript/.frontend.bin"
 
     [ -f "${loader_entry}" ] || fail "Missing loader entry asset: ${loader_entry}"
     [ -d "${chunks_source_dir}" ] || fail "Missing loader chunks directory: ${chunks_source_dir}"
