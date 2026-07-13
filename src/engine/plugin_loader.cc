@@ -590,6 +590,19 @@ void plugin_loader::start_plugin_frontends()
         logger.log("Steam is shutting down, terminating frontend thread pool...");
         return;
     }
+#elif __APPLE__
+    /* macOS reconnects over a TCP websocket (no pipe-replacement event to wait on).
+       Back off between attempts so a transient disconnect doesn't tight-loop. */
+    {
+        auto start = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - start < std::chrono::seconds(2)) {
+            if (millennium_lifecycle::get().terminate.flag.load()) {
+                logger.log("Steam is shutting down, terminating frontend thread pool...");
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+    }
 #endif
 
     logger.warn("Reconnecting to Steam...");

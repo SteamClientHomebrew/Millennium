@@ -379,4 +379,11 @@ int main(int argc, char* argv[])
     std::println("Windows not implemented!");
     return 0;
 }
+#elif __APPLE__
+#include <print>
+int main(int argc, char* argv[])
+{
+    std::println("macOS not implemented!");
+    return 0;
+}
 #endif

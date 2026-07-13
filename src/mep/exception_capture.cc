@@ -36,8 +36,10 @@ namespace mep
 
 exception_capture& exception_capture::instance()
 {
-    static exception_capture inst;
-    return inst;
+    /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during __cxa_finalize
+       teardown). See millennium_lifecycle / crash_event_bus. */
+    static exception_capture* inst = new exception_capture();
+    return *inst;
 }
 
 void exception_capture::start(std::shared_ptr<cdp_client> cdp, std::shared_ptr<plugin_manager> pm)

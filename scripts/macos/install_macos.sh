@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly PROXY_SOURCE="${REPO_ROOT}/src/bootstrap/macos/tier0_proxy.cc"
 readonly DEFAULT_STEAM_DIR="${HOME}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS"
 readonly DEFAULT_WRAPPER_BUILD_DIR="${REPO_ROOT}/build/osx-debug/src/bootstrap/macos"
@@ -15,6 +15,7 @@ readonly DEFAULT_RUNTIME_SEARCH_DIRS=(
 readonly REQUIRED_RUNTIME_ARTIFACTS=(
     "libmillennium.dylib"
     "libmillennium_hhx64.dylib"
+    "libmillennium_luavm_x86"
 )
 readonly OPTIONAL_RUNTIME_ARTIFACTS=(
     "libmillennium_child_hook.dylib"
@@ -26,6 +27,7 @@ readonly WRAPPER_RUNTIME_ARTIFACTS=(
     "libmillennium.dylib"
     "libmillennium_hhx64.dylib"
     "libmillennium_child_hook.dylib"
+    "libmillennium_luavm_x86"
 )
 readonly WRAPPER_ASSET_RELATIVE_DIR="millennium-assets"
 readonly APP_INFO_TEMPLATE="${REPO_ROOT}/src/bootstrap/macos/Info.plist.xml"
@@ -213,9 +215,10 @@ copy_wrapper_assets_into_runtime() {
     local loader_target_dir="${asset_root}/loader"
     local chunks_target_dir="${loader_target_dir}/chunks"
 
-    local loader_entry="${REPO_ROOT}/src/typescript/sdk/packages/loader/build/millennium.js"
-    local chunks_source_dir="${REPO_ROOT}/src/typescript/sdk/packages/loader/build/chunks"
-    local frontend_source="${REPO_ROOT}/build/frontend.bin"
+    local loader_build_dir="${REPO_ROOT}/src/typescript/sdk/build"
+    local loader_entry="${loader_build_dir}/millennium.js"
+    local chunks_source_dir="${loader_build_dir}/chunks"
+    local frontend_source="${REPO_ROOT}/src/typescript/.frontend.bin"
 
     [ -f "${loader_entry}" ] || fail "Missing loader entry asset: ${loader_entry}"
     [ -d "${chunks_source_dir}" ] || fail "Missing loader chunks directory: ${chunks_source_dir}"
