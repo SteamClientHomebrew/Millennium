@@ -15,6 +15,7 @@ readonly DEFAULT_RUNTIME_SEARCH_DIRS=(
 readonly REQUIRED_RUNTIME_ARTIFACTS=(
     "libmillennium.dylib"
     "libmillennium_hhx64.dylib"
+    "libmillennium_luavm_x86"
 )
 readonly OPTIONAL_RUNTIME_ARTIFACTS=(
     "libmillennium_child_hook.dylib"
@@ -26,6 +27,7 @@ readonly WRAPPER_RUNTIME_ARTIFACTS=(
     "libmillennium.dylib"
     "libmillennium_hhx64.dylib"
     "libmillennium_child_hook.dylib"
+    "libmillennium_luavm_x86"
 )
 readonly WRAPPER_ASSET_RELATIVE_DIR="millennium-assets"
 readonly APP_INFO_TEMPLATE="${REPO_ROOT}/src/bootstrap/macos/Info.plist.xml"
