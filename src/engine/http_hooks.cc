@@ -38,32 +38,12 @@
 #include "millennium/url_parser.h"
 #include "millennium/virtfs.h"
 #include "millennium/types.h"
+#include "millennium/target_url.h"
 
 #include <nlohmann/json_fwd.hpp>
 #include <thread>
-#include <unordered_set>
 
 std::atomic<unsigned long long> g_hookedModuleId{ 0 };
-
-// clang-format off
-const std::vector<std::regex> g_js_hook_blacklist = {
-    std::regex(R"(https?://checkout\.steampowered\.com/[^\s"']*)"),
-};
-
-const std::vector<std::regex> g_js_and_css_hook_blacklist = {
-    /** Ignore paypal related content */
-    std::regex(R"(https?://(?:[\w-]+\.)*paypal\.com/[^\s"']*)"),
-    std::regex(R"(https?://(?:[\w-]+\.)*paypalobjects\.com/[^\s"']*)"),
-    std::regex(R"(https?://(?:[\w-]+\.)*recaptcha\.net/[^\s"']*)"),
-
-    /** Ignore youtube related content */
-    std::regex(R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)"),
-    std::regex(R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)"),
-
-    /** Ignore Chrome Web Store (causes a webhelper crash on Fetch.fulfillRequest) */
-    std::regex(R"(https?://(?:[\w-]+\.)*chromewebstore\.google\.com/[^\s"']*)"),
-};
-// clang-format on
 
 json make_headers(const std::vector<std::pair<std::string, std::string>>& headers)
 {
@@ -252,11 +232,10 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
     const http_code statusCode = message["responseStatusCode"].get<http_code>();
 
     /** check if the request URL is a do-not-hook URL. */
-    for (const auto& pattern : g_js_and_css_hook_blacklist) {
-        if (std::regex_match(requestUrl, pattern)) {
-            m_cdp->send_host("Fetch.continueResponse", params);
-            return;
-        }
+    target_url target(requestUrl);
+    if (!target.is_safe_for_network_hooks()) {
+        m_cdp->send_host("Fetch.continueResponse", params);
+        return;
     }
 
     const auto redirect_codes = { http_code::SEE_OTHER, http_code::MOVED_PERMANENTLY, http_code::FOUND, http_code::TEMPORARY_REDIRECT, http_code::PERMANENT_REDIRECT };
@@ -268,7 +247,7 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
         }
     }
 
-    const processed_hooks hooks = apply_user_webkit_hooks(requestUrl);
+    const processed_hooks hooks = apply_user_webkit_hooks(target);
     if (hooks.empty()) {
         m_cdp->send_host("Fetch.continueResponse", params);
         return;
@@ -300,14 +279,20 @@ void network_hook_ctl::mime_doc_request_handler(const nlohmann::basic_json<>& me
     m_cdp->send_host("Fetch.fulfillRequest", fullfillParams);
 }
 
-network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(const std::string& requestUrl) const
+network_hook_ctl::processed_hooks network_hook_ctl::apply_user_webkit_hooks(const target_url& target) const
 {
     processed_hooks result;
     auto hookList = get_hook_list();
     bool anyHookMatched = false;
+    bool safe_for_js = target.is_safe_for_js();
 
     for (const auto& hook : hookList) {
-        if (!std::regex_match(requestUrl, hook.hook.url_pattern)) continue;
+        if (!std::regex_match(target.raw_url(), hook.hook.url_pattern)) continue;
+        
+        if (hook.hook.type == TagTypes::JAVASCRIPT && !safe_for_js) {
+            continue;
+        }
+
         anyHookMatched = true;
 
         if (hook.hook.type == TagTypes::STYLESHEET)

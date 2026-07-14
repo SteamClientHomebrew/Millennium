@@ -1,6 +1,8 @@
 set(TEST_SOURCES
   ffi_recorder_test.cc
+  test_target_url.cc
   ${CMAKE_SOURCE_DIR}/src/mep/ffi_recorder.cc
+  ${CMAKE_SOURCE_DIR}/src/engine/target_url.cc
 )
 
 add_executable(millennium_cpp_tests ${TEST_SOURCES})
@@ -11,7 +13,7 @@ target_include_directories(millennium_cpp_tests PRIVATE
   ${CMAKE_SOURCE_DIR}/src/include
 )
 
-target_link_libraries(millennium_cpp_tests PRIVATE Catch2::Catch2WithMain)
+target_link_libraries(millennium_cpp_tests PRIVATE Catch2::Catch2WithMain libcurl nlohmann_json::nlohmann_json)
 
 include(Catch)
 catch_discover_tests(millennium_cpp_tests)
