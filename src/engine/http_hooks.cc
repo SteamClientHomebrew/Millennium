@@ -39,28 +39,11 @@
 #include "millennium/virtfs.h"
 #include "millennium/types.h"
 #include "millennium/target_url.h"
-#include "millennium/http.h"
 
 #include <nlohmann/json_fwd.hpp>
 #include <thread>
 
 std::atomic<unsigned long long> g_hookedModuleId{ 0 };
-
-
-const std::vector<std::regex> g_js_and_css_hook_blacklist = {
-    /** Ignore paypal related content */
-    std::regex(R"(https?://(?:[\w-]+\.)*paypal\.com/[^\s"']*)"),
-    std::regex(R"(https?://(?:[\w-]+\.)*paypalobjects\.com/[^\s"']*)"),
-    std::regex(R"(https?://(?:[\w-]+\.)*recaptcha\.net/[^\s"']*)"),
-
-    /** Ignore youtube related content */
-    std::regex(R"(https?://(?:[\w-]+\.)*(?:youtube(?:-nocookie)?|youtu|ytimg|googlevideo|googleusercontent|studioyoutube)\.com/[^\s"']*)"),
-    std::regex(R"(https?://(?:[\w-]+\.)*youtu\.be/[^\s"']*)"),
-
-    /** Ignore Chrome Web Store (causes a webhelper crash on Fetch.fulfillRequest) */
-    std::regex(R"(https?://(?:[\w-]+\.)*chromewebstore\.google\.com/[^\s"']*)"),
-};
-// clang-format on
 
 json make_headers(const std::vector<std::pair<std::string, std::string>>& headers)
 {

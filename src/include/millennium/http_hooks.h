@@ -52,15 +52,11 @@
 extern std::atomic<unsigned long long> g_hookedModuleId;
 std::string get_cdp_isolated_ctx_script();
 
-
-
 /** Canonical list of Steam-owned TLDs. Both the CDP network interceptor and the webkit world manager derive their domain checks from this. */
 static constexpr const char* k_steam_tlds[] = {
     "steampowered.com", "steamcommunity.com", "steamgames.com", "steam-chat.com", "steamstatic.com",
 };
 static constexpr const char* k_steam_loopback = "steamloopback.host";
-/** Millennium will not hook the following URLs to favor user safety. (Neither JavaScript nor CSS will be injected into these URLs.) */
-extern const std::vector<std::regex> g_js_and_css_hook_blacklist;
 
 class target_url;
 class network_hook_ctl
