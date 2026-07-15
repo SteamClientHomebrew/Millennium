@@ -171,6 +171,25 @@ install_millennium() {
     fi
 }
 
+check_steamrt3_incompatibility() {
+    local -a required_markers=(
+        "${HOME}/.steam/steam/.steam-enable-steamrt64-client"
+        "${HOME}/.steam/steam/steamrt64/steam"
+    )
+
+    for marker in "${required_markers[@]}"; do
+        [[ -f "$marker" ]] || return 0
+    done
+
+    echo -e "\e[1;33m"
+    echo -e "\n  WARNING: SteamRT3 client detected\n"
+    echo -e "  Millennium does not support the experimental SteamRT3 client."
+    echo -e "  For Millennium to work correctly, please either:"
+    echo -e "  - disable the \"Use experimental SteamRT3 Steam Client\" option"
+    echo -e "  - opt out of the Steam Beta entirely\n"
+    echo -e "\e[0m"
+}
+
 post_install() {
     sudo chmod +x /usr/lib/millennium/libmillennium_pvs64 2>/dev/null || true
     sudo chmod +x /usr/lib/millennium/libmillennium_luavm_x86 2>/dev/null || true
@@ -193,6 +212,9 @@ post_install() {
     ln -sf /usr/lib/millennium/libmillennium_bootstrap_x86.so   "${HOME}/.steam/steam/ubuntu12_32/libXtst.so.6"
     ln -sf /usr/lib/millennium/libmillennium_bootstrap_hhx64.so "${HOME}/.steam/steam/ubuntu12_64/libXtst.so.6"
     ln -sf /usr/lib/millennium/libmillennium_hhx64.so           "${HOME}/.steam/steam/ubuntu12_64/libmillennium_hhx64.so"
+
+    # check for unsupported 64-bit steam client
+    check_steamrt3_incompatibility
 }
 
 cleanup() {
