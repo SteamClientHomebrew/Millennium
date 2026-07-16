@@ -24,7 +24,7 @@ let
 
   steamrt3Check = ''
     check_steamrt3_incompatibility() {
-        local steam="/home/$(logname)/.local/share/Steam"
+        local steam="$HOME/.local/share/Steam"
         local -a required_markers=(
             "$steam/package/beta"
             "$steam/.steam-enable-steamrt64-client"
