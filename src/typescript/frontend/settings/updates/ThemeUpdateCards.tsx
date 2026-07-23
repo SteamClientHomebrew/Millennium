@@ -82,7 +82,6 @@ export function ThemeUpdateCard({ themeUpdates }: { themeUpdates: UpdateItemType
 				<UpdateCard
 					update={update}
 					index={index}
-					totalCount={themeUpdates.length}
 					isUpdating={ctx.updatingThemes[update.native]}
 					progress={ctx.themeProgress[update.native]?.progress ?? 0}
 					statusText={ctx.themeProgress[update.native]?.statusText ?? ''}

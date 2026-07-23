@@ -178,7 +178,6 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 			<RenderPluginComponent
 				plugin={plugin}
 				index={index}
-				isLastPlugin={index === (this.state.plugins?.length ?? 0) - 1}
 				isEnabled={this.state.checkedItems[index]}
 				hasErrors={(logState?.errors ?? 0) > 0}
 				hasWarnings={(logState?.warnings ?? 0) > 0}
