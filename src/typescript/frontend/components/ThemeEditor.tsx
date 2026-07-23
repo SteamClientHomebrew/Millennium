@@ -205,11 +205,11 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 			<Field
 				label={condition}
 				description={<BBCodeParser text={value?.description ?? 'No description yet.'} />}
-				className={condition}
 				key={condition}
 				bottomSeparator={isLastItem ? 'none' : 'standard'}
 				inlineWrap={conditionType === ConditionType.Slider ? 'shift-children-below' : undefined}
 				verticalAlignment={conditionType === ConditionType.Slider ? 'none' : undefined}
+				data-condition={condition}
 			>
 				<this.RenderComponentInterface conditionType={conditionType} conditionName={condition} values={Object.keys(value?.values ?? {})} slider={value?.slider} />
 			</Field>
