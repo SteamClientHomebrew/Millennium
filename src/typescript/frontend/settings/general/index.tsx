@@ -112,7 +112,7 @@ export const GeneralViewModal: React.FC = () => {
 					<Toggle value={config.general.checkForMillenniumUpdates} onChange={(e) => handleChange('checkForMillenniumUpdates', e)} />
 				</Field>
 
-				<Field label={locale.optionCheckForThemeAndPluginUpdates} bottomSeparator="none">
+				<Field label={locale.optionCheckForThemeAndPluginUpdates}>
 					<Toggle value={config.general.checkForPluginAndThemeUpdates} onChange={(e) => handleChange('checkForPluginAndThemeUpdates', e)} />
 				</Field>
 			</DialogControlsSection>
@@ -144,7 +144,6 @@ export const GeneralViewModal: React.FC = () => {
 				<Field
 					label={locale.updatePanelUpdateChannel}
 					description={locale.updatePanelUpdateChannelTooltip}
-					bottomSeparator="none"
 					icon={
 						config.general.millenniumUpdateChannel === MillenniumUpdateChannel.BETA && (
 							<DesktopTooltip toolTipContent={locale.updatePanelBetaWarning} direction="top">
@@ -169,7 +168,7 @@ export const GeneralViewModal: React.FC = () => {
 			<DialogControlsSection>
 				<SettingsDialogSubHeader>{locale.headerNotifications}</SettingsDialogSubHeader>
 
-				<Field label={locale.optionWhenAPluginOrThemeUpdateIsAvailable} bottomSeparator="none">
+				<Field label={locale.optionWhenAPluginOrThemeUpdateIsAvailable}>
 					<Toggle value={config.general.shouldShowThemePluginUpdateNotifications} onChange={(e) => handleChange('shouldShowThemePluginUpdateNotifications', e)} />
 				</Field>
 			</DialogControlsSection>
@@ -220,7 +219,7 @@ export const GeneralViewModal: React.FC = () => {
 					)}
 				</Field>
 
-				<Field label={locale.optionProxyPassword} disabled={!config.network.proxy} bottomSeparator="none">
+				<Field label={locale.optionProxyPassword} disabled={!config.network.proxy}>
 					<DialogButton
 						className={settingsClasses.SettingsDialogButton}
 						disabled={!config.network.proxy}
@@ -246,9 +245,7 @@ export const GeneralViewModal: React.FC = () => {
 				<Field label={locale.strClientApiVersion}>{window.MILLENNIUM_FRONTEND_LIB_VERSION}</Field>
 				<Field label={locale.strBrowserApiVersion}>{window.MILLENNIUM_BROWSER_LIB_VERSION}</Field>
 				<Field label={locale.strAboutBuildDate}>{new Date(pluginSelf.buildDate ?? '').toLocaleString(navigator.language)}</Field>
-				<Field label={locale.strLoaderBuildDate} bottomSeparator="none">
-					{new Date(window.MILLENNIUM_LOADER_BUILD_DATE ?? '').toLocaleString(navigator.language)}
-				</Field>
+				<Field label={locale.strLoaderBuildDate}>{new Date(window.MILLENNIUM_LOADER_BUILD_DATE ?? '').toLocaleString(navigator.language)}</Field>
 			</DialogControlsSection>
 		</>
 	);

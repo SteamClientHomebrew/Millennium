@@ -54,7 +54,6 @@ import { backend } from '../utils/ffi';
 interface ConditionalComponent {
 	condition: string;
 	value: ICondition;
-	isLastItem: boolean;
 }
 
 interface ComponentInterface {
@@ -198,7 +197,7 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 		}
 	};
 
-	RenderComponent: React.FC<ConditionalComponent> = ({ condition, value, isLastItem }) => {
+	RenderComponent: React.FC<ConditionalComponent> = ({ condition, value }) => {
 		const conditionType: ConditionType = this.GetConditionType(value);
 
 		return (
@@ -207,7 +206,6 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 				description={<BBCodeParser text={value?.description ?? 'No description yet.'} />}
 				className={condition}
 				key={condition}
-				bottomSeparator={isLastItem ? 'none' : 'standard'}
 				inlineWrap={conditionType === ConditionType.Slider ? 'shift-children-below' : undefined}
 				verticalAlignment={conditionType === ConditionType.Slider ? 'none' : undefined}
 			>
@@ -337,8 +335,8 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 			if (!hasSections) {
 				return (
 					<DialogBody className={Classes.SettingsDialogBodyFade}>
-						{allEntries.map(([key, value], index) => (
-							<this.RenderComponent condition={key} value={value} key={key} isLastItem={index === allEntries.length - 1} />
+						{allEntries.map(([key, value]) => (
+							<this.RenderComponent condition={key} value={value} key={key} />
 						))}
 					</DialogBody>
 				);
@@ -357,16 +355,11 @@ export class RenderThemeEditor extends React.Component<ThemeEditorProps> {
 
 			return (
 				<DialogBody className={Classes.SettingsDialogBodyFade}>
-					{sections.map((section, sectionIndex) => (
+					{sections.map((section) => (
 						<React.Fragment key={section.name ?? '__default'}>
 							{section.name && <SettingsDialogSubHeader>{section.name}</SettingsDialogSubHeader>}
-							{section.items.map(([key, value], index) => (
-								<this.RenderComponent
-									condition={key}
-									value={value}
-									key={key}
-									isLastItem={sectionIndex === sections.length - 1 && index === section.items.length - 1}
-								/>
+							{section.items.map(([key, value]) => (
+								<this.RenderComponent condition={key} value={value} key={key} />
 							))}
 						</React.Fragment>
 					))}

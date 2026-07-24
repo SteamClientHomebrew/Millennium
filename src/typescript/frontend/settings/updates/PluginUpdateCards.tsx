@@ -107,7 +107,6 @@ export function PluginUpdateCard({ pluginUpdates }: { pluginUpdates: PluginUpdat
 						commit: update?.pluginInfo?.commitId,
 					}}
 					index={index}
-					totalCount={pluginUpdates.length}
 					isUpdating={ctx.updatingPlugins[update?.id ?? update?.pluginDirectory]}
 					progress={ctx.pluginProgress[update?.id ?? update?.pluginDirectory]?.progress ?? 0}
 					statusText={ctx.pluginProgress[update?.id ?? update?.pluginDirectory]?.statusText ?? ''}

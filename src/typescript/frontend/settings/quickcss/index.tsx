@@ -234,7 +234,7 @@ export function QuickCssViewModal() {
 
 	return (
 		<>
-			<Field label={locale.quickCssDescription} icon={<IconsModule.ExclamationPoint />} bottomSeparator="none"></Field>
+			<Field label={locale.quickCssDescription} icon={<IconsModule.ExclamationPoint />}></Field>
 
 			{cssStats && (
 				<DialogControlsSection>
@@ -252,7 +252,7 @@ export function QuickCssViewModal() {
 				<Toggle value={isWatching} onChange={(enabled) => setIsWatching(enabled)} />
 			</Field>
 
-			<Field label={locale.quickCssStatusLoaded} bottomSeparator="none" icon={<IconsModule.Checkmark color="green" />}>
+			<Field label={locale.quickCssStatusLoaded} icon={<IconsModule.Checkmark color="green" />}>
 				<DialogButton onClick={() => setIsMillenniumOpen(true)} className={settingsClasses.SettingsDialogButton}>
 					{locale.quickCssOpenEditor}
 				</DialogButton>
