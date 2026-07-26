@@ -9,7 +9,7 @@ on:
     branches: [main]
     paths:
       - "src/locales/**"
-      - "scripts/i18n-coverage.mjs"
+      - "scripts/i18n-coverage.ts"
   workflow_dispatch:
 
 concurrency:
@@ -32,7 +32,7 @@ jobs:
           node-version: 24
 
       - name: Regenerate coverage chart
-        run: node scripts/i18n-coverage.mjs
+        run: node scripts/i18n-coverage.ts
 
       - name: Commit changes
         run: |

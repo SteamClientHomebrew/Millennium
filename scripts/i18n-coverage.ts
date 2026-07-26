@@ -1,15 +1,6 @@
-// Computes localization coverage for every locale in src/locales against the
-// english.json source of truth and renders it as an SVG bar chart. Two SVGs are
-// written (light and dark) so the README can pick per theme with <picture>.
-//
 // Usage:
-//   node scripts/i18n-coverage.mjs                 write both SVGs to .github/assets
-//   node scripts/i18n-coverage.mjs --out <dir>     ...to a different directory
-//
-// Coverage for a language = (keys from english.json that are present and
-// non-empty in that language) / (total english.json keys). It is fully
-// automatic: add a key to english.json and every language's percentage drops
-// until it is translated. No third-party service involved.
+//   node scripts/i18n-coverage.ts
+//   node scripts/i18n-coverage.ts --out <dir>
 
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -19,8 +10,29 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LOCALES_DIR = join(ROOT, 'src', 'locales');
 const SOURCE = 'english';
 
-/** Human-readable names for Steam's locale codes; falls back to a capitalized filename. */
-const DISPLAY_NAMES = {
+interface Row {
+	name: string;
+	present: number;
+	total: number;
+	pct: number;
+	source?: boolean;
+}
+
+interface CoverageData {
+	total: number;
+	translationCount: number;
+	rows: Row[];
+}
+
+interface Theme {
+	text: string;
+	muted: string;
+	track: string;
+	fill: string;
+	source: string;
+}
+
+const DISPLAY_NAMES: Record<string, string> = {
 	brazilian: 'Portuguese (Brazil)',
 	bulgarian: 'Bulgarian',
 	czech: 'Czech',
@@ -51,19 +63,18 @@ const DISPLAY_NAMES = {
 	vietnamese: 'Vietnamese',
 };
 
-/** Colors per theme, mirroring GitHub's own light/dark tokens. */
-const THEMES = {
+const THEMES: Record<string, Theme> = {
 	light: { text: '#1f2328', muted: '#656d76', track: '#8b949e', fill: '#2da44e', source: '#0969da' },
 	dark: { text: '#e6edf3', muted: '#8b949e', track: '#8b949e', fill: '#3fb950', source: '#388bfd' },
 };
 
-const displayName = (code) => DISPLAY_NAMES[code] ?? code.charAt(0).toUpperCase() + code.slice(1);
+const displayName = (code: string) => DISPLAY_NAMES[code] ?? code.charAt(0).toUpperCase() + code.slice(1);
 
-function readJson(name) {
+function readJson(name: string): Record<string, unknown> {
 	return JSON.parse(readFileSync(join(LOCALES_DIR, `${name}.json`), 'utf-8'));
 }
 
-function computeCoverage() {
+function computeCoverage(): CoverageData {
 	const source = readJson(SOURCE);
 	const sourceKeys = Object.keys(source);
 	const total = sourceKeys.length;
@@ -82,61 +93,51 @@ function computeCoverage() {
 		})
 		.sort((a, b) => b.pct - a.pct || a.name.localeCompare(b.name));
 
-	/** english.json is the reference every language is measured against, so it is always
-	 *  100% by definition. Pin it first, labelled as the source, so the list reads as complete. */
-	const sourceRow = { name: 'English', present: total, total, pct: 100, source: true };
+	const sourceRow: Row = { name: 'English', present: total, total, pct: 100, source: true };
 
 	return { total, translationCount: translations.length, rows: [sourceRow, ...translations] };
 }
 
-/** Rounds to a whole percent, but never shows 100% unless every string is present. */
-function pctLabel(row) {
+function pctLabel(row: Row): string {
 	if (row.present === row.total) return '100%';
 	const r = Math.round(row.pct);
 	return `${r === 100 ? 99 : r}%`;
 }
 
-const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-function renderSvg({ total, translationCount, rows }, c) {
+function renderSvg({ rows }: CoverageData, c: Theme): string {
 	const rowH = 26;
-	const padX = 20;
-	const padTop = 58;
-	const padBottom = 16;
-	const labelW = 160;
-	const pctW = 92;
 	const width = 720;
-	const trackX = padX + labelW;
-	const trackW = width - trackX - pctW - padX;
-	const height = padTop + rows.length * rowH + padBottom;
+	const trackW = 420;
+	const pctX = trackW + 40;
+	const nameX = trackW + 52;
+	const height = rows.length * rowH;
 	const sans = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 	const mono = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 
 	const rowsSvg = rows
 		.map((r, i) => {
-			const cy = padTop + i * rowH + rowH / 2;
+			const cy = i * rowH + rowH / 2;
 			const full = r.present === r.total;
 			const fillW = full ? trackW : Math.max(3, (r.pct / 100) * trackW);
 			const name = r.source ? `${r.name} (source)` : r.name;
 			const fill = r.source ? c.source : c.fill;
 			return [
-				`<text x="${trackX - 12}" y="${cy}" text-anchor="end" dominant-baseline="central" font-family="${sans}" font-size="12" fill="${c.text}">${esc(name)}</text>`,
-				`<rect x="${trackX}" y="${cy - 5}" width="${trackW}" height="10" rx="5" fill="${c.track}" fill-opacity="0.22"/>`,
-				`<rect x="${trackX}" y="${cy - 5}" width="${fillW.toFixed(1)}" height="10" rx="5" fill="${fill}"/>`,
-				`<text x="${trackX + trackW + 12}" y="${cy}" dominant-baseline="central" font-family="${mono}" font-size="12" font-weight="600" fill="${c.muted}">${pctLabel(r)}</text>`,
+				`<rect x="0" y="${cy - 5}" width="${trackW}" height="10" fill="${c.track}" fill-opacity="0.22"/>`,
+				`<rect x="0" y="${cy - 5}" width="${fillW.toFixed(1)}" height="10" fill="${fill}"/>`,
+				`<text x="${pctX}" y="${cy}" text-anchor="end" dominant-baseline="central" font-family="${mono}" font-size="12" font-weight="600" fill="${c.muted}">${pctLabel(r)}</text>`,
+				`<text x="${nameX}" y="${cy}" dominant-baseline="central" font-family="${sans}" font-size="12" fill="${c.text}">${esc(name)}</text>`,
 			].join('');
 		})
 		.join('\n  ');
 
-	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Localization coverage: ${translationCount} translations against ${total} strings">
-  <text x="${padX}" y="26" font-family="${sans}" font-size="15" font-weight="600" fill="${c.text}">Localization coverage</text>
-  <text x="${padX}" y="44" font-family="${sans}" font-size="12" fill="${c.muted}">${translationCount} translations · ${total} strings · source: english.json</text>
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Localization coverage">
   ${rowsSvg}
 </svg>
 `;
 }
 
-// --- CLI ---
 const args = process.argv.slice(2);
 const outIdx = args.indexOf('--out');
 const outDir = join(ROOT, outIdx !== -1 && args[outIdx + 1] ? args[outIdx + 1] : '.github/assets');
