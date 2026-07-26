@@ -51,7 +51,7 @@ SteamClientHomebrew only maintains the english locales. If any changes are made 
 
 ### Translation coverage
 
-How much of each language is translated, measured against `english.json` and regenerated automatically whenever the locales change.
+Translation coverage by language, relative to English.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/i18n-coverage-dark.svg">
