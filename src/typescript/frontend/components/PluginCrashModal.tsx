@@ -100,7 +100,6 @@ const CrashModal = ({ detail, closeModal, onResolve }: { detail: PluginCrashInfo
 								{locale.crashModalDescPost}
 							</>
 						}
-						bottomSeparator="none"
 					/>
 
 					<SettingsDialogSubHeader>{locale.crashModalDeveloperInfo}</SettingsDialogSubHeader>
@@ -114,7 +113,7 @@ const CrashModal = ({ detail, closeModal, onResolve }: { detail: PluginCrashInfo
 							</DialogButton>
 						)}
 					</Field>
-					<Field label={locale.crashModalPluginLogs} description={locale.crashModalPluginLogsDescription} bottomSeparator="none">
+					<Field label={locale.crashModalPluginLogs} description={locale.crashModalPluginLogsDescription}>
 						<DialogButton className={settingsClasses.SettingsDialogButton} onClick={viewLogs}>
 							{locale.strViewLogs}
 						</DialogButton>

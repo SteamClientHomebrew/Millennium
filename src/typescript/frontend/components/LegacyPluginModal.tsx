@@ -15,7 +15,7 @@ const LegacyPluginModal = ({ plugins, closeModal }: { plugins: PluginComponent[]
 			strDescription={
 				<>
 					<Field description={locale.legacyPluginModalBody} />
-					{plugins.map((plugin, index) => (
+					{plugins.map((plugin) => (
 						<Field
 							key={plugin.data.name}
 							label={
@@ -25,7 +25,6 @@ const LegacyPluginModal = ({ plugins, closeModal }: { plugins: PluginComponent[]
 								</div>
 							}
 							description={plugin.data.description}
-							bottomSeparator={index === plugins.length - 1 ? 'none' : 'standard'}
 						/>
 					))}
 				</>

@@ -33,7 +33,7 @@ const SupersededPluginModal = ({ plugins, closeModal, onDismiss }: { plugins: Pl
 			strDescription={
 				<>
 					<Field description={<Markdown options={{ overrides: { a: { props: { target: '_blank' } } } }}>{locale.supersededPluginModalBody}</Markdown>} />
-					{plugins.map((plugin, index) => (
+					{plugins.map((plugin) => (
 						<Field
 							key={plugin.data.name}
 							label={
@@ -43,7 +43,6 @@ const SupersededPluginModal = ({ plugins, closeModal, onDismiss }: { plugins: Pl
 								</div>
 							}
 							description={plugin.data.description}
-							bottomSeparator={index === plugins.length - 1 ? 'none' : 'standard'}
 						/>
 					))}
 				</>
