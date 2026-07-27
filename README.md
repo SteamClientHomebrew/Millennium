@@ -49,6 +49,15 @@ and append the target file to the **localizationFiles** [here](./src/typescript/
 
 SteamClientHomebrew only maintains the english locales. If any changes are made to the english locales that wreck another language, contributors are responsible for updating them.
 
+### Translation coverage
+
+Translation coverage by language, relative to English.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/i18n-coverage-dark.svg">
+  <img alt="Localization coverage per language" src=".github/assets/i18n-coverage-light.svg">
+</picture>
+
 ## Sponsors[^6]
 
 Free code signing on Windows provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)
