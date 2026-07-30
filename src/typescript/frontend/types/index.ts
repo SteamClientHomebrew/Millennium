@@ -144,6 +144,7 @@ export interface Plugin {
 	version?: string;
 	useBackend?: boolean;
 	backendType?: string;
+	dependencies?: string[];
 	__private_browser_extension?: boolean;
 }
 
