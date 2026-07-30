@@ -33,6 +33,8 @@
 #include "millennium/logger.h"
 #include "millennium/config.h"
 #include "millennium/environment.h"
+#include "millennium/plugin_deps.h"
+#include "millennium/semver.h"
 #include "millennium/star_parser.h"
 #include <format>
 #ifdef _WIN32
@@ -262,14 +264,95 @@ std::vector<std::string> plugin_manager::get_enabled_plugin_names()
 }
 
 /**
+ * @brief Sort a plugin list in place so dependencies come before their dependents.
+ *
+ * Reads the optional "dependencies" array from each plugin.json ("name" or "name@<range>").
+ * Without the field this is a no-op and the scan order is kept as is. Cycles, unknown
+ * dependency names and unsatisfied version ranges are warned about once and never
+ * prevent a plugin from loading.
+ */
+void plugin_manager::sort_by_dependencies(std::vector<plugin_t>& plugins)
+{
+    bool hasDependencies = false;
+    std::vector<std::pair<std::string, std::vector<std::string>>> dependencyGraph;
+    dependencyGraph.reserve(plugins.size());
+
+    for (const auto& plugin : plugins) {
+        std::vector<std::string> dependencies;
+
+        if (plugin.plugin_json.contains("dependencies") && plugin.plugin_json["dependencies"].is_array()) {
+            for (const auto& spec : plugin.plugin_json["dependencies"]) {
+                if (spec.is_string()) {
+                    dependencies.push_back(spec.get<std::string>());
+                }
+            }
+        }
+
+        hasDependencies = hasDependencies || !dependencies.empty();
+        dependencyGraph.emplace_back(plugin.plugin_name, std::move(dependencies));
+    }
+
+    if (!hasDependencies) {
+        return;
+    }
+
+    if (!m_logged_dependency_warnings) {
+        for (const auto& [pluginName, dependencies] : dependencyGraph) {
+            for (const auto& spec : dependencies) {
+                const auto atPos = spec.find('@');
+                const auto dependencyName = spec.substr(0, atPos);
+                const auto range = atPos == std::string::npos ? std::string() : spec.substr(atPos + 1);
+
+                const auto it = std::find_if(plugins.begin(), plugins.end(), [&](const auto& p)
+                {
+                    return p.plugin_name == dependencyName;
+                });
+
+                if (it == plugins.end()) {
+                    logger.warn("plugin '{}' depends on '{}', which is not installed", pluginName, dependencyName);
+                } else if (!range.empty() && !semver::satisfies(it->plugin_json.value("version", ""), range)) {
+                    logger.warn("plugin '{}' wants '{}' version {}, but {} is installed", pluginName, dependencyName, range, it->plugin_json.value("version", "<unset>"));
+                }
+            }
+        }
+    }
+
+    std::vector<std::string> cycle;
+    const auto order = plugin_deps::resolve_load_order(dependencyGraph, cycle);
+
+    if (!cycle.empty() && !m_logged_dependency_warnings) {
+        std::string cycleNames;
+        for (const auto& name : cycle) {
+            cycleNames += (cycleNames.empty() ? "" : ", ") + name;
+        }
+        logger.warn("plugins could not be dependency-ordered because of a cycle: {}", cycleNames);
+    }
+
+    m_logged_dependency_warnings = true;
+
+    std::vector<plugin_t> sorted;
+    sorted.reserve(plugins.size());
+
+    for (const auto index : order) {
+        sorted.push_back(std::move(plugins[index]));
+    }
+    plugins = std::move(sorted);
+}
+
+/**
  * @brief Get all the enabled backends from the plugin list.
  *
  * @note This function filters out the plugins that are not enabled or have the useBackend flag set to false.
  * Not all enabled plugins have backends.
+ *
+ * @note The full plugin list is dependency-sorted before filtering, so backends spawn
+ * after the backends they depend on (even when a disabled plugin sits between them).
  */
 std::vector<plugin_manager::plugin_t> plugin_manager::get_enabled_backends()
 {
-    const auto allPlugins = this->get_all_plugins();
+    auto allPlugins = this->get_all_plugins();
+    this->sort_by_dependencies(allPlugins);
+
     std::vector<plugin_manager::plugin_t> enabledBackends;
 
     for (auto& plugin : allPlugins) {

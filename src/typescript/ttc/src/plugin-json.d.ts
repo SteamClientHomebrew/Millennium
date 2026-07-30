@@ -34,6 +34,7 @@
 export interface PluginJson {
 	backend?: string;
 	common_name?: string;
+	dependencies?: string[];
 	description?: string;
 	frontend?: string;
 	include?: string[];

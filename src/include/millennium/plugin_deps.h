@@ -30,29 +30,33 @@
 
 #pragma once
 #include <string>
+#include <utility>
+#include <vector>
 
-namespace semver
+namespace plugin_deps
 {
-struct semver_version
-{
-    int major;
-    int minor;
-    int patch;
-    std::string prerelease;
-    std::string build;
-
-    semver_version(int maj = 0, int min = 0, int pat = 0, const std::string& pre = "", const std::string& bld = "");
-};
-
-semver_version parse(const std::string& version);
-
-int cmp(const std::string& v1, const std::string& v2);
-int cmp_pre_release(const std::string& pre1, const std::string& pre2);
 
 /**
- * @brief Check whether a version satisfies a range like ">=1.2.0", "<2.0.0" or "1.2.0" (exact).
- * Supported operators: >=, <=, >, <, =. A leading 'v' is tolerated on either side.
- * Returns true when either side cannot be parsed, so malformed input never rejects a plugin.
+ * @brief Compute a dependency-first load order for a list of plugins.
+ *
+ * Each input pair is a plugin name and its dependency specs as written in
+ * plugin.json ("name" or "name@<range>"; anything after the first '@' is
+ * ignored here). Edges are only created between names present in the input,
+ * so unknown dependencies never affect the order.
+ *
+ * The sort is stable: plugins with no ordering constraint between them keep
+ * their original relative order, and a list without any dependencies comes
+ * back in its original order. If two plugins share a name, only the first
+ * occurrence is considered a dependency target.
+ *
+ * Plugins that are part of a dependency cycle are appended at the end in
+ * their original order, and their names are written to `out_cycle` so the
+ * caller can warn about them.
+ *
+ * @param plugins The plugin names with their dependency specs.
+ * @param out_cycle Receives the names of plugins involved in a cycle.
+ * @return Indices into `plugins` in load order.
  */
-bool satisfies(const std::string& version, const std::string& range);
-} // namespace semver
+std::vector<size_t> resolve_load_order(const std::vector<std::pair<std::string, std::vector<std::string>>>& plugins, std::vector<std::string>& out_cycle);
+
+} // namespace plugin_deps

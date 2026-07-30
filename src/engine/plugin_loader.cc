@@ -334,6 +334,10 @@ std::string plugin_loader::cdp_generate_shim_module()
     std::vector<std::string> script_list;
     std::vector<plugin_manager::plugin_t> plugins = m_plugin_manager->get_all_plugins();
 
+    /** Inject frontends in dependency order. Only this local list is sorted; the
+     *  enumeration order seen by the settings UI stays untouched. */
+    m_plugin_manager->sort_by_dependencies(plugins);
+
     /** Add the builtin Millennium plugin first so it starts loading before all others */
     script_list.push_back(std::format("{}{}/millennium-frontend.js", m_network_hook_ctl->get_ftp_url(), GetScrambledApiPathToken()));
 
@@ -1150,16 +1154,18 @@ void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string,
         }
         this->log_enabled_plugins();
 
-        for (const auto& [name, enabled] : plugins) {
-            if (!enabled) continue;
-            if (m_backend_manager->is_any_backend_running(name)) continue;
+        /** walk the refreshed snapshot instead of the request list, so a batch of
+            newly enabled plugins spawns in dependency order rather than request order */
+        for (auto& plugin : *m_enabledPluginsPtr) {
+            const bool just_enabled = std::any_of(plugins.begin(), plugins.end(), [&](const auto& request)
+            {
+                return request.second && request.first == plugin.plugin_name;
+            });
 
-            for (auto& plugin : *m_enabledPluginsPtr) {
-                if (plugin.plugin_name == name) {
-                    m_backend_manager->spawn_plugin(plugin);
-                    break;
-                }
-            }
+            if (!just_enabled) continue;
+            if (m_backend_manager->is_any_backend_running(plugin.plugin_name)) continue;
+
+            m_backend_manager->spawn_plugin(plugin);
         }
     }
 

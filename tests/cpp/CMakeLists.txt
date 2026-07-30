@@ -1,8 +1,11 @@
 set(TEST_SOURCES
   ffi_recorder_test.cc
   test_target_url.cc
+  plugin_deps_test.cc
   ${CMAKE_SOURCE_DIR}/src/mep/ffi_recorder.cc
   ${CMAKE_SOURCE_DIR}/src/engine/target_url.cc
+  ${CMAKE_SOURCE_DIR}/src/engine/plugin_deps.cc
+  ${CMAKE_SOURCE_DIR}/src/util/semver.cc
 )
 
 add_executable(millennium_cpp_tests ${TEST_SOURCES})
