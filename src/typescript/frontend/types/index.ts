@@ -116,6 +116,7 @@ export interface Theme {
 	splash_image?: URL;
 	name?: string;
 	version?: string;
+	dependencies?: string[];
 	source?: string;
 	tags?: string[];
 }

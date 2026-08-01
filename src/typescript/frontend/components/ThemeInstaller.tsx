@@ -31,6 +31,7 @@
 import { ConfirmModal } from '@steambrew/sdk';
 import { InstallerProps, Theme } from '../types';
 import { OnProgressUpdate, RendererProps } from './InstallerProgress';
+import { ResolveDependencies, ShowDependencyWarning } from './PluginInstaller';
 import { backend } from '../utils/ffi';
 import { formatString, locale } from '../utils/localization-manager';
 import { ChangeActiveTheme, UIReloadProps } from '../settings/themes/ThemeComponent';
@@ -108,6 +109,21 @@ export const StartThemeInstaller = async (data: any, props: InstallerProps): Pro
 		});
 
 		if (!shouldContinueInstall) {
+			return false;
+		}
+	}
+
+	/** Warn about missing or disabled plugin dependencies declared in skin.json.
+	 *  Purely informational — the user can always continue. */
+	const declaredDependencies: string[] = Array.isArray(theme?.dependencies) ? theme.dependencies : [];
+
+	if (declaredDependencies.length) {
+		const dependencies = await ResolveDependencies(declaredDependencies);
+
+		if (
+			dependencies.some((dependency) => !dependency.enabled) &&
+			!(await ShowDependencyWarning(data?.name ?? theme?.name ?? locale.strUnknown, locale.themeDependencyModalBody, dependencies, props))
+		) {
 			return false;
 		}
 	}

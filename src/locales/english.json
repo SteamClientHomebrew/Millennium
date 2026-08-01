@@ -260,6 +260,7 @@
     "supersededPluginModalDismiss": "Not Now",
     "dependencyModalTitle": "{0} Dependencies",
     "dependencyModalBody": "This plugin depends on the following plugins. It may not work correctly until they are installed and enabled.",
+    "themeDependencyModalBody": "This theme depends on the following plugins. It may not work correctly until they are installed and enabled.",
     "dependencyModalInstallAnyway": "Install Anyway",
     "dependencyStateMissing": "Not installed",
     "dependencyStateDisabled": "Installed, but disabled",

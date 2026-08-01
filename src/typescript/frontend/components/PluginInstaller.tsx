@@ -43,9 +43,9 @@ interface DependencyStatus {
 	enabled: boolean;
 }
 
-/** Resolve the plugin's declared dependencies ("name" or "name@<range>")
+/** Resolve declared plugin dependencies ("name" or "name@<range>")
  *  against what is actually on disk. */
-const ResolveDependencies = async (dependencies: string[]): Promise<DependencyStatus[]> => {
+export const ResolveDependencies = async (dependencies: string[]): Promise<DependencyStatus[]> => {
 	const installedPlugins = await backend.plugins.getPlugins();
 
 	return dependencies
@@ -72,11 +72,11 @@ const DependencyVersionLabel = (range: string): string => {
 	return formatString(locale.dependencyVersionExact, range.replace(/^=/, ''));
 };
 
-const ShowDependencyWarning = (data: any, dependencies: DependencyStatus[], props: InstallerProps): Promise<boolean> => {
+export const ShowDependencyWarning = (displayName: string, body: string, dependencies: DependencyStatus[], props: InstallerProps): Promise<boolean> => {
 	return new Promise((resolve) => {
 		props?.ShowMessageBox(
 			<>
-				<Field description={locale.dependencyModalBody} />
+				<Field description={body} />
 				{dependencies.map((dependency) => (
 					<Field
 						key={dependency.name}
@@ -91,7 +91,7 @@ const ShowDependencyWarning = (data: any, dependencies: DependencyStatus[], prop
 				))}
 				<Field label={locale.dependencyBrowsePlugins} description={<Utils.URLComponent url={PLUGINS_URL} />} bottomSeparator="none" />
 			</>,
-			formatString(locale.dependencyModalTitle, data?.pluginJson?.common_name ?? data?.pluginJson?.name),
+			formatString(locale.dependencyModalTitle, displayName),
 			{
 				strOKButtonText: locale.dependencyModalInstallAnyway,
 				strCancelButtonText: locale.strNeverMind,
@@ -163,7 +163,10 @@ export const StartPluginInstaller = async (data: any, props: InstallerProps): Pr
 		const dependencies = await ResolveDependencies(declaredDependencies);
 
 		/** the dialog lists every dependency with its state, but only appears when at least one is unmet */
-		if (dependencies.some((dependency) => !dependency.enabled) && !(await ShowDependencyWarning(data, dependencies, props))) {
+		if (
+			dependencies.some((dependency) => !dependency.enabled) &&
+			!(await ShowDependencyWarning(data?.pluginJson?.common_name ?? pluginName, locale.dependencyModalBody, dependencies, props))
+		) {
 			return false;
 		}
 	}
