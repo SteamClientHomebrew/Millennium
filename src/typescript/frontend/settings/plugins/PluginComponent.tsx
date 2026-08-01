@@ -216,6 +216,8 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 
 		const showMetrics = isEnabled && metrics && metrics.rss_bytes > 0;
 
+		const dependencies = Array.isArray(plugin.data.dependencies) ? plugin.data.dependencies : [];
+
 		return (
 			<Field
 				key={index}
@@ -225,6 +227,20 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 						{plugin.data.version && (
 							<div className="MillenniumItem_Version">
 								<span>v{plugin.data.version}</span>
+							</div>
+						)}
+						{dependencies.length > 0 && (
+							<div className="MillenniumPlugins_Dependencies">
+								{dependencies.map((spec) => {
+									const name = spec.split('@')[0];
+									const met = this.props.allPlugins.some((installed) => installed?.data?.name === name && installed?.enabled);
+									return (
+										<span key={name}>
+											<b className={met ? 'MillenniumDependency_Met' : 'MillenniumDependency_Unmet'}>{met ? '✓' : '✕'}</b>
+											{name}
+										</span>
+									);
+								})}
 							</div>
 						)}
 						{showMetrics && (
