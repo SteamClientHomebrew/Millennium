@@ -214,7 +214,17 @@ void stop_pipe_drain()
 {
     g_pipe_drain_stop = true;
     if (g_pipe_drain_thread.joinable()) {
-        CancelSynchronousIo(reinterpret_cast<HANDLE>(g_pipe_drain_thread.native_handle()));
+        HANDLE hThread = reinterpret_cast<HANDLE>(g_pipe_drain_thread.native_handle());
+        /**
+         * the drain thread may not have entered ReadFile yet when we call
+         * CancelSynchronousIo, in which case it silently does nothing and the
+         * thread would otherwise block forever once it does call ReadFile.
+         * keep retrying until the thread has actually exited.
+         */
+        while (WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT) {
+            CancelSynchronousIo(hThread);
+            Sleep(1);
+        }
         g_pipe_drain_thread.join();
     }
 }
