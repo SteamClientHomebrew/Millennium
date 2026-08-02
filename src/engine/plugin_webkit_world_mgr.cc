@@ -215,21 +215,27 @@ void webkit_world_mgr::expose_millennium_to_ctx(const std::string& session_id, b
 
         /** remove previously registered script for this session (if any) to avoid stacking */
         {
-            std::lock_guard<std::mutex> lock(m_targets_mutex);
-            for (auto& [tid, ctx] : m_attached_targets) {
-                if (ctx.session_id == session_id && !ctx.script_id.empty()) {
-                    try {
-                        m_client
-                            ->send_host("Page.removeScriptToEvaluateOnNewDocument",
-                                        json{
-                                            { "identifier", ctx.script_id }
-                        },
-                                        session_id)
-                            .get();
-                    } catch (...) {
+            std::string stale_script_id;
+            {
+                std::lock_guard<std::mutex> lock(m_targets_mutex);
+                for (auto& [tid, ctx] : m_attached_targets) {
+                    if (ctx.session_id == session_id && !ctx.script_id.empty()) {
+                        stale_script_id = std::move(ctx.script_id);
+                        ctx.script_id.clear();
+                        break;
                     }
-                    ctx.script_id.clear();
-                    break;
+                }
+            }
+            if (!stale_script_id.empty()) {
+                try {
+                    m_client
+                        ->send_host("Page.removeScriptToEvaluateOnNewDocument",
+                                    json{
+                                        { "identifier", stale_script_id }
+                    },
+                                    session_id)
+                        .get();
+                } catch (...) {
                 }
             }
         }
@@ -400,23 +406,27 @@ try {{
 
     /** remove any previously registered isolated-world scripts for this session */
     {
-        std::lock_guard<std::mutex> lock(m_targets_mutex);
-        for (auto& [tid, ctx] : m_attached_targets) {
-            if (ctx.session_id != session_id) continue;
-            for (const auto& sid : ctx.star_script_ids) {
-                try {
-                    m_client
-                        ->send_host("Page.removeScriptToEvaluateOnNewDocument",
-                                    json{
-                                        { "identifier", sid }
-                    },
-                                    session_id)
-                        .get();
-                } catch (...) {
-                }
+        std::vector<std::string> stale_script_ids;
+        {
+            std::lock_guard<std::mutex> lock(m_targets_mutex);
+            for (auto& [tid, ctx] : m_attached_targets) {
+                if (ctx.session_id != session_id) continue;
+                stale_script_ids = std::move(ctx.star_script_ids);
+                ctx.star_script_ids.clear();
+                break;
             }
-            ctx.star_script_ids.clear();
-            break;
+        }
+        for (const auto& sid : stale_script_ids) {
+            try {
+                m_client
+                    ->send_host("Page.removeScriptToEvaluateOnNewDocument",
+                                json{
+                                    { "identifier", sid }
+                },
+                                session_id)
+                    .get();
+            } catch (...) {
+            }
         }
     }
 
