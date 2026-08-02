@@ -185,12 +185,12 @@ html body .MillenniumButton.MillenniumIconButton.MillenniumIconButtonWithText {
 		min-height: unset !important;
 	}
 
-	.${fieldClasses.FieldChildrenInner.replace(" ", ", .")} {
+	.${(fieldClasses.FieldChildrenInner ?? "").replace(" ", ", .")} {
 		gap: var(--MillenniumSpacing-Normal);
 		align-items: center;
 	}
 
-	.${pagedSettingsClasses.PageListItem_Title.replace(" ", ", .")} {
+	.${(pagedSettingsClasses.PageListItem_Title ?? "").replace(" ", ", .")} {
 		overflow: visible !important;
 		flex-grow: 1;
 	}
