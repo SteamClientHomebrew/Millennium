@@ -23,7 +23,7 @@
   ...
 }:
 let
-  version = "3.4.0-beta.9";
+  version = "3.4.0-beta.10";
 
   tsPackages = [
     "src/typescript/ttc"
@@ -86,7 +86,7 @@ let
 
     outputHashMode = "recursive";
     outputHashAlgo = "sha256";
-    outputHash = "sha256-BEupNhAlkAELGGLj6/SVUjj101hBm4JzJH9N5i1qM6A=";
+    outputHash = "sha256-gQhAqitG9i+WzHnJBI7iEUkAz4/d7hPZlMb+Ace4vA8=";
   };
 
   cargoDeps = rustPlatform.importCargoLock {
