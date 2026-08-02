@@ -44,7 +44,6 @@ import { FaMemory } from 'react-icons/fa';
 interface PluginComponentProps {
 	plugin: PluginComponent;
 	index: number;
-	isLastPlugin: boolean;
 	isEnabled: boolean;
 	hasErrors: boolean;
 	hasWarnings: boolean;
@@ -205,7 +204,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 	}
 
 	render() {
-		const { plugin, index, isLastPlugin, isEnabled, onSelectionChange, metrics } = this.props;
+		const { plugin, index, isEnabled, onSelectionChange, metrics } = this.props;
 		const { flashKey } = this.state;
 
 		/** Don't render the Millennium plugin */
@@ -245,7 +244,6 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 				description={plugin?.data?.description}
 				icon={content}
 				padding="standard"
-				bottomSeparator={isLastPlugin ? 'none' : 'standard'}
 				className="MillenniumPlugins_PluginField"
 				data-plugin-name={plugin.data.name}
 				data-plugin-version={plugin.data.version}

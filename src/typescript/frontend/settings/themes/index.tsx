@@ -80,12 +80,11 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 		return theme?.data?.name === active || theme?.native === active;
 	};
 
-	RenderThemeItem = (theme: ThemeItem, isLastItem: boolean, index: number) => {
+	RenderThemeItem = (theme: ThemeItem, index: number) => {
 		return (
 			<ThemeItemComponent
 				key={index}
 				theme={theme}
-				isLastItem={isLastItem}
 				activeTheme={this.state.active}
 				onChangeTheme={this.ChangeActiveTheme}
 				onUseDefault={this.UseDefaultTheme}
@@ -154,7 +153,7 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 						{locale.optionBrowseLocalFiles}
 					</DialogButton>
 				</DialogControlsSection>
-				{themes?.map((theme, i) => this.RenderThemeItem(theme, i === themes.length - 1, i))}
+				{themes?.map((theme, i) => this.RenderThemeItem(theme, i))}
 			</>
 		);
 	}

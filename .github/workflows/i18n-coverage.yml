@@ -1,0 +1,47 @@
+name: i18n coverage
+
+# Regenerates the translation coverage chart (.github/assets/i18n-coverage-*.svg)
+# whenever the locales change. The bot commit only touches those SVGs, which are
+# not in the trigger paths, so it cannot retrigger itself.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/locales/**"
+      - "scripts/i18n-coverage.ts"
+  workflow_dispatch:
+
+concurrency:
+  group: i18n-coverage
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Regenerate coverage chart
+        run: node scripts/i18n-coverage.ts
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "github-actions@github.com"
+          git config --local user.name "GitHub Actions"
+          if git diff --quiet -- .github/assets; then
+            echo "Coverage chart already up to date."
+          else
+            git add .github/assets/i18n-coverage-light.svg .github/assets/i18n-coverage-dark.svg
+            git commit -m "docs(readme): update translation coverage [skip ci]"
+            git push
+          fi

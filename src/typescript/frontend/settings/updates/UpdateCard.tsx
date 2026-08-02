@@ -46,7 +46,6 @@ interface UpdateProps {
 interface UpdateCardProps {
 	update: UpdateProps;
 	index: number;
-	totalCount: number;
 	isUpdating: boolean;
 	progress: number;
 	statusText: string;
@@ -191,14 +190,13 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 
 	render() {
 		const { showingMore } = this.state;
-		const { update, index, totalCount } = this.props;
+		const { update, index } = this.props;
 
 		return (
 			<Field
 				key={index}
 				className="MillenniumUpdates_Field"
 				label={update.name}
-				bottomSeparator={index === totalCount - 1 ? 'none' : 'standard'}
 				description={this.renderDescription()}
 				data-expanded={showingMore}
 				disabled={this.props.disabled}

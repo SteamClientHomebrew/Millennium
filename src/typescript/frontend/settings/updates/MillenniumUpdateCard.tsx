@@ -118,7 +118,6 @@ export const MillenniumUpdateCard = ({ millenniumUpdates }: { millenniumUpdates:
 					commit: millenniumUpdates?.newVersion?.html_url ?? '',
 				}}
 				index={0}
-				totalCount={1}
 				isUpdating={ctx.isUpdatingMillennium}
 				progress={ctx.millenniumUpdateProgress.progress}
 				statusText={ctx.millenniumUpdateProgress.statusText}

@@ -82,8 +82,9 @@ class Bootstrap {
 
 	waitForClientReady(): Promise<void> {
 		const checkReady = async (resolve: () => void, interval: ReturnType<typeof setInterval>) => {
+			// TODO: Remove the second variant, removed in the 2026-07-24 beta
 			// @ts-expect-error Part of the builtin Steam Client API.
-			if (!window.App?.BFinishedInitStageOne()) return;
+			if (!(window.App?.BFinishedInitBeforeLogin?.() ?? window.App?.BFinishedInitStageOne?.())) return;
 			clearInterval(interval);
 			await this.injectLegacyReactGlobals();
 			resolve();

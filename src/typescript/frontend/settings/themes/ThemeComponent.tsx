@@ -42,7 +42,6 @@ import { useQuickAccessStore } from '../../quick-access/quickAccessStore';
 
 interface ThemeItemComponentProps {
 	theme: ThemeItem;
-	isLastItem: boolean;
 	activeTheme?: string;
 	onChangeTheme: (item: ThemeItem) => void;
 	onUseDefault: () => void;
@@ -176,7 +175,7 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 	}
 
 	render() {
-		const { theme, onChangeTheme, onUseDefault, isLastItem } = this.props;
+		const { theme, onChangeTheme, onUseDefault } = this.props;
 		const isActive = this.isActive;
 
 		return (
@@ -188,7 +187,6 @@ export class ThemeItemComponent extends Component<ThemeItemComponentProps, Theme
 					</div>
 				}
 				padding="standard"
-				bottomSeparator={isLastItem ? 'none' : 'standard'}
 				className="MillenniumThemes_ThemeItem"
 				{...(isActive && { icon: <IconsModule.Checkmark /> })}
 				description={this.renderExpandableShowMore()}

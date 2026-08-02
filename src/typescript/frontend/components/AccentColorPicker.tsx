@@ -86,7 +86,6 @@ const RenderAccentColorPicker = () => {
 			data-default-color={isDefaultColor}
 			label={locale.themePanelCustomAccentColor}
 			description={locale.themePanelCustomAccentColorToolTip}
-			bottomSeparator="none"
 		>
 			<DialogButton className={settingsClasses.SettingsDialogButton} disabled={isDefaultColor} onClick={ResetColor}>
 				{locale.strReset}
