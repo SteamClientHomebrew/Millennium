@@ -86,5 +86,26 @@ pub fn local_path_from_lb_url(url: &str) -> Option<PathBuf> {
     let path = &path[..path.find('?').unwrap_or(path.len())];
     let rel = path.trim_start_matches('/');
 
+    if rel.split('/').any(|seg| seg == "..") {
+        return None;
+    }
+
     Some(steam_install_path().join("steamui").join(rel))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::local_path_from_lb_url;
+
+    #[test]
+    fn resolves_a_normal_asset_path() {
+        let resolved = local_path_from_lb_url("https://steamloopback.host/css/skin.css").unwrap();
+        assert!(resolved.ends_with("steamui/css/skin.css"));
+    }
+
+    #[test]
+    fn rejects_parent_directory_traversal() {
+        assert!(local_path_from_lb_url("https://steamloopback.host/../../etc/passwd").is_none());
+        assert!(local_path_from_lb_url("https://steamloopback.host/css/../../../etc/passwd").is_none());
+    }
 }
