@@ -388,6 +388,23 @@ static void lb_buf_finish(steamloopback_proxy_resource_handler_t* h, bool succes
 }
 
 /**
+ * cleanup after CEF has already cancelled us via lb_buf_cancel — release the
+ * drain buffers and drop the self-ref, but never touch outer_open_cb since
+ * CEF doesn't expect a callback after it has already cancelled the request.
+ */
+static void lb_buf_finish_cancelled(steamloopback_proxy_resource_handler_t* h)
+{
+    free(h->read_chunk);
+    h->read_chunk = NULL;
+    free(h->raw_data);
+    h->raw_data = NULL;
+    h->raw_len = 0;
+    h->raw_cap = 0;
+
+    lb_buf_release(h); /** drop the ref the drain took in lb_buf_open */
+}
+
+/**
  * actual drain loop: read from h->inner until EOF/error/deferred.
  * only ever called once h->inner_opened is true.
  */
@@ -425,7 +442,10 @@ static void lb_buf_advance(steamloopback_proxy_resource_handler_t* h)
 void CEF_CALLBACK lb_buf_opencb_cont(cef_callback_t* base)
 {
     steamloopback_proxy_resource_handler_t* h = lb_buf_from_open_cb(base);
-    if (h->state == LB_CANCELLED) return;
+    if (h->state == LB_CANCELLED) {
+        lb_buf_finish_cancelled(h);
+        return;
+    }
     h->inner_opened = true;
     lb_buf_advance(h);
 }
@@ -433,14 +453,20 @@ void CEF_CALLBACK lb_buf_opencb_cont(cef_callback_t* base)
 void CEF_CALLBACK lb_buf_opencb_cancel(cef_callback_t* base)
 {
     steamloopback_proxy_resource_handler_t* h = lb_buf_from_open_cb(base);
-    if (h->state == LB_CANCELLED) return;
+    if (h->state == LB_CANCELLED) {
+        lb_buf_finish_cancelled(h);
+        return;
+    }
     lb_buf_finish(h, false);
 }
 
 void CEF_CALLBACK lb_buf_readcb_cont(cef_resource_read_callback_t* base, int bytes_read)
 {
     steamloopback_proxy_resource_handler_t* h = lb_buf_from_read_cb(base);
-    if (h->state == LB_CANCELLED) return;
+    if (h->state == LB_CANCELLED) {
+        lb_buf_finish_cancelled(h);
+        return;
+    }
 
     if (bytes_read > 0) {
         if (!lb_buf_append(h, h->read_chunk, (size_t)bytes_read)) {
