@@ -114,7 +114,16 @@ fn patch_bytes(url_str: &str, path_str: &str, content: Vec<u8>) -> Vec<u8> {
         .unwrap_or(path_str);
 
     let content = if url::is_js_url(url_str) {
-        css_classes::patch(name, &content)
+        let rewritten = css_classes::patch(name, &content);
+        if !syntax::check(std::str::from_utf8(&rewritten).unwrap_or("")).is_empty() {
+            log::warn!(
+                "{}: css_classes rewrite produced invalid syntax — reverting to original bytes",
+                name
+            );
+            content
+        } else {
+            rewritten
+        }
     } else {
         content
     };
