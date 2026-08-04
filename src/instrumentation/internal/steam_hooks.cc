@@ -425,8 +425,8 @@ HMODULE steam_tier0_module;
 
 INT hooked_create_simple_process(const char* a1, char a2, const char* lp_multi_byte_str)
 {
-    auto orig = reinterpret_cast<INT(__cdecl*)(const char*, char, const char*)>(snare_inline_get_trampoline(g_create_hook));
-    return orig(Plat_HookedCreateSimpleProcess(a1), a2, lp_multi_byte_str);
+    auto orig = reinterpret_cast<INT(__cdecl*)(const char*, char, const char*, void*)>(snare_inline_get_trampoline(g_create_hook));
+    return orig(Plat_HookedCreateSimpleProcess(a1), a2, lp_multi_byte_str, nullptr);
 }
 
 BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,
