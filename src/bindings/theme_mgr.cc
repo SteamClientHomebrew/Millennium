@@ -298,7 +298,7 @@ nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config
             }
         }
 
-        m_updater->dispatch_progress("Starting Installer...", 5, false);
+        m_updater->dispatch_progress("##strStartingThemeInstaller", 5, false);
 
         nlohmann::json postBody = {
             { "owner", owner },
@@ -315,7 +315,7 @@ nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config
         }
 
         logger.log("Downloading theme from: {}", downloadUrl);
-        m_updater->dispatch_progress("Downloading theme...", 10, false);
+        m_updater->dispatch_progress("##strDownloadingTheme", 10, false);
 
         tempDir = get_themes_folder() / ("__tmp_" + GenerateUUID());
         std::filesystem::create_directories(tempDir);
@@ -325,17 +325,17 @@ nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config
         {
             if (total > 0) {
                 double percent = (double(downloaded) / total) * 100.0;
-                m_updater->dispatch_progress("Downloading theme...", 10.0 + (40.0 * (percent / 100.0)), false);
+                m_updater->dispatch_progress("##strDownloadingTheme", 10.0 + (40.0 * (percent / 100.0)), false);
             }
         });
 
-        m_updater->dispatch_progress("Setting up theme...", 55, false);
+        m_updater->dispatch_progress("##strSettingUpTheme", 55, false);
         logger.log("Extracting theme to: {}", tempDir.string());
 
         const bool extracted = Util::ExtractZipArchive(zipPath.string(), tempDir.string(), [&](int current, int total, const char*)
         {
             double percent = (double(current) / total) * 100.0;
-            m_updater->dispatch_progress("Setting up theme...", 55.0 + (30.0 * (percent / 100.0)), false);
+            m_updater->dispatch_progress("##strSettingUpTheme", 55.0 + (30.0 * (percent / 100.0)), false);
         });
 
         if (!extracted) {
@@ -357,7 +357,7 @@ nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config
             return create_error_response("No directory found in extracted theme archive");
         }
 
-        m_updater->dispatch_progress("Installing theme...", 88, false);
+        m_updater->dispatch_progress("##strInstallingTheme", 88, false);
 
         std::error_code ec;
         std::filesystem::rename(extractedFolder, finalPath, ec);
@@ -384,14 +384,14 @@ nlohmann::json head::theme_installer::install_theme(std::shared_ptr<theme_config
             return create_error_response("Failed to write metadata after theme install");
         }
 
-        m_updater->dispatch_progress("Cleaning up...", 96, false);
+        m_updater->dispatch_progress("##strCleaningUp", 96, false);
         std::filesystem::remove_all(tempDir);
         tempDir.clear();
 
         /** trigger config update to regenerate config */
         themeConfig->on_config_change_hdlr();
 
-        m_updater->dispatch_progress("Done!", 100, true);
+        m_updater->dispatch_progress("##strDone", 100, true);
         return create_successful_response();
     } catch (const std::exception& e) {
         LOG_ERROR("Failed to install theme: {}", e.what());
@@ -444,7 +444,7 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
         }
 
         logger.log("Downloading theme update from: {}", downloadUrl);
-        m_updater->dispatch_progress("Downloading theme update...", 5, false);
+        m_updater->dispatch_progress("##strDownloadingThemeUpdate", 5, false);
 
         tempDir = get_themes_folder() / ("__tmp_" + GenerateUUID());
         std::filesystem::create_directories(tempDir);
@@ -454,7 +454,7 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
         {
             if (total > 0) {
                 double percent = (double(downloaded) / total) * 100.0;
-                m_updater->dispatch_progress("Downloading theme update...", 5.0 + (45.0 * (percent / 100.0)), false);
+                m_updater->dispatch_progress("##strDownloadingThemeUpdate", 5.0 + (45.0 * (percent / 100.0)), false);
             }
         });
         logger.log("Download complete. Extracting...");
@@ -462,7 +462,7 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
         const bool extracted = Util::ExtractZipArchive(zipPath.string(), tempDir.string(), [&](int current, int total, const char*)
         {
             double percent = (double(current) / total) * 100.0;
-            m_updater->dispatch_progress("Extracting theme archive...", 50.0 + (40.0 * (percent / 100.0)), false);
+            m_updater->dispatch_progress("##strExtractingThemeArchive", 50.0 + (40.0 * (percent / 100.0)), false);
         });
 
         if (!extracted) {
@@ -485,7 +485,7 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
             return false;
         }
 
-        m_updater->dispatch_progress("Copying updated theme files...", 92, false);
+        m_updater->dispatch_progress("##strCopyingThemeFiles", 92, false);
         logger.log("Copying updated theme files to: {}", themePath.string());
         for (const auto& p : std::filesystem::recursive_directory_iterator(extractedFolder)) {
             auto rel = std::filesystem::relative(p.path(), extractedFolder);
@@ -512,7 +512,7 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
             }
         }
 
-        m_updater->dispatch_progress("Cleaning up...", 96, false);
+        m_updater->dispatch_progress("##strCleaningUp", 96, false);
         logger.log("Cleaning up temporary files...");
         std::filesystem::remove_all(tempDir);
         tempDir.clear();
@@ -520,7 +520,7 @@ bool head::theme_installer::update_theme(std::shared_ptr<theme_config_store> the
         /** trigger config update to regenerate config */
         themeConfig->on_config_change_hdlr();
 
-        m_updater->dispatch_progress("Done!", 100, true);
+        m_updater->dispatch_progress("##strDone", 100, true);
         logger.log("Theme '{}' updated successfully.", native);
         return true;
     } catch (const std::exception& e) {
