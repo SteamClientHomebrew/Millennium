@@ -65,10 +65,13 @@ const DependencyStateLabel = (dependency: DependencyStatus): string => {
 	return dependency.installed ? locale.dependencyStateDisabled : locale.dependencyStateMissing;
 };
 
-/** "min version 1.2.0" instead of the raw ">=1.2.0" spec syntax */
+/** "min version 1.2.0" instead of the raw ">=1.2.0" spec syntax, keeping
+ *  inclusive and exclusive ranges distinct like semver::satisfies does. */
 const DependencyVersionLabel = (range: string): string => {
-	if (range.startsWith('>')) return formatString(locale.dependencyVersionMin, range.replace(/^>=?/, ''));
-	if (range.startsWith('<')) return formatString(locale.dependencyVersionMax, range.replace(/^<=?/, ''));
+	if (range.startsWith('>=')) return formatString(locale.dependencyVersionMin, range.slice(2));
+	if (range.startsWith('>')) return formatString(locale.dependencyVersionNewerThan, range.slice(1));
+	if (range.startsWith('<=')) return formatString(locale.dependencyVersionMax, range.slice(2));
+	if (range.startsWith('<')) return formatString(locale.dependencyVersionOlderThan, range.slice(1));
 	return formatString(locale.dependencyVersionExact, range.replace(/^=/, ''));
 };
 

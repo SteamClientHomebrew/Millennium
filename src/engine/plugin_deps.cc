@@ -30,18 +30,22 @@
 
 #include "millennium/plugin_deps.h"
 
-#include <map>
 #include <set>
+
+std::map<std::string, size_t> plugin_deps::index_by_name(const std::vector<std::pair<std::string, std::vector<std::string>>>& plugins)
+{
+    /** First occurrence wins when two plugins share a name. */
+    std::map<std::string, size_t> indices;
+    for (size_t i = 0; i < plugins.size(); ++i) {
+        indices.try_emplace(plugins[i].first, i);
+    }
+    return indices;
+}
 
 std::vector<size_t> plugin_deps::resolve_load_order(const std::vector<std::pair<std::string, std::vector<std::string>>>& plugins, std::vector<std::string>& out_cycle)
 {
     const size_t count = plugins.size();
-
-    /** First occurrence wins when two plugins share a name. */
-    std::map<std::string, size_t> index_by_name;
-    for (size_t i = 0; i < count; ++i) {
-        index_by_name.try_emplace(plugins[i].first, i);
-    }
+    const auto indices = index_by_name(plugins);
 
     /** Edge dep -> dependent; only between plugins present in the list. */
     std::vector<std::set<size_t>> dependents(count);
@@ -51,8 +55,8 @@ std::vector<size_t> plugin_deps::resolve_load_order(const std::vector<std::pair<
         for (const auto& spec : plugins[i].second) {
             const auto name = spec.substr(0, spec.find('@'));
 
-            const auto it = index_by_name.find(name);
-            if (it == index_by_name.end()) {
+            const auto it = indices.find(name);
+            if (it == indices.end()) {
                 continue;
             }
 

@@ -32,6 +32,8 @@
 #include "nlohmann/json.hpp" // IWYU pragma: keep
 #include "millennium/types.h"
 #include <filesystem>
+#include <set>
+#include <string>
 #include <vector>
 
 class plugin_manager
@@ -79,5 +81,5 @@ class plugin_manager
     void lint_plugin(json json, std::string pluginName);
     plugin_t get_plugin_internal_metadata(json json, std::filesystem::directory_entry entry);
 
-    bool m_logged_dependency_warnings = false;
+    std::set<std::string> m_logged_dependency_warnings;
 };

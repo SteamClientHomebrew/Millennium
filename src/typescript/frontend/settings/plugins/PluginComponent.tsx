@@ -233,7 +233,10 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 							<div className="MillenniumPlugins_Dependencies">
 								{dependencies.map((spec) => {
 									const name = spec.split('@')[0];
-									const met = this.props.allPlugins.some((installed) => installed?.data?.name === name && installed?.enabled);
+									const dependency = this.props.allPlugins.find((installed) => installed?.data?.name === name);
+									/** a dependency that crashed is still "enabled" in the config, but it is
+									 *  not actually loaded, so it cannot satisfy anything */
+									const met = dependency?.enabled === true && dependency?.status !== 'crashed';
 									return (
 										<span key={name}>
 											<b className={met ? 'MillenniumDependency_Met' : 'MillenniumDependency_Unmet'}>{met ? '✓' : '✕'}</b>

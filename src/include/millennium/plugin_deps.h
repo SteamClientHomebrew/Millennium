@@ -29,12 +29,24 @@
  */
 
 #pragma once
+#include <cstddef>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace plugin_deps
 {
+
+/**
+ * @brief Map every plugin name in the list to its index, first occurrence winning.
+ *
+ * Callers use this to resolve dependency names without scanning the plugin list
+ * for every dependency they look at.
+ *
+ * @param plugins The plugin names with their dependency specs.
+ */
+std::map<std::string, size_t> index_by_name(const std::vector<std::pair<std::string, std::vector<std::string>>>& plugins);
 
 /**
  * @brief Compute a dependency-first load order for a list of plugins.

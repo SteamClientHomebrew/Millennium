@@ -267,6 +267,8 @@
     "dependencyStateEnabled": "Installed and enabled",
     "dependencyVersionMin": "min version {0}",
     "dependencyVersionMax": "max version {0}",
+    "dependencyVersionNewerThan": "newer than {0}",
+    "dependencyVersionOlderThan": "older than {0}",
     "dependencyVersionExact": "version {0}",
     "dependencyBrowsePlugins": "Find plugins on steambrew.app"
 }

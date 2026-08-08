@@ -296,23 +296,35 @@ void plugin_manager::sort_by_dependencies(std::vector<plugin_t>& plugins)
         return;
     }
 
-    if (!m_logged_dependency_warnings) {
-        for (const auto& [pluginName, dependencies] : dependencyGraph) {
-            for (const auto& spec : dependencies) {
-                const auto atPos = spec.find('@');
-                const auto dependencyName = spec.substr(0, atPos);
-                const auto range = atPos == std::string::npos ? std::string() : spec.substr(atPos + 1);
+    /** The plugin list is rebuilt on every scan, so warn once per distinct problem
+     *  instead of repeating it every time the list is sorted. */
+    const auto warn_once = [this](const std::string& key, const auto&... args)
+    {
+        if (m_logged_dependency_warnings.insert(key).second) {
+            logger.warn(args...);
+        }
+    };
 
-                const auto it = std::find_if(plugins.begin(), plugins.end(), [&](const auto& p)
-                {
-                    return p.plugin_name == dependencyName;
-                });
+    const auto indices = plugin_deps::index_by_name(dependencyGraph);
 
-                if (it == plugins.end()) {
-                    logger.warn("plugin '{}' depends on '{}', which is not installed", pluginName, dependencyName);
-                } else if (!range.empty() && !semver::satisfies(it->plugin_json.value("version", ""), range)) {
-                    logger.warn("plugin '{}' wants '{}' version {}, but {} is installed", pluginName, dependencyName, range, it->plugin_json.value("version", "<unset>"));
-                }
+    for (const auto& [pluginName, dependencies] : dependencyGraph) {
+        for (const auto& spec : dependencies) {
+            const auto atPos = spec.find('@');
+            const auto dependencyName = spec.substr(0, atPos);
+            const auto range = atPos == std::string::npos ? std::string() : spec.substr(atPos + 1);
+
+            const auto it = indices.find(dependencyName);
+
+            if (it == indices.end()) {
+                warn_once(std::format("missing:{}:{}", pluginName, dependencyName), "plugin '{}' depends on '{}', which is not installed", pluginName, dependencyName);
+                continue;
+            }
+
+            const auto& installedVersion = plugins[it->second].plugin_json.value("version", "");
+
+            if (!range.empty() && !semver::satisfies(installedVersion, range)) {
+                warn_once(std::format("version:{}:{}", pluginName, spec), "plugin '{}' wants '{}' version {}, but {} is installed", pluginName, dependencyName, range,
+                          installedVersion.empty() ? "<unset>" : installedVersion);
             }
         }
     }
@@ -320,15 +332,13 @@ void plugin_manager::sort_by_dependencies(std::vector<plugin_t>& plugins)
     std::vector<std::string> cycle;
     const auto order = plugin_deps::resolve_load_order(dependencyGraph, cycle);
 
-    if (!cycle.empty() && !m_logged_dependency_warnings) {
+    if (!cycle.empty()) {
         std::string cycleNames;
         for (const auto& name : cycle) {
             cycleNames += (cycleNames.empty() ? "" : ", ") + name;
         }
-        logger.warn("plugins could not be dependency-ordered because of a cycle: {}", cycleNames);
+        warn_once(std::format("cycle:{}", cycleNames), "plugins could not be dependency-ordered because of a cycle: {}", cycleNames);
     }
-
-    m_logged_dependency_warnings = true;
 
     std::vector<plugin_t> sorted;
     sorted.reserve(plugins.size());
