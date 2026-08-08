@@ -28,8 +28,8 @@
  * SOFTWARE.
  */
 
-import { DialogButton, Field, IconsModule, joinClassNames, Menu, MenuItem, pluginSelf, showContextMenu } from '@steambrew/sdk';
-import { ThemeItem } from '../../types';
+import { ConfirmModal, DialogButton, Field, IconsModule, joinClassNames, Menu, MenuItem, pluginSelf, showContextMenu, showModal } from '@steambrew/sdk';
+import { Theme, ThemeItem } from '../../types';
 import { DesktopTooltip, Separator } from '../../components/SteamComponents';
 import { Utils } from '../../utils';
 import { formatString, locale } from '../../utils/localization-manager';
@@ -58,9 +58,39 @@ export enum UIReloadProps {
 	Prompt,
 }
 
-export const ChangeActiveTheme = async (themeName: string, reloadProps: UIReloadProps) => {
+/** Plugins a theme declares in "requires" that aren't installed and enabled. */
+const GetUnmetThemeRequirements = async (theme?: Theme): Promise<string[]> => {
+	const requirements = Array.isArray(theme?.requires) ? theme.requires : [];
+	if (!requirements.length) return [];
+
+	const installedPlugins = await backend.plugins.getPlugins();
+
+	return requirements
+		.map((spec) => spec.split('@')[0])
+		.filter((name) => !installedPlugins?.some((installed) => installed?.data?.name === name && installed?.enabled));
+};
+
+export const ChangeActiveTheme = async (themeName: string, reloadProps: UIReloadProps, theme?: Theme) => {
 	if (!themeName || typeof themeName !== 'string') {
 		console.error('ChangeActiveTheme called with invalid theme name:', themeName);
+		return false;
+	}
+
+	/** a theme that requires plugins can't be applied until they are there, the same way
+	    a plugin that requires others can't be enabled */
+	const unmetRequirements = await GetUnmetThemeRequirements(theme);
+
+	if (unmetRequirements.length) {
+		showModal(
+			<ConfirmModal
+				strTitle={locale.themeRequirementsTitle}
+				strDescription={formatString(locale.themeRequirementsBody, theme?.name ?? themeName, unmetRequirements.join(', '))}
+				strOKButtonText={locale.strNeverMind}
+				bAlertDialog={true}
+			/>,
+			pluginSelf.mainWindow,
+			{ bNeverPopOut: false },
+		);
 		return false;
 	}
 

@@ -158,7 +158,26 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 	}
 
 	getTooltipContent() {
-		const { plugin, hasErrors, hasWarnings, isLegacy } = this.props;
+		const { plugin, hasErrors, hasWarnings, isLegacy, isEnabled } = this.props;
+
+		const unmetRequirements = (Array.isArray(plugin.data.requires) ? plugin.data.requires : []).filter((spec) => {
+			const dependency = this.props.allPlugins.find((installed) => installed?.data?.name === spec.split('@')[0]);
+			return !dependency?.enabled;
+		});
+
+		if (!isEnabled && unmetRequirements.length) {
+			return {
+				type: TooltipType.Warning,
+				content: (
+					<DesktopTooltip
+						toolTipContent={formatString(locale.pluginRequirementsTooltip, unmetRequirements.map((spec) => spec.split('@')[0]).join(', '))}
+						direction="top"
+					>
+						<IconsModule.ExclamationPoint color="#ffc82c" />
+					</DesktopTooltip>
+				),
+			};
+		}
 
 		if (isLegacy) {
 			return {
@@ -216,7 +235,14 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 
 		const showMetrics = isEnabled && metrics && metrics.rss_bytes > 0;
 
-		const dependencies = Array.isArray(plugin.data.dependencies) ? plugin.data.dependencies : [];
+		const requirements = Array.isArray(plugin.data.requires) ? plugin.data.requires : [];
+		const dependencies = [...requirements, ...(Array.isArray(plugin.data.dependencies) ? plugin.data.dependencies : [])];
+
+		/** a plugin that declares "requires" cannot be enabled until they are */
+		const unmetRequirements = requirements.filter((spec) => {
+			const dependency = this.props.allPlugins.find((installed) => installed?.data?.name === spec.split('@')[0]);
+			return !dependency?.enabled;
+		});
 
 		return (
 			<Field
@@ -271,7 +297,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 			>
 				<Toggle
 					key={plugin.data.name}
-					disabled={plugin.data.name === 'core' || this.props.isLegacy}
+					disabled={plugin.data.name === 'core' || this.props.isLegacy || (!isEnabled && unmetRequirements.length > 0)}
 					value={this.props.isLegacy ? false : isEnabled}
 					onChange={() => onSelectionChange(index)}
 				/>

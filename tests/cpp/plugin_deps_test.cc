@@ -137,6 +137,21 @@ TEST_CASE("plugin_deps: cycle members are appended in scan order and reported", 
     REQUIRE(cycle == std::vector<std::string>{ "ouroboros", "ping", "pong" });
 }
 
+TEST_CASE("plugin_deps: index_by_name keeps the first plugin of a duplicated name", "[plugin_deps]")
+{
+    const plugin_list plugins = {
+        { "alpha", {} },
+        { "bravo", {} },
+        { "alpha", {} },
+    };
+
+    const auto indices = plugin_deps::index_by_name(plugins);
+
+    REQUIRE(indices.size() == 2);
+    REQUIRE(indices.at("alpha") == 0);
+    REQUIRE(indices.at("bravo") == 1);
+}
+
 TEST_CASE("plugin_deps: duplicate plugin names resolve to the first occurrence", "[plugin_deps]")
 {
     const plugin_list plugins = {

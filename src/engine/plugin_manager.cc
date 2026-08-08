@@ -271,6 +271,38 @@ std::vector<std::string> plugin_manager::get_enabled_plugin_names()
  * dependency names and unsatisfied version ranges are warned about once and never
  * prevent a plugin from loading.
  */
+/**
+ * @brief Read a plugin.json string array, ignoring anything that isn't a string.
+ */
+static std::vector<std::string> read_string_array(const nlohmann::json& plugin_json, const char* field)
+{
+    std::vector<std::string> values;
+
+    if (plugin_json.contains(field) && plugin_json[field].is_array()) {
+        for (const auto& item : plugin_json[field]) {
+            if (item.is_string()) {
+                values.push_back(item.get<std::string>());
+            }
+        }
+    }
+    return values;
+}
+
+/**
+ * @brief Every dependency a plugin declares, required ones first.
+ *
+ * "requires" are hard dependencies the plugin cannot run without, "dependencies"
+ * are soft ones. Both take part in load ordering.
+ */
+static std::vector<std::string> read_dependency_specs(const nlohmann::json& plugin_json)
+{
+    auto specs = read_string_array(plugin_json, "requires");
+    const auto soft = read_string_array(plugin_json, "dependencies");
+
+    specs.insert(specs.end(), soft.begin(), soft.end());
+    return specs;
+}
+
 void plugin_manager::sort_by_dependencies(std::vector<plugin_t>& plugins)
 {
     bool hasDependencies = false;
@@ -278,15 +310,7 @@ void plugin_manager::sort_by_dependencies(std::vector<plugin_t>& plugins)
     dependencyGraph.reserve(plugins.size());
 
     for (const auto& plugin : plugins) {
-        std::vector<std::string> dependencies;
-
-        if (plugin.plugin_json.contains("dependencies") && plugin.plugin_json["dependencies"].is_array()) {
-            for (const auto& spec : plugin.plugin_json["dependencies"]) {
-                if (spec.is_string()) {
-                    dependencies.push_back(spec.get<std::string>());
-                }
-            }
-        }
+        auto dependencies = read_dependency_specs(plugin.plugin_json);
 
         hasDependencies = hasDependencies || !dependencies.empty();
         dependencyGraph.emplace_back(plugin.plugin_name, std::move(dependencies));
@@ -347,6 +371,49 @@ void plugin_manager::sort_by_dependencies(std::vector<plugin_t>& plugins)
         sorted.push_back(std::move(plugins[index]));
     }
     plugins = std::move(sorted);
+}
+
+std::vector<std::string> plugin_manager::get_unmet_requirements(const std::string& plugin_name)
+{
+    const auto plugins = this->get_all_plugins();
+    std::vector<std::string> unmet;
+
+    const auto plugin = std::find_if(plugins.begin(), plugins.end(), [&](const auto& candidate)
+    {
+        return candidate.plugin_name == plugin_name;
+    });
+
+    if (plugin == plugins.end()) {
+        return unmet;
+    }
+
+    for (const auto& spec : read_string_array(plugin->plugin_json, "requires")) {
+        const auto name = spec.substr(0, spec.find('@'));
+
+        if (!this->is_enabled(name)) {
+            unmet.push_back(name);
+        }
+    }
+    return unmet;
+}
+
+std::vector<std::string> plugin_manager::get_enabled_dependents(const std::string& plugin_name)
+{
+    std::vector<std::string> dependents;
+
+    for (const auto& plugin : this->get_all_plugins()) {
+        if (!this->is_enabled(plugin.plugin_name)) {
+            continue;
+        }
+
+        for (const auto& spec : read_string_array(plugin.plugin_json, "requires")) {
+            if (spec.substr(0, spec.find('@')) == plugin_name) {
+                dependents.push_back(plugin.plugin_name);
+                break;
+            }
+        }
+    }
+    return dependents;
 }
 
 /**

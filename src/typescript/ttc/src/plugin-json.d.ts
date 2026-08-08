@@ -39,6 +39,7 @@ export interface PluginJson {
 	frontend?: string;
 	include?: string[];
 	name: string;
+	requires?: string[];
 	splash_image?: string;
 	thumbnail?: string;
 	useBackend?: boolean;

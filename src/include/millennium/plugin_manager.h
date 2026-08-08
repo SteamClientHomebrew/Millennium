@@ -71,6 +71,17 @@ class plugin_manager
 
     void sort_by_dependencies(std::vector<plugin_t>& plugins);
 
+    /**
+     * @brief Names of the plugin's required dependencies that are not installed or not enabled.
+     * Soft dependencies ("dependencies") are never reported here, only hard ones ("requires").
+     */
+    std::vector<std::string> get_unmet_requirements(const std::string& plugin_name);
+
+    /**
+     * @brief Names of the enabled plugins that declare the given plugin in "requires".
+     */
+    std::vector<std::string> get_enabled_dependents(const std::string& plugin_name);
+
     bool is_enabled(std::string pluginName);
     bool set_plugin_enabled(std::string pluginName, bool enabled);
     int init();

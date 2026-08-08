@@ -38,6 +38,13 @@
       "type": "string",
       "markdownDescription": "The version of your plugin."
     },
+    "requires": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "markdownDescription": "Internal `name`s of plugins this plugin cannot run without, each optionally with a version range (e.g. `my-plugin@>=1.2.0`). Millennium loads them first and does not let this plugin be enabled until they are installed and enabled. Nothing is ever installed automatically."
+    },
     "dependencies": {
       "type": "array",
       "items": {

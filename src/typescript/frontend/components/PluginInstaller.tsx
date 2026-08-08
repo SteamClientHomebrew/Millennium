@@ -41,11 +41,12 @@ interface DependencyStatus {
 	range?: string;
 	installed: boolean;
 	enabled: boolean;
+	required: boolean;
 }
 
 /** Resolve declared plugin dependencies ("name" or "name@<range>")
  *  against what is actually on disk. */
-export const ResolveDependencies = async (dependencies: string[]): Promise<DependencyStatus[]> => {
+export const ResolveDependencies = async (dependencies: string[], required = false): Promise<DependencyStatus[]> => {
 	const installedPlugins = await backend.plugins.getPlugins();
 
 	return dependencies
@@ -56,13 +57,15 @@ export const ResolveDependencies = async (dependencies: string[]): Promise<Depen
 			const range = atIndex === -1 ? undefined : spec.slice(atIndex + 1);
 			const plugin = installedPlugins?.find((installed) => installed?.data?.name === name);
 
-			return { name, range, installed: !!plugin, enabled: !!plugin?.enabled };
+			return { name, range, installed: !!plugin, enabled: !!plugin?.enabled, required };
 		});
 };
 
 const DependencyStateLabel = (dependency: DependencyStatus): string => {
 	if (dependency.enabled) return locale.dependencyStateEnabled;
-	return dependency.installed ? locale.dependencyStateDisabled : locale.dependencyStateMissing;
+
+	const state = dependency.installed ? locale.dependencyStateDisabled : locale.dependencyStateMissing;
+	return dependency.required ? formatString(locale.dependencyStateRequired, state) : state;
 };
 
 /** "min version 1.2.0" instead of the raw ">=1.2.0" spec syntax, keeping
@@ -158,12 +161,13 @@ export const StartPluginInstaller = async (data: any, props: InstallerProps): Pr
 		return false;
 	}
 
-	/** Warn about missing or disabled dependencies. Purely informational — the user can
-	 *  always continue, and nothing is ever installed on their behalf. */
+	/** Warn about missing or disabled dependencies. Installing is never blocked, not even
+	 *  for required ones - the plugin just can't be enabled until they are there. */
+	const declaredRequirements: string[] = Array.isArray(data?.pluginJson?.requires) ? data.pluginJson.requires : [];
 	const declaredDependencies: string[] = Array.isArray(data?.pluginJson?.dependencies) ? data.pluginJson.dependencies : [];
 
-	if (declaredDependencies.length) {
-		const dependencies = await ResolveDependencies(declaredDependencies);
+	if (declaredRequirements.length || declaredDependencies.length) {
+		const dependencies = [...(await ResolveDependencies(declaredRequirements, true)), ...(await ResolveDependencies(declaredDependencies))];
 
 		/** the dialog lists every dependency with its state, but only appears when at least one is unmet */
 		if (

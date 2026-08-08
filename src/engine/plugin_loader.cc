@@ -1122,13 +1122,34 @@ void plugin_loader::set_plugins_enabled(const std::vector<std::pair<std::string,
     std::vector<std::string> plugins_to_disable;
 
     for (const auto& [name, enabled] : plugins) {
+        /** a plugin that declares "requires" can't run without them, so refuse to enable it.
+            the UI blocks this too; this is the backstop for a hand-edited config. */
+        if (enabled) {
+            const auto unmet = m_plugin_manager->get_unmet_requirements(name);
+
+            if (!unmet.empty()) {
+                logger.warn("refusing to enable plugin '{}': it requires {}", name, join_strings(unmet, ", "));
+                m_plugin_manager->set_plugin_enabled(name.c_str(), false);
+                continue;
+            }
+        }
+
         m_plugin_manager->set_plugin_enabled(name.c_str(), enabled);
         logger.log("requested to {} plugin [{}]", enabled ? "enable" : "disable", name);
 
         if (enabled) {
             should_start_backends = true;
-        } else {
-            plugins_to_disable.push_back(name);
+            continue;
+        }
+
+        plugins_to_disable.push_back(name);
+
+        /** plugins that require this one can't run without it, so they go down with it.
+            the UI asks the user first; this keeps the config honest either way. */
+        for (const auto& dependent : m_plugin_manager->get_enabled_dependents(name)) {
+            logger.warn("disabling plugin '{}' because it requires '{}'", dependent, name);
+            m_plugin_manager->set_plugin_enabled(dependent.c_str(), false);
+            plugins_to_disable.push_back(dependent);
         }
     }
 

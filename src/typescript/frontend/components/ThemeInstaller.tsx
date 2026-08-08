@@ -41,7 +41,7 @@ const OnInstallComplete = (data: any, props: InstallerProps) => {
 		try {
 			const themeData = await backend.themes.getTheme(data?.skin_data?.github?.repo_name, data?.skin_data?.github?.owner, true);
 			if (themeData) {
-				await ChangeActiveTheme(themeData.native, UIReloadProps.Force);
+				await ChangeActiveTheme(themeData.native, UIReloadProps.Force, themeData.data);
 			}
 		} catch (error) {
 			console.error('Error finding theme on disk:', error);
@@ -114,11 +114,13 @@ export const StartThemeInstaller = async (data: any, props: InstallerProps): Pro
 	}
 
 	/** Warn about missing or disabled plugin dependencies declared in skin.json.
-	 *  Purely informational — the user can always continue. */
+	 *  Installing is never blocked, not even for required ones - the theme just
+	 *  can't be applied until they are there. */
+	const declaredRequirements: string[] = Array.isArray(theme?.requires) ? theme.requires : [];
 	const declaredDependencies: string[] = Array.isArray(theme?.dependencies) ? theme.dependencies : [];
 
-	if (declaredDependencies.length) {
-		const dependencies = await ResolveDependencies(declaredDependencies);
+	if (declaredRequirements.length || declaredDependencies.length) {
+		const dependencies = [...(await ResolveDependencies(declaredRequirements, true)), ...(await ResolveDependencies(declaredDependencies))];
 
 		if (
 			dependencies.some((dependency) => !dependency.enabled) &&
