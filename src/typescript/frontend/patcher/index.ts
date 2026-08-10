@@ -172,7 +172,7 @@ export async function onWindowCreatedCallback(windowContext: any): Promise<void>
 
 	/** Patch the steam root menu to add the Millennium root menu */
 	if (windowTitle === 'Steam Root Menu') {
-		PatchRootMenu();
+		PatchRootMenu(windowContext.window.document);
 	}
 
 	const prevMainWindow = pluginSelf.mainWindow;

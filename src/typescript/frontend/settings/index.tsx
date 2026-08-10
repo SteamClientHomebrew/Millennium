@@ -210,8 +210,14 @@ export function MillenniumSettings() {
 	);
 }
 
-function RenderSettingsModal(_: any, retObj: any) {
-	const items = [
+export type SettingsMenuItem = 'separator' | {
+	name: string;
+	onClick: () => void;
+	visible: boolean;
+};
+
+export function GetSettingsMenuItems(): SettingsMenuItem[] {
+	return [
 		{
 			name: locale.strMillennium,
 			onClick: () => {
@@ -228,6 +234,10 @@ function RenderSettingsModal(_: any, retObj: any) {
 		},
 		'separator',
 	];
+}
+
+function RenderSettingsModal(_: any, retObj: any) {
+	const items = GetSettingsMenuItems();
 
 	retObj?.props?.menuItems?.splice?.(retObj?.props?.menuItems?.length - 1, 0, ...items);
 	return retObj?.type?.(retObj.props);
