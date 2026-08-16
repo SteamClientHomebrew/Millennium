@@ -32,6 +32,7 @@ import { IconsModule, pluginSelf, sleep, toaster, Navigation } from '@steambrew/
 import { settingsManager } from './settings-manager';
 import { OnMillenniumUpdate } from '../types';
 import { MillenniumIcons } from '../components/Icons';
+import { formatString, locale } from './localization-manager';
 
 let _libraryNotified = false;
 
@@ -44,8 +45,8 @@ export const notificationService = {
 		if (count === 0) return;
 		_libraryNotified = true;
 		toaster.toast({
-			title: `Updates Available`,
-			body: `We've found ${count} updates for items in your library!`,
+			title: locale.updatePanelHasUpdates,
+			body: formatString(locale.themeAndPluginUpdateNotification, String(count), count === 1 ? locale.updateSingular : locale.updatePlural),
 			logo: <IconsModule.Download />,
 			onClick: () => Navigation.Navigate('/millennium/settings/updates'),
 		});
@@ -54,8 +55,8 @@ export const notificationService = {
 	async notifyMillenniumUpdates() {
 		await sleep(1000);
 		toaster.toast({
-			title: `Millennium Update Available`,
-			body: `A new version of Millennium is available! Click here to update.`,
+			title: locale.strMillenniumUpdateToastTitle,
+			body: locale.strMillenniumUpdateToastBody,
 			logo: <MillenniumIcons.SteamBrewLogo />,
 			onClick: () => Navigation.Navigate('/millennium/settings/updates'),
 		});
