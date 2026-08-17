@@ -1,6 +1,6 @@
 {
   "name": "@steambrew/ttc",
-  "version": "3.3.7",
+  "version": "3.3.8",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -39,7 +39,6 @@
     "@rollup/pluginutils": "^5.1.4",
     "chalk": "^5.4.1",
     "dotenv": "^16.5.0",
-    "fs": "0.0.1-security",
     "glob": "^11.0.2",
     "magic-string": "^0.30.17",
     "rollup": "^4.42.0",
