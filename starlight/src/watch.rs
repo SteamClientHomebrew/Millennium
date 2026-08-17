@@ -37,8 +37,7 @@ use std::sync::{
 use std::time::{Duration, Instant};
 
 pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> anyhow::Result<()> {
-    let config_path = config_path
-        .canonicalize()
+    let config_path = dunce::canonicalize(config_path)
         .map_err(|_| anyhow::anyhow!("config not found: {}", config_path.display()))?;
 
     let config_dir = config_path.parent().unwrap().to_path_buf();

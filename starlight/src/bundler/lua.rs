@@ -53,8 +53,7 @@ pub fn collect(sources: &[String], config_dir: &Path) -> anyhow::Result<Vec<SubE
             if !abs.is_file() {
                 continue;
             }
-            let canonical = abs
-                .canonicalize()
+            let canonical = dunce::canonicalize(&abs)
                 .map_err(|e| anyhow::anyhow!("cannot canonicalize {}: {}", abs.display(), e))?;
             if !seen.insert(canonical.clone()) {
                 continue;
