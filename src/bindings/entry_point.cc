@@ -148,7 +148,8 @@ head::millennium_backend::millennium_backend(std::shared_ptr<network_hook_ctl> n
 std::string head::millennium_backend::get_millennium_updater_script()
 {
 #ifdef __linux__
-    constexpr const char* default_script = "curl -fsSL 'https://steambrew.app/install.sh' | bash";
+    const bool on_beta_channel = CONFIG.get({ "general", "millenniumUpdateChannel" }, "stable").get<std::string>() == "beta";
+    const std::string default_script = std::string("curl -fsSL 'https://steambrew.app/install.sh' | bash") + (on_beta_channel ? " -s -- --beta" : "");
 
     /**
      * check if we are installed from nix flake
