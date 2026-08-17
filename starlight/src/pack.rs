@@ -56,8 +56,7 @@ pub fn pack(
     mode: BuildMode,
 ) -> anyhow::Result<Option<crate::config::DevRuntime>> {
     let start = std::time::Instant::now();
-    let config_path = config_path
-        .canonicalize()
+    let config_path = dunce::canonicalize(config_path)
         .map_err(|_| anyhow::anyhow!("config not found: {}", config_path.display()))?;
     let config_dir = config_path.parent().unwrap();
     let cfg = crate::config::load(&config_path)?;
@@ -473,8 +472,7 @@ fn collect_assets(config_dir: &Path, resources: &[String]) -> anyhow::Result<Vec
         return Ok(Vec::new());
     }
 
-    let canonical_root = config_dir
-        .canonicalize()
+    let canonical_root = dunce::canonicalize(config_dir)
         .map_err(|e| anyhow::anyhow!("assets: cannot canonicalize plugin dir: {}", e))?;
 
     let mut map: indexmap::IndexMap<String, Vec<u8>> = indexmap::IndexMap::new();
@@ -568,8 +566,7 @@ fn add_asset_file(
         return Ok(());
     }
 
-    let canonical = path
-        .canonicalize()
+    let canonical = dunce::canonicalize(path)
         .map_err(|e| anyhow::anyhow!("assets: cannot canonicalize {}: {}", path.display(), e))?;
 
     if !canonical.starts_with(root) {

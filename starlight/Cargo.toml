@@ -35,6 +35,7 @@ sourcemap     = "8"
 full_moon     = "2"
 similar       = { version = "2", features = ["inline"] }
 zip           = { version = "2", default-features = false, features = ["deflate"] }
+dunce         = "1"
 
 [target.'cfg(windows)'.dependencies]
 uds_windows = "1"
