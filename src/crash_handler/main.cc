@@ -46,9 +46,11 @@
 
 static std::string make_crash_dir(const char* base)
 {
-    char timestamp[64];
+    char timestamp[64] = "unknown-time";
     std::time_t now = std::time(nullptr);
-    std::strftime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", std::localtime(&now));
+    if (const std::tm* tm_now = std::localtime(&now)) {
+        std::strftime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", tm_now);
+    }
 
     std::string dir = std::string(base) + "\\millennium-" + timestamp;
     std::error_code ec;
