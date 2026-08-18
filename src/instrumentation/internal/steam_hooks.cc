@@ -214,8 +214,28 @@ void stop_pipe_drain()
 {
     g_pipe_drain_stop = true;
     if (g_pipe_drain_thread.joinable()) {
-        CancelSynchronousIo(reinterpret_cast<HANDLE>(g_pipe_drain_thread.native_handle()));
-        g_pipe_drain_thread.join();
+        HANDLE hThread = reinterpret_cast<HANDLE>(g_pipe_drain_thread.native_handle());
+        /**
+         * the drain thread may not have entered ReadFile yet when we call
+         * CancelSynchronousIo, in which case it silently does nothing and the
+         * thread would otherwise block forever once it does call ReadFile.
+         * keep retrying until the thread has actually exited, but give up
+         * after a bounded amount of time so shutdown can't hang forever.
+         */
+        constexpr int kMaxWaitMs = 15000;
+        int waited_ms = 0;
+        while (WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT && waited_ms < kMaxWaitMs) {
+            CancelSynchronousIo(hThread);
+            Sleep(1);
+            waited_ms++;
+        }
+
+        if (WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT) {
+            logger.warn("stop_pipe_drain: CDP pipe drain thread did not exit within {}ms, detaching.", kMaxWaitMs);
+            g_pipe_drain_thread.detach();
+        } else {
+            g_pipe_drain_thread.join();
+        }
     }
 }
 #endif
@@ -413,10 +433,10 @@ static std::once_flag g_tier0_hook_once;
 
 HMODULE steam_tier0_module;
 
-INT hooked_create_simple_process(const char* a1, char a2, const char* lp_multi_byte_str)
+HANDLE hooked_create_simple_process(const char* commandLine, bool hideWindow, void* environmentBlockW, const char* currentDirectory)
 {
-    auto orig = reinterpret_cast<INT(__cdecl*)(const char*, char, const char*)>(snare_inline_get_trampoline(g_create_hook));
-    return orig(Plat_HookedCreateSimpleProcess(a1), a2, lp_multi_byte_str);
+    auto orig = reinterpret_cast<HANDLE(__cdecl*)(const char*, bool, void*, const char*)>(snare_inline_get_trampoline(g_create_hook));
+    return orig(Plat_HookedCreateSimpleProcess(commandLine), hideWindow, environmentBlockW, currentDirectory);
 }
 
 BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,
@@ -727,18 +747,13 @@ void uninitialize_steam_hooks()
 
 static snare_inline create_hook;
 
-/**
- * It seems a2, a3 might be a stack allocated struct pointer, but we don't really need them
- * Even if we mistyped them, it doesn't change the actual underlying data being sent in memory.
- * I assume it has something to with working directory &| flags
- */
-extern "C" int hooked_create_simple_process(const char* cmd, unsigned int a2, const char* a3)
+extern "C" int hooked_create_simple_process(const char* commandLine, unsigned char flags, char** environmentBlock, const char* currentDirectory)
 {
-    cmd = Plat_HookedCreateSimpleProcess(cmd);
-    auto orig = reinterpret_cast<int (*)(const char*, unsigned int, const char*)>(create_hook.get_trampoline());
-    int result = orig(cmd, a2, a3);
+    commandLine = Plat_HookedCreateSimpleProcess(commandLine);
+    auto orig = reinterpret_cast<int (*)(const char* commandLine, unsigned char flags, char** environmentBlock, const char* currentDirectory)>(create_hook.get_trampoline());
+    int result = orig(commandLine, flags, environmentBlock, currentDirectory);
 
-    logger.log("[hooked_create_simple_process]: {}", cmd);
+    logger.log("[hooked_create_simple_process]: {}", commandLine);
     return result;
 }
 

@@ -45,8 +45,16 @@ extern std::string g_backend_file;
 extern bool g_plugin_is_v2;
 extern std::unordered_map<std::string, AssetEntry> g_asset_index;
 
-static void push_json_to_lua(lua_State* L, const nlohmann::json& j)
+static constexpr int MAX_JSON_TO_LUA_DEPTH = 200;
+
+static void push_json_to_lua(lua_State* L, const nlohmann::json& j, int depth = 0)
 {
+    if (depth > MAX_JSON_TO_LUA_DEPTH) {
+        fprintf(stderr, "[lua-host] push_json_to_lua: exceeded max nesting depth (%d), truncating\n", MAX_JSON_TO_LUA_DEPTH);
+        lua_pushnil(L);
+        return;
+    }
+
     if (j.is_null()) {
         lua_pushnil(L);
     } else if (j.is_boolean()) {
@@ -61,14 +69,14 @@ static void push_json_to_lua(lua_State* L, const nlohmann::json& j)
         lua_newtable(L);
         int idx = 1;
         for (const auto& elem : j) {
-            push_json_to_lua(L, elem);
+            push_json_to_lua(L, elem, depth + 1);
             lua_rawseti(L, -2, idx++);
         }
     } else if (j.is_object()) {
         lua_newtable(L);
         for (auto it = j.begin(); it != j.end(); ++it) {
             lua_pushstring(L, it.key().c_str());
-            push_json_to_lua(L, it.value());
+            push_json_to_lua(L, it.value(), depth + 1);
             lua_rawset(L, -3);
         }
     } else {

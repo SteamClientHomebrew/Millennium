@@ -254,10 +254,10 @@ bool head::plugin_installer::update_plugin(const std::string& id, const std::str
         }
 
         logger.log("Plugin '{}' installed successfully to '{}'", name, targetFolder.string());
-        m_updater->dispatch_progress("Cleaning up...", 96, false);
+        m_updater->dispatch_progress("##strCleaningUp", 96, false);
         logger.log("Cleaning up temporary files...");
         std::filesystem::remove_all(tempDir);
-        m_updater->dispatch_progress("Done!", 100, true);
+        m_updater->dispatch_progress("##strDone", 100, true);
         logger.log("Update process for plugin '{}' completed successfully.", name);
         return true;
     } catch (const std::exception& e) {

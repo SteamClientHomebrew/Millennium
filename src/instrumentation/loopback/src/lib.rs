@@ -114,7 +114,21 @@ fn patch_bytes(url_str: &str, path_str: &str, content: Vec<u8>) -> Vec<u8> {
         .unwrap_or(path_str);
 
     let content = if url::is_js_url(url_str) {
-        css_classes::patch(name, &content)
+        let (rewritten, changed) = css_classes::patch(name, &content);
+        if !changed {
+            content
+        } else {
+            match std::str::from_utf8(&rewritten) {
+                Ok(text) if syntax::check(text).is_empty() => rewritten,
+                _ => {
+                    log::warn!(
+                        "{}: css_classes rewrite produced invalid syntax, reverting to original bytes",
+                        name
+                    );
+                    content
+                }
+            }
+        }
     } else {
         content
     };
@@ -156,7 +170,10 @@ fn patch_bytes(url_str: &str, path_str: &str, content: Vec<u8>) -> Vec<u8> {
                     log::info!("{}: intercepted ({:.1} KB)", name, size_kb);
                     let t1 = std::time::Instant::now();
                     let errors = if url::is_js_url(url_str) {
-                        syntax::check(std::str::from_utf8(&patched).unwrap_or(""))
+                        match std::str::from_utf8(&patched) {
+                            Ok(text) => syntax::check(text),
+                            Err(e) => vec![format!("patched output is not valid UTF-8: {}", e)],
+                        }
                     } else {
                         vec![]
                     };

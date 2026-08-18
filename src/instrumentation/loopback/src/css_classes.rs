@@ -366,7 +366,7 @@ fn patch_classlist(src: &[u8]) -> (Vec<u8>, usize) {
     (out, count)
 }
 
-pub fn patch(name: &str, content: &[u8]) -> Vec<u8> {
+pub fn patch(name: &str, content: &[u8]) -> (Vec<u8>, bool) {
     let t0 = std::time::Instant::now();
 
     let (patched, count) = patch_css_classes(content);
@@ -380,7 +380,7 @@ pub fn patch(name: &str, content: &[u8]) -> Vec<u8> {
         t0.elapsed().as_secs_f64() * 1000.0,
     );
 
-    patched
+    (patched, count > 0 || cl_count > 0)
 }
 
 #[cfg(test)]

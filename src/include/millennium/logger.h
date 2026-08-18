@@ -196,12 +196,18 @@ inline std::string format_log_timestamp(uint64_t timestamp_us)
     const time_t sec = static_cast<time_t>(timestamp_us / 1'000'000);
     struct tm t{};
 #ifdef _WIN32
-    localtime_s(&t, &sec);
+    const bool ok = localtime_s(&t, &sec) == 0;
 #else
-    localtime_r(&sec, &t);
+    const bool ok = localtime_r(&sec, &t) != nullptr;
 #endif
+    if (!ok) {
+        return "--:--:--";
+    }
+
     char buf[16];
-    strftime(buf, sizeof(buf), "%H:%M:%S", &t);
+    if (strftime(buf, sizeof(buf), "%H:%M:%S", &t) == 0) {
+        return "--:--:--";
+    }
     return buf;
 }
 

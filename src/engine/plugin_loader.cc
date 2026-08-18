@@ -140,7 +140,8 @@ void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
     {
         logger.log("Starting webkit world manager...");
 
-        this->m_ffi_binder = std::make_unique<ffi_binder>(m_cdp, m_plugin_manager, m_ipc_main);
+        this->m_ffi_binder = std::make_shared<ffi_binder>(m_cdp, m_plugin_manager, m_ipc_main);
+        this->m_ffi_binder->init();
         this->world_mgr = std::make_unique<webkit_world_mgr>(m_cdp, m_plugin_manager, m_network_hook_ctl, m_plugin_webkit_store);
     });
 
@@ -482,7 +483,11 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
                 { "identifier", self->document_script_id }
             };
 
-            cdp->send("Page.removeScriptToEvaluateOnNewDocument", params).get();
+            try {
+                cdp->send("Page.removeScriptToEvaluateOnNewDocument", params).get();
+            } catch (const std::exception& e) {
+                LOG_ERROR("Page.removeScriptToEvaluateOnNewDocument failed (stale identifier?): {}", e.what());
+            }
             self->document_script_id.clear();
         }
 

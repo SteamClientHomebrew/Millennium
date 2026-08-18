@@ -32,13 +32,13 @@
 
 #include "shared/crash_ipc.h"
 #include "shared/crash_report.h"
+#include "shared/crash_timestamp.h"
 
 #include <windows.h>
 #include <dbghelp.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <ctime>
 #include <filesystem>
 #include <string>
 
@@ -46,11 +46,7 @@
 
 static std::string make_crash_dir(const char* base)
 {
-    char timestamp[64];
-    std::time_t now = std::time(nullptr);
-    std::strftime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", std::localtime(&now));
-
-    std::string dir = std::string(base) + "\\millennium-" + timestamp;
+    std::string dir = std::string(base) + "\\millennium-" + format_crash_timestamp();
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);
     return dir;

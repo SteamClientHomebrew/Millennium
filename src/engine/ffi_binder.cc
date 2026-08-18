@@ -40,9 +40,24 @@
 ffi_binder::ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<ipc_main> ipc_main)
     : m_client(client), m_plugin_manager(std::move(plugin_manager)), m_ipc_main(std::move(ipc_main))
 {
-    m_internal_tokens.push_back(m_client->on("Runtime.bindingCalled", std::bind(&ffi_binder::binding_call_hdlr, this, std::placeholders::_1)));
-    m_internal_tokens.push_back(m_client->on("Runtime.executionContextCreated", std::bind(&ffi_binder::execution_ctx_created_hdlr, this, std::placeholders::_1)));
-    m_internal_tokens.push_back(m_client->on("Runtime.executionContextDestroyed", std::bind(&ffi_binder::execution_ctx_destroyed_hdlr, this, std::placeholders::_1)));
+}
+
+void ffi_binder::init()
+{
+    std::weak_ptr<ffi_binder> weak_self = weak_from_this();
+
+    m_internal_tokens.push_back(m_client->on("Runtime.bindingCalled", [weak_self](const json& params)
+    {
+        if (auto self = weak_self.lock()) self->binding_call_hdlr(params);
+    }));
+    m_internal_tokens.push_back(m_client->on("Runtime.executionContextCreated", [weak_self](const json& params)
+    {
+        if (auto self = weak_self.lock()) self->execution_ctx_created_hdlr(params);
+    }));
+    m_internal_tokens.push_back(m_client->on("Runtime.executionContextDestroyed", [weak_self](const json& params)
+    {
+        if (auto self = weak_self.lock()) self->execution_ctx_destroyed_hdlr(params);
+    }));
 }
 
 ffi_binder::~ffi_binder()
@@ -263,9 +278,10 @@ void ffi_binder::cdp_proxy_hdlr(const json& params)
             plugin_ctx_ref.main_session_id = session_id;
 
             if (first) {
-                int token = m_client->on(event, [this, event](const json& event_params)
+                std::weak_ptr<ffi_binder> weak_self = weak_from_this();
+                int token = m_client->on(event, [weak_self, event](const json& event_params)
                 {
-                    cdp_event_dispatch(event, event_params);
+                    if (auto self = weak_self.lock()) self->cdp_event_dispatch(event, event_params);
                 });
                 m_event_sub_tokens[event] = token;
             }

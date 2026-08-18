@@ -616,7 +616,7 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
         if (child_pid == 0) {
             ::setpgid(0, 0);
 #if defined(__linux__)
-            ::prctl(PR_SET_PDEATHSIG, SIGTERM);
+            ::prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif
             ::close(server_fd);
             ::execl(exe_path.c_str(), exe_path.c_str(), socket_path.c_str(), nullptr);

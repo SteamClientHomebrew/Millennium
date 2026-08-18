@@ -449,7 +449,7 @@ int main(int argc, char* argv[])
     sa.sa_handler = handle_parent_death_signal;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESTART;
-    sigaction(SIGTERM, &sa, nullptr);
+    sigaction(SIGHUP, &sa, nullptr);
 #endif
 
     plugin_ipc::socket_fd fd = connect_to_parent(socket_path);

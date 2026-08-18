@@ -186,28 +186,33 @@ static void reader_loop(std::shared_ptr<LoopbackConn> conn)
         if (type_it == msg.end() || !type_it->is_string()) continue;
         const std::string type = type_it->get<std::string>();
 
-        if (type == "log") {
-            const std::string lvl = msg.value("level", "info");
-            const std::string message = msg.value("message", "");
-            if (lvl == "error")
-                logger.print(" PATCHER ", message, COL_MAGENTA);
-            else if (lvl == "warn")
-                logger.print(" PATCHER ", message, COL_MAGENTA);
-            else
-                logger.print(" PATCHER ", message, COL_MAGENTA);
-        } else if (type == "patch_event") {
-            patch_event ev;
-            ev.event_type = msg.value("event_type", "");
-            ev.plugin_name = msg.value("plugin", "");
-            ev.other_plugin = msg.value("other_plugin", "");
-            ev.filename = msg.value("filename", "");
-            ev.detail = msg.value("detail", "");
-            ev.find_pattern = msg.value("find_pattern", "");
-            ev.transform_patterns = msg.value("transform_patterns", "");
-            ev.before_text = msg.value("before_text", "");
-            ev.after_text = msg.value("after_text", "");
-            ev.timestamp_ms = msg.value("timestamp_us", uint64_t{ 0 });
-            if (!ev.event_type.empty()) patch_stream_recorder::instance().notify(ev);
+        try {
+            if (type == "log") {
+                const std::string lvl = msg.value("level", "info");
+                const std::string message = msg.value("message", "");
+                if (lvl == "error")
+                    logger.print(" PATCHER ", message, COL_MAGENTA);
+                else if (lvl == "warn")
+                    logger.print(" PATCHER ", message, COL_MAGENTA);
+                else
+                    logger.print(" PATCHER ", message, COL_MAGENTA);
+            } else if (type == "patch_event") {
+                patch_event ev;
+                ev.event_type = msg.value("event_type", "");
+                ev.plugin_name = msg.value("plugin", "");
+                ev.other_plugin = msg.value("other_plugin", "");
+                ev.filename = msg.value("filename", "");
+                ev.detail = msg.value("detail", "");
+                ev.find_pattern = msg.value("find_pattern", "");
+                ev.transform_patterns = msg.value("transform_patterns", "");
+                ev.before_text = msg.value("before_text", "");
+                ev.after_text = msg.value("after_text", "");
+                ev.timestamp_ms = msg.value("timestamp_us", uint64_t{ 0 });
+                if (!ev.event_type.empty()) patch_stream_recorder::instance().notify(ev);
+            }
+        } catch (const std::exception& e) {
+            logger.warn("loopback IPC: malformed message ({}), skipping", e.what());
+            continue;
         }
     }
 

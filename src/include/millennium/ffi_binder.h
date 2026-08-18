@@ -76,11 +76,14 @@ static const std::unordered_set<std::string> BLOCKED_CDP_METHODS_SHARED_JS = {
     "Page.removeScriptToEvaluateOnNewDocument",
 };
 
-class ffi_binder
+class ffi_binder : public std::enable_shared_from_this<ffi_binder>
 {
   public:
     ffi_binder(std::shared_ptr<cdp_client> client, std::shared_ptr<plugin_manager> plugin_manager, std::shared_ptr<ipc_main> ipc_main);
     ~ffi_binder();
+
+    /** registers CDP event listeners; must be called after construction, once held by a shared_ptr */
+    void init();
 
     /** called by plugin_loader after an isolated world is created for a plugin */
     void register_isolated_ctx(const std::string& plugin_name, int isolated_ctx_id, const std::string& session_id);
