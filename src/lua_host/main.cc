@@ -53,6 +53,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -65,7 +67,7 @@
 #include <sys/un.h>
 #include <unistd.h>
 #if defined(__linux__)
-#include <csignal>
+#include <csignal> // IWYU pragma: keep
 #endif
 #endif
 
@@ -230,6 +232,160 @@ static void send_patches_to_parent(lua_State* L)
     }
 }
 
+constexpr int kMaxTableDepth = 64;
+constexpr size_t kMaxReturnValueSize = plugin_ipc::MAX_FRAME_SIZE / 2;
+
+static int lua_abs_index(lua_State* L, int idx)
+{
+    if (idx > 0 || idx <= LUA_REGISTRYINDEX) return idx;
+    return lua_gettop(L) + idx + 1;
+}
+
+static bool lua_is_json_null_sentinel(lua_State* L, int idx)
+{
+    return lua_type(L, idx) == LUA_TLIGHTUSERDATA && lua_touserdata(L, idx) == nullptr;
+}
+
+static std::optional<json> lua_value_to_json(lua_State* L, int idx, int depth);
+
+static json lua_table_to_json(lua_State* L, int idx, int depth)
+{
+    idx = lua_abs_index(L, idx);
+
+    lua_Integer max_index = 0;
+    lua_Integer count = 0;
+    bool is_array = true;
+
+    lua_pushnil(L);
+    while (lua_next(L, idx) != 0) {
+        if (is_array) {
+            if (lua_type(L, -2) == LUA_TNUMBER) {
+                lua_Number n = lua_tonumber(L, -2);
+                lua_Integer i = static_cast<lua_Integer>(n);
+                if (static_cast<lua_Number>(i) == n && i >= 1) {
+                    max_index = i > max_index ? i : max_index;
+                } else {
+                    is_array = false;
+                }
+            } else {
+                is_array = false;
+            }
+        }
+        count++;
+        lua_pop(L, 1);
+    }
+    is_array = is_array && count > 0 && max_index == count;
+
+    if (is_array) {
+        json arr = json::array();
+        for (lua_Integer i = 1; i <= max_index; ++i) {
+            lua_rawgeti(L, idx, i);
+            if (auto v = lua_value_to_json(L, -1, depth + 1)) {
+                arr.push_back(std::move(*v));
+            } else {
+                fprintf(stderr, "[lua-host] table -> JSON: array index %lld holds an unsupported value, replacing with null\n", static_cast<long long>(i));
+                arr.push_back(nullptr);
+            }
+            lua_pop(L, 1);
+        }
+        return arr;
+    }
+
+    json obj = json::object();
+    lua_pushnil(L);
+    while (lua_next(L, idx) != 0) {
+        std::string key;
+        int key_type = lua_type(L, -2);
+
+        if (key_type == LUA_TSTRING) {
+            size_t len;
+            const char* str = lua_tolstring(L, -2, &len);
+            key.assign(str, len);
+        } else if (key_type == LUA_TNUMBER) {
+            lua_pushvalue(L, -2);
+            size_t len;
+            const char* str = lua_tolstring(L, -1, &len);
+            key.assign(str, len);
+            lua_pop(L, 1);
+        } else {
+            fprintf(stderr, "[lua-host] table -> JSON: dropping table key of unsupported type '%s'\n", lua_typename(L, key_type));
+            lua_pop(L, 1);
+            continue;
+        }
+
+        if (auto v = lua_value_to_json(L, -1, depth + 1)) {
+            obj[key] = std::move(*v);
+        } else {
+            fprintf(stderr, "[lua-host] table -> JSON: dropping key '%s', unsupported value type\n", key.c_str());
+        }
+        lua_pop(L, 1);
+    }
+    return obj;
+}
+
+static std::optional<json> lua_value_to_json(lua_State* L, int idx, int depth)
+{
+    if (depth > kMaxTableDepth) {
+        throw std::runtime_error("table nesting exceeds maximum depth (possible cyclic table)");
+    }
+
+    idx = lua_abs_index(L, idx);
+
+    switch (lua_type(L, idx)) {
+        case LUA_TNIL:
+            return json(nullptr);
+        case LUA_TBOOLEAN:
+            return json(static_cast<bool>(lua_toboolean(L, idx)));
+        case LUA_TNUMBER:
+            return json(lua_tonumber(L, idx));
+        case LUA_TSTRING:
+        {
+            size_t len;
+            const char* str = lua_tolstring(L, idx, &len);
+            return json(std::string(str, len));
+        }
+        case LUA_TLIGHTUSERDATA:
+            return lua_is_json_null_sentinel(L, idx) ? std::optional<json>(json(nullptr)) : std::nullopt;
+        case LUA_TTABLE:
+            return lua_table_to_json(L, idx, depth);
+        default:
+            return std::nullopt;
+    }
+}
+
+static void push_json_as_lua(lua_State* L, const json& value, int depth)
+{
+    if (depth > kMaxTableDepth) {
+        throw std::runtime_error("argument nesting exceeds maximum depth (possible cyclic structure)");
+    }
+
+    if (value.is_null()) {
+        lua_pushlightuserdata(L, nullptr);
+    } else if (value.is_boolean()) {
+        lua_pushboolean(L, value.get<bool>());
+    } else if (value.is_number()) {
+        lua_pushnumber(L, value.get<lua_Number>());
+    } else if (value.is_string()) {
+        const auto& s = value.get_ref<const std::string&>();
+        lua_pushlstring(L, s.data(), s.size());
+    } else if (value.is_array()) {
+        lua_createtable(L, static_cast<int>(value.size()), 0);
+        int i = 1;
+        for (const auto& elem : value) {
+            push_json_as_lua(L, elem, depth + 1);
+            lua_rawseti(L, -2, i++);
+        }
+    } else if (value.is_object()) {
+        lua_createtable(L, 0, static_cast<int>(value.size()));
+        for (auto it = value.begin(); it != value.end(); ++it) {
+            push_json_as_lua(L, it.value(), depth + 1);
+            lua_setfield(L, -2, it.key().c_str());
+        }
+    } else {
+        lua_pushnil(L);
+    }
+}
+
 /* parent wants us to call a Lua function — this is the FFI hot path */
 static json handle_evaluate(lua_State* L, const json& params)
 {
@@ -256,6 +412,7 @@ static json handle_evaluate(lua_State* L, const json& params)
     size_t colonPos = methodName.find(':');
     bool isMethod = (colonPos != std::string::npos);
     int numArgs = static_cast<int>(argValues.size());
+    const int stack_base = lua_gettop(L);
 
     if (isMethod) {
         std::string tableName = methodName.substr(0, colonPos);
@@ -293,50 +450,78 @@ static json handle_evaluate(lua_State* L, const json& params)
         }
     }
 
-    /* push arguments */
-    for (const auto& arg : argValues) {
-        if (arg.is_string())
-            lua_pushstring(L, arg.get<std::string>().c_str());
-        else if (arg.is_boolean())
-            lua_pushboolean(L, arg.get<bool>());
-        else if (arg.is_number_integer())
-            lua_pushinteger(L, arg.get<lua_Integer>());
-        else if (arg.is_number_float())
-            lua_pushnumber(L, arg.get<lua_Number>());
-        else
-            lua_pushnil(L);
-    }
+    try {
+        /* push arguments */
+        for (const auto& arg : argValues) {
+            if (arg.is_string())
+                lua_pushstring(L, arg.get<std::string>().c_str());
+            else if (arg.is_boolean())
+                lua_pushboolean(L, arg.get<bool>());
+            else if (arg.is_number_integer())
+                lua_pushinteger(L, arg.get<lua_Integer>());
+            else if (arg.is_number_float())
+                lua_pushnumber(L, arg.get<lua_Number>());
+            else if (arg.is_object() || arg.is_array())
+                push_json_as_lua(L, arg, 0);
+            else
+                lua_pushnil(L);
+        }
 
-    if (lua_pcall(L, numArgs, 1, 0) != LUA_OK) {
-        const char* err = lua_tostring(L, -1);
-        std::string errMsg = err ? err : "unknown Lua error";
-        lua_pop(L, 1);
+        if (lua_pcall(L, numArgs, 1, 0) != LUA_OK) {
+            const char* err = lua_tostring(L, -1);
+            std::string errMsg = err ? err : "unknown Lua error";
+            lua_settop(L, stack_base);
+            return {
+                { "success", false  },
+                { "error",   errMsg }
+            };
+        }
+
+        if (lua_istable(L, -1)) {
+            auto converted = lua_table_to_json(L, -1, 0);
+            lua_settop(L, stack_base);
+
+            const size_t wire_size = nlohmann::json::to_msgpack(converted).size();
+            if (wire_size > kMaxReturnValueSize) {
+                return {
+                    { "success", false                                                                                                                       },
+                    { "error",   "return value too large (" + std::to_string(wire_size) + " bytes, limit " + std::to_string(kMaxReturnValueSize) + " bytes)" }
+                };
+            }
+
+            return {
+                { "success",    true                 },
+                { "value",      std::move(converted) },
+                { "value_type", "table"              }
+            };
+        }
+
+        json result;
+        result["success"] = true;
+
+        if (lua_isstring(L, -1)) {
+            result["value"] = lua_tostring(L, -1);
+            result["value_type"] = "string";
+        } else if (lua_isboolean(L, -1)) {
+            result["value"] = static_cast<bool>(lua_toboolean(L, -1));
+            result["value_type"] = "boolean";
+        } else if (lua_isnumber(L, -1)) {
+            result["value"] = lua_tonumber(L, -1);
+            result["value_type"] = "number";
+        } else {
+            result["value"] = nullptr;
+            result["value_type"] = "nil";
+        }
+
+        lua_settop(L, stack_base);
+        return result;
+    } catch (const std::exception& e) {
+        lua_settop(L, stack_base);
         return {
-            { "success", false  },
-            { "error",   errMsg }
+            { "success", false    },
+            { "error",   e.what() }
         };
     }
-
-    /* read result */
-    json result;
-    result["success"] = true;
-
-    if (lua_isstring(L, -1)) {
-        result["value"] = lua_tostring(L, -1);
-        result["value_type"] = "string";
-    } else if (lua_isboolean(L, -1)) {
-        result["value"] = static_cast<bool>(lua_toboolean(L, -1));
-        result["value_type"] = "boolean";
-    } else if (lua_isnumber(L, -1)) {
-        result["value"] = lua_tonumber(L, -1);
-        result["value_type"] = "number";
-    } else {
-        result["value"] = nullptr;
-        result["value_type"] = "nil";
-    }
-
-    lua_pop(L, 1);
-    return result;
 }
 
 /**
@@ -505,7 +690,7 @@ int main(int argc, char* argv[])
 
     g_L = L;
     luaL_openlibs(L);
-    
+
     /* Disable JIT by default. Plugins must call jit.on() to enable it. */
     luaJIT_setmode(L, 0, LUAJIT_MODE_ENGINE | LUAJIT_MODE_OFF);
 
