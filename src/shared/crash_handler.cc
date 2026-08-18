@@ -31,13 +31,13 @@
 #include "shared/crash_handler.h"
 #include "shared/crash_handler_core.h"
 #include "shared/crash_report.h"
+#include "shared/crash_timestamp.h"
 #ifdef _WIN32
 #include "millennium/filesystem.h"
 #endif
 
 #include <csignal>
 #include <cstdlib>
-#include <ctime>
 #include <filesystem>
 #include <string>
 
@@ -62,13 +62,7 @@ static std::string compute_crash_dump_base()
 
 static std::string make_crash_dir()
 {
-    char timestamp[64] = "unknown-time";
-    std::time_t now = std::time(nullptr);
-    if (const std::tm* tm_now = std::localtime(&now)) {
-        std::strftime(timestamp, sizeof(timestamp), "%Y%m%d-%H%M%S", tm_now);
-    }
-
-    std::string dir = s_crash_dump_base + "/millennium-" + timestamp;
+    std::string dir = s_crash_dump_base + "/millennium-" + format_crash_timestamp();
     std::error_code ec;
     std::filesystem::create_directories(dir, ec);
     return dir;

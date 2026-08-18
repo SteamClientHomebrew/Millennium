@@ -219,13 +219,23 @@ void stop_pipe_drain()
          * the drain thread may not have entered ReadFile yet when we call
          * CancelSynchronousIo, in which case it silently does nothing and the
          * thread would otherwise block forever once it does call ReadFile.
-         * keep retrying until the thread has actually exited.
+         * keep retrying until the thread has actually exited, but give up
+         * after a bounded amount of time so shutdown can't hang forever.
          */
-        while (WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT) {
+        constexpr int kMaxWaitMs = 15000;
+        int waited_ms = 0;
+        while (WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT && waited_ms < kMaxWaitMs) {
             CancelSynchronousIo(hThread);
             Sleep(1);
+            waited_ms++;
         }
-        g_pipe_drain_thread.join();
+
+        if (WaitForSingleObject(hThread, 0) == WAIT_TIMEOUT) {
+            logger.warn("stop_pipe_drain: CDP pipe drain thread did not exit within {}ms, detaching.", kMaxWaitMs);
+            g_pipe_drain_thread.detach();
+        } else {
+            g_pipe_drain_thread.join();
+        }
     }
 }
 #endif

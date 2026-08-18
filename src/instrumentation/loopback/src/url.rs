@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
 fn path_after_host(url: &str) -> Option<&str> {
     let rest = url
@@ -86,11 +86,19 @@ pub fn local_path_from_lb_url(url: &str) -> Option<PathBuf> {
     let path = &path[..path.find('?').unwrap_or(path.len())];
     let rel = path.trim_start_matches('/');
 
-    if rel.split('/').any(|seg| seg == "..") {
+    if rel.is_empty() {
         return None;
     }
 
-    Some(steam_install_path().join("steamui").join(rel))
+    let mut sanitized = PathBuf::new();
+    for component in Path::new(rel).components() {
+        match component {
+            Component::Normal(part) => sanitized.push(part),
+            _ => return None,
+        }
+    }
+
+    Some(steam_install_path().join("steamui").join(sanitized))
 }
 
 #[cfg(test)]
@@ -107,5 +115,17 @@ mod tests {
     fn rejects_parent_directory_traversal() {
         assert!(local_path_from_lb_url("https://steamloopback.host/../../etc/passwd").is_none());
         assert!(local_path_from_lb_url("https://steamloopback.host/css/../../../etc/passwd").is_none());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn rejects_windows_absolute_paths() {
+        assert!(local_path_from_lb_url("https://steamloopback.host/C:/Windows/win.ini").is_none());
+        assert!(local_path_from_lb_url("https://steamloopback.host/\\\\server\\share\\file").is_none());
+    }
+
+    #[test]
+    fn rejects_empty_path() {
+        assert!(local_path_from_lb_url("https://steamloopback.host/").is_none());
     }
 }

@@ -347,6 +347,17 @@ DEFINE_REFCOUNT_OPS(lb_buf_readcb, &lb_buf_from_read_cb((cef_resource_read_callb
 
 static void lb_buf_advance(steamloopback_proxy_resource_handler_t* h);
 
+/** release the drain's read/accumulation buffers. */
+static void lb_buf_release_drain_buffers(steamloopback_proxy_resource_handler_t* h)
+{
+    free(h->read_chunk);
+    h->read_chunk = NULL;
+    free(h->raw_data);
+    h->raw_data = NULL;
+    h->raw_len = 0;
+    h->raw_cap = 0;
+}
+
 /**
  * drain finished (successfully or not)
  * patch what we captured (if any) and resume CEF if we'd deferred, then drop the drain's self-held ref.
@@ -370,12 +381,7 @@ static void lb_buf_finish(steamloopback_proxy_resource_handler_t* h, bool succes
         h->state = LB_FAILED;
     }
 
-    free(h->read_chunk);
-    h->read_chunk = NULL;
-    free(h->raw_data);
-    h->raw_data = NULL;
-    h->raw_len = 0;
-    h->raw_cap = 0;
+    lb_buf_release_drain_buffers(h);
 
     if (!h->sync_phase) {
         if (h->state == LB_READY)
@@ -394,13 +400,7 @@ static void lb_buf_finish(steamloopback_proxy_resource_handler_t* h, bool succes
  */
 static void lb_buf_finish_cancelled(steamloopback_proxy_resource_handler_t* h)
 {
-    free(h->read_chunk);
-    h->read_chunk = NULL;
-    free(h->raw_data);
-    h->raw_data = NULL;
-    h->raw_len = 0;
-    h->raw_cap = 0;
-
+    lb_buf_release_drain_buffers(h);
     lb_buf_release(h); /** drop the ref the drain took in lb_buf_open */
 }
 
@@ -410,9 +410,12 @@ static void lb_buf_finish_cancelled(steamloopback_proxy_resource_handler_t* h)
  */
 static void lb_buf_advance(steamloopback_proxy_resource_handler_t* h)
 {
-    if (h->state == LB_CANCELLED) return;
-
     for (;;) {
+        if (h->state == LB_CANCELLED) {
+            lb_buf_finish_cancelled(h);
+            return;
+        }
+
         if (!h->read_chunk) h->read_chunk = (uint8_t*)malloc(LB_READ_CHUNK_SIZE);
         if (!h->read_chunk) {
             lb_buf_finish(h, false);
