@@ -747,18 +747,13 @@ void uninitialize_steam_hooks()
 
 static snare_inline create_hook;
 
-/**
- * It seems a2, a3 might be a stack allocated struct pointer, but we don't really need them
- * Even if we mistyped them, it doesn't change the actual underlying data being sent in memory.
- * I assume it has something to with working directory &| flags
- */
-extern "C" int hooked_create_simple_process(const char* cmd, unsigned int a2, const char* a3)
+extern "C" int hooked_create_simple_process(const char* commandLine, unsigned char flags, char** environmentBlock, const char* currentDirectory)
 {
-    cmd = Plat_HookedCreateSimpleProcess(cmd);
-    auto orig = reinterpret_cast<int (*)(const char*, unsigned int, const char*)>(create_hook.get_trampoline());
-    int result = orig(cmd, a2, a3);
+    commandLine = Plat_HookedCreateSimpleProcess(commandLine);
+    auto orig = reinterpret_cast<int (*)(const char* commandLine, unsigned char flags, char** environmentBlock, const char* currentDirectory)>(create_hook.get_trampoline());
+    int result = orig(commandLine, flags, environmentBlock, currentDirectory);
 
-    logger.log("[hooked_create_simple_process]: {}", cmd);
+    logger.log("[hooked_create_simple_process]: {}", commandLine);
     return result;
 }
 
