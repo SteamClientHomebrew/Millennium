@@ -38,6 +38,7 @@ pub enum FfiType {
     Array(Box<FfiType>),
     Union(Vec<FfiType>),
     Object,
+    Named(String),
 }
 
 impl std::fmt::Display for FfiType {
@@ -62,6 +63,7 @@ impl FfiType {
                 .collect::<Vec<_>>()
                 .join(" | "),
             Self::Object => "Record<string, unknown>".into(),
+            Self::Named(name) => name.clone(),
         }
     }
 
@@ -74,15 +76,20 @@ impl FfiType {
             (Array(a), Array(b)) => a.compatible_with(b),
             (Union(parts), other) => parts.iter().any(|t| t.compatible_with(other)),
             (this, Union(parts)) => parts.iter().any(|t| this.compatible_with(t)),
+            (Named(a), Named(b)) => a == b,
             _ => false,
         }
     }
 }
 
-pub fn parse_lua_type(s: &str) -> FfiType {
+pub fn parse_lua_type(s: &str, class_names: &std::collections::HashSet<String>) -> FfiType {
     let s = s.trim().trim_end_matches('?');
     if s.contains('|') {
-        return FfiType::Union(s.split('|').map(|p| parse_lua_type(p.trim())).collect());
+        return FfiType::Union(
+            s.split('|')
+                .map(|p| parse_lua_type(p.trim(), class_names))
+                .collect(),
+        );
     }
     match s {
         "number" | "integer" | "float" | "int" => FfiType::Number,
@@ -92,7 +99,10 @@ pub fn parse_lua_type(s: &str) -> FfiType {
         "any" | "unknown" => FfiType::Unknown,
         "void" => FfiType::Void,
         "table" => FfiType::Object,
-        s if s.ends_with("[]") => FfiType::Array(Box::new(parse_lua_type(&s[..s.len() - 2]))),
+        s if s.ends_with("[]") => {
+            FfiType::Array(Box::new(parse_lua_type(&s[..s.len() - 2], class_names)))
+        }
+        s if class_names.contains(s) => FfiType::Named(s.to_string()),
         _ => FfiType::Unknown,
     }
 }
@@ -112,5 +122,53 @@ pub fn ffi_type_from_ts<'a>(ty: &oxc_ast::ast::TSType<'a>) -> FfiType {
         TSType::TSUnionType(t) => FfiType::Union(t.types.iter().map(ffi_type_from_ts).collect()),
         TSType::TSObjectKeyword(_) | TSType::TSTypeLiteral(_) => FfiType::Object,
         _ => FfiType::Unknown,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn classes(names: &[&str]) -> std::collections::HashSet<String> {
+        names.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn resolves_known_class_name() {
+        let known = classes(&["RpcLibraryResult"]);
+        assert_eq!(
+            parse_lua_type("RpcLibraryResult", &known),
+            FfiType::Named("RpcLibraryResult".to_string())
+        );
+    }
+
+    #[test]
+    fn unknown_identifier_stays_unknown() {
+        let known = classes(&["RpcLibraryResult"]);
+        assert_eq!(parse_lua_type("SomeTypo", &known), FfiType::Unknown);
+    }
+
+    #[test]
+    fn resolves_class_array() {
+        let known = classes(&["EpicGame"]);
+        assert_eq!(
+            parse_lua_type("EpicGame[]", &known),
+            FfiType::Array(Box::new(FfiType::Named("EpicGame".to_string())))
+        );
+    }
+
+    #[test]
+    fn resolves_nilable_class_union() {
+        let known = classes(&["RpcLibraryResult"]);
+        assert_eq!(
+            parse_lua_type("RpcLibraryResult|nil", &known),
+            FfiType::Union(vec![FfiType::Named("RpcLibraryResult".to_string()), FfiType::Nil])
+        );
+    }
+
+    #[test]
+    fn primitive_keyword_wins_over_same_named_class() {
+        let known = classes(&["number"]);
+        assert_eq!(parse_lua_type("number", &known), FfiType::Number);
     }
 }
