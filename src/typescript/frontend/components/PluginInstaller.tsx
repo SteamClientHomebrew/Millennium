@@ -28,12 +28,88 @@
  * SOFTWARE.
  */
 
-import { ConfirmModal } from '@steambrew/sdk';
+import { ConfirmModal, Field } from '@steambrew/sdk';
 import { InstallerProps } from '../types';
 import { OnProgressUpdate, RendererProps } from './InstallerProgress';
-import { API_URL } from '../utils/globals';
+import { API_URL, PLUGINS_URL } from '../utils/globals';
 import { backend } from '../utils/ffi';
 import { formatString, locale } from '../utils/localization-manager';
+import { Utils } from '../utils';
+
+interface DependencyStatus {
+	name: string;
+	range?: string;
+	installed: boolean;
+	enabled: boolean;
+	required: boolean;
+}
+
+/** Resolve declared plugin dependencies ("name" or "name@<range>")
+ *  against what is actually on disk. */
+export const ResolveDependencies = async (dependencies: string[], required = false): Promise<DependencyStatus[]> => {
+	const installedPlugins = await backend.plugins.getPlugins();
+
+	return dependencies
+		.filter((spec): spec is string => typeof spec === 'string' && spec.length > 0)
+		.map((spec) => {
+			const atIndex = spec.indexOf('@');
+			const name = atIndex === -1 ? spec : spec.slice(0, atIndex);
+			const range = atIndex === -1 ? undefined : spec.slice(atIndex + 1);
+			const plugin = installedPlugins?.find((installed) => installed?.data?.name === name);
+
+			return { name, range, installed: !!plugin, enabled: !!plugin?.enabled, required };
+		});
+};
+
+const DependencyStateLabel = (dependency: DependencyStatus): string => {
+	if (dependency.enabled) return locale.dependencyStateEnabled;
+
+	const state = dependency.installed ? locale.dependencyStateDisabled : locale.dependencyStateMissing;
+	return dependency.required ? formatString(locale.dependencyStateRequired, state) : state;
+};
+
+/** "min version 1.2.0" instead of the raw ">=1.2.0" spec syntax, keeping
+ *  inclusive and exclusive ranges distinct like semver::satisfies does. */
+const DependencyVersionLabel = (range: string): string => {
+	if (range.startsWith('>=')) return formatString(locale.dependencyVersionMin, range.slice(2));
+	if (range.startsWith('>')) return formatString(locale.dependencyVersionNewerThan, range.slice(1));
+	if (range.startsWith('<=')) return formatString(locale.dependencyVersionMax, range.slice(2));
+	if (range.startsWith('<')) return formatString(locale.dependencyVersionOlderThan, range.slice(1));
+	return formatString(locale.dependencyVersionExact, range.replace(/^=/, ''));
+};
+
+export const ShowDependencyWarning = (displayName: string, body: string, dependencies: DependencyStatus[], props: InstallerProps): Promise<boolean> => {
+	return new Promise((resolve) => {
+		props?.ShowMessageBox(
+			<>
+				<Field description={body} />
+				{dependencies.map((dependency) => (
+					<Field
+						key={dependency.name}
+						label={
+							<div className="MillenniumPlugins_PluginLabel">
+								{dependency.range ? `${dependency.name},` : dependency.name}
+								{dependency.range && <div className="MillenniumItem_Version">{DependencyVersionLabel(dependency.range)}</div>}
+							</div>
+						}
+						description={DependencyStateLabel(dependency)}
+					/>
+				))}
+				<Field label={locale.dependencyBrowsePlugins} description={<Utils.URLComponent url={PLUGINS_URL} />} bottomSeparator="none" />
+			</>,
+			formatString(locale.dependencyModalTitle, displayName),
+			{
+				strOKButtonText: locale.dependencyModalInstallAnyway,
+				strCancelButtonText: locale.strNeverMind,
+				onOK: () => resolve(true),
+				onCancel: () => {
+					resolve(false);
+					props?.modal?.Close?.();
+				},
+			},
+		);
+	});
+};
 
 const OnInstallComplete = (data: any, props: InstallerProps) => {
 	const EnablePlugin = async () => {
@@ -83,6 +159,23 @@ export const StartPluginInstaller = async (data: any, props: InstallerProps): Pr
 			},
 		});
 		return false;
+	}
+
+	/** Warn about missing or disabled dependencies. Installing is never blocked, not even
+	 *  for required ones - the plugin just can't be enabled until they are there. */
+	const declaredRequirements: string[] = Array.isArray(data?.pluginJson?.requires) ? data.pluginJson.requires : [];
+	const declaredDependencies: string[] = Array.isArray(data?.pluginJson?.dependencies) ? data.pluginJson.dependencies : [];
+
+	if (declaredRequirements.length || declaredDependencies.length) {
+		const dependencies = [...(await ResolveDependencies(declaredRequirements, true)), ...(await ResolveDependencies(declaredDependencies))];
+
+		/** the dialog lists every dependency with its state, but only appears when at least one is unmet */
+		if (
+			dependencies.some((dependency) => !dependency.enabled) &&
+			!(await ShowDependencyWarning(data?.pluginJson?.common_name ?? pluginName, locale.dependencyModalBody, dependencies, props))
+		) {
+			return false;
+		}
 	}
 
 	const downloadUrl = API_URL + data?.downloadUrl;

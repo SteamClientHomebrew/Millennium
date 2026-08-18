@@ -34,10 +34,12 @@
 export interface PluginJson {
 	backend?: string;
 	common_name?: string;
+	dependencies?: string[];
 	description?: string;
 	frontend?: string;
 	include?: string[];
 	name: string;
+	requires?: string[];
 	splash_image?: string;
 	thumbnail?: string;
 	useBackend?: boolean;

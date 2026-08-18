@@ -32,6 +32,8 @@
 #include "nlohmann/json.hpp" // IWYU pragma: keep
 #include "millennium/types.h"
 #include <filesystem>
+#include <set>
+#include <string>
 #include <vector>
 
 class plugin_manager
@@ -67,6 +69,19 @@ class plugin_manager
     std::vector<plugin_t> get_enabled_plugins();
     std::vector<std::string> get_enabled_plugin_names();
 
+    void sort_by_dependencies(std::vector<plugin_t>& plugins);
+
+    /**
+     * @brief Names of the plugin's required dependencies that are not installed or not enabled.
+     * Soft dependencies ("dependencies") are never reported here, only hard ones ("requires").
+     */
+    std::vector<std::string> get_unmet_requirements(const std::string& plugin_name);
+
+    /**
+     * @brief Names of the enabled plugins that declare the given plugin in "requires".
+     */
+    std::vector<std::string> get_enabled_dependents(const std::string& plugin_name);
+
     bool is_enabled(std::string pluginName);
     bool set_plugin_enabled(std::string pluginName, bool enabled);
     int init();
@@ -76,4 +91,6 @@ class plugin_manager
   private:
     void lint_plugin(json json, std::string pluginName);
     plugin_t get_plugin_internal_metadata(json json, std::filesystem::directory_entry entry);
+
+    std::set<std::string> m_logged_dependency_warnings;
 };

@@ -30,8 +30,8 @@
 
 import { Component } from 'react';
 import { ConfirmModal, DialogButton, DialogControlsSection, joinClassNames, pluginSelf, showModal } from '@steambrew/sdk';
-import { PluginComponent, PluginMetrics } from '../../types';
-import { locale } from '../../utils/localization-manager';
+import { PluginComponent, PluginMetrics, ThemeItem } from '../../types';
+import { formatString, locale } from '../../utils/localization-manager';
 import { settingsClasses } from '../../utils/classes';
 import { FaFolderOpen, FaSave, FaStore } from 'react-icons/fa';
 import { PiPlugsFill } from 'react-icons/pi';
@@ -70,6 +70,7 @@ interface PluginViewModalState {
 	updatedPlugins: UpdatedPluginProps[];
 	configurablePluginStore: Array<{ name: string; isEditable: boolean }>;
 	metrics: Map<string, PluginMetrics>;
+	activeTheme?: ThemeItem;
 }
 
 class PluginViewModal extends Component<{}, PluginViewModalState> {
@@ -87,6 +88,7 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 
 	componentDidMount() {
 		this.FetchAllPlugins();
+		backend.themes.activeTheme().then((activeTheme) => this.setState({ activeTheme }));
 		this.fetchMetrics();
 		this.metricsInterval = setInterval(this.fetchMetrics.bind(this), 2000);
 		window.addEventListener('millennium-plugin-crash', this.crashEventHandler);
@@ -134,18 +136,86 @@ class PluginViewModal extends Component<{}, PluginViewModalState> {
 		this.setState({ plugins, checkedItems, pluginsWithLogs, configurablePluginStore });
 	}
 
+	/** Plugins that declare the given plugin in "requires" and are currently checked. */
+	getDependents(pluginName: string) {
+		return (this.state.plugins ?? []).filter((candidate, candidateIndex) => {
+			const requirements = Array.isArray(candidate.data.requires) ? candidate.data.requires : [];
+			return this.state.checkedItems[candidateIndex] && requirements.some((spec) => spec.split('@')[0] === pluginName);
+		});
+	}
+
+	/** True when the active theme lists the given plugin in its "requires". */
+	isRequiredByActiveTheme(pluginName: string) {
+		const requirements = Array.isArray(this.state.activeTheme?.data?.requires) ? this.state.activeTheme.data.requires : [];
+		return requirements.some((spec) => spec.split('@')[0] === pluginName);
+	}
+
 	handleCheckboxChange(index: number) {
 		const plugin = this.state.plugins?.[index];
 		if (!plugin) return;
 
 		if (isLegacyPlugin(plugin)) return;
 
-		const originalChecked = plugin.enabled;
 		const updated = !this.state.checkedItems[index] || plugin.data.name === 'core';
 
-		const checkedItems = { ...this.state.checkedItems, [index]: updated };
-		const filtered = this.state.updatedPlugins.filter((p) => p.plugin_name !== plugin.data.name);
-		const updatedPlugins = updated !== originalChecked ? [...filtered, { plugin_name: plugin.data.name, enabled: updated }] : filtered;
+		/** Anything that requires this plugin cannot run without it, so turning it off turns
+		    those off too - dependent plugins, and the active theme if it requires it. */
+		const dependents = updated ? [] : this.getDependents(plugin.data.name);
+		const revertsTheme = !updated && this.isRequiredByActiveTheme(plugin.data.name);
+
+		if (dependents.length || revertsTheme) {
+			const affected = dependents.map((dependent) => dependent.data.common_name ?? dependent.data.name);
+
+			if (revertsTheme) {
+				affected.push(this.state.activeTheme?.data?.name ?? this.state.activeTheme?.native ?? '');
+			}
+
+			showModal(
+				<ConfirmModal
+					strTitle={locale.pluginDisableDependentsTitle}
+					strDescription={formatString(locale.pluginDisableDependentsBody, plugin.data.common_name ?? plugin.data.name, affected.join(', '))}
+					strOKButtonText={locale.pluginDisableDependentsConfirm}
+					strCancelButtonText={locale.strNeverMind}
+					onOK={() => this.applyCheckboxChange(index, updated, dependents, revertsTheme)}
+				/>,
+				pluginSelf.mainWindow,
+				{ bNeverPopOut: false },
+			);
+			return;
+		}
+
+		this.applyCheckboxChange(index, updated, []);
+	}
+
+	applyCheckboxChange(index: number, updated: boolean, dependents: PluginComponent[], revertsTheme = false) {
+		const plugin = this.state.plugins?.[index];
+		if (!plugin) return;
+
+		if (revertsTheme) {
+			backend.themes.setActiveTheme('default');
+			this.setState({ activeTheme: undefined });
+		}
+
+		const changes = [{ plugin, index, enabled: updated }];
+
+		for (const dependent of dependents) {
+			const dependentIndex = (this.state.plugins ?? []).indexOf(dependent);
+			if (dependentIndex !== -1) {
+				changes.push({ plugin: dependent, index: dependentIndex, enabled: false });
+			}
+		}
+
+		const checkedItems = { ...this.state.checkedItems };
+		let updatedPlugins = this.state.updatedPlugins;
+
+		for (const change of changes) {
+			checkedItems[change.index] = change.enabled;
+			updatedPlugins = updatedPlugins.filter((p) => p.plugin_name !== change.plugin.data.name);
+
+			if (change.enabled !== change.plugin.enabled) {
+				updatedPlugins = [...updatedPlugins, { plugin_name: change.plugin.data.name, enabled: change.enabled }];
+			}
+		}
 
 		this.setState({ checkedItems, updatedPlugins });
 	}
