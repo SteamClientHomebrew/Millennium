@@ -26,7 +26,6 @@ constexpr const char* kRuntimePathEnv = "MILLENNIUM_RUNTIME_PATH";
 constexpr const char* kHookHelperPathEnv = "MILLENNIUM_HOOK_HELPER_PATH";
 constexpr const char* kChildHookPathEnv = "MILLENNIUM_CHILD_HOOK_PATH";
 constexpr const char* kAssetsRootEnv = "MILLENNIUM_ASSETS_ROOT";
-constexpr const char* kBrowserContextPathEnv = "MILLENNIUM_BROWSER_CONTEXT_PATH";
 constexpr const char* kSteamExecutableEnv = "MILLENNIUM_STEAM_EXECUTABLE";
 constexpr const char* kCefRemoteDebuggingMarker = ".cef-enable-remote-debugging";
 constexpr const char* kDefaultSteamExecutableSuffix = "/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steam_osx";
@@ -217,205 +216,6 @@ static std::string reserve_debug_port()
     return std::to_string(port);
 }
 
-static std::string get_env_value(const char* name)
-{
-    const char* value = getenv(name);
-    return value ? std::string(value) : std::string();
-}
-
-static std::string read_http_response_body(const std::string& response)
-{
-    const size_t headers_end = response.find("\r\n\r\n");
-    if (headers_end == std::string::npos) {
-        return {};
-    }
-
-    return response.substr(headers_end + 4);
-}
-
-static std::string extract_browser_context_url(const std::string& response_body)
-{
-    static constexpr const char* kKey = "\"webSocketDebuggerUrl\"";
-    const size_t key_start = response_body.find(kKey);
-    if (key_start == std::string::npos) {
-        return {};
-    }
-
-    size_t cursor = key_start + strlen(kKey);
-    while (cursor < response_body.size() && isspace(static_cast<unsigned char>(response_body[cursor]))) {
-        ++cursor;
-    }
-
-    if (cursor >= response_body.size() || response_body[cursor] != ':') {
-        return {};
-    }
-
-    ++cursor;
-    while (cursor < response_body.size() && isspace(static_cast<unsigned char>(response_body[cursor]))) {
-        ++cursor;
-    }
-
-    if (cursor >= response_body.size() || response_body[cursor] != '"') {
-        return {};
-    }
-
-    ++cursor;
-    std::string value;
-    value.reserve(128);
-
-    bool escaped = false;
-    while (cursor < response_body.size()) {
-        const char ch = response_body[cursor++];
-        if (escaped) {
-            value.push_back(ch);
-            escaped = false;
-            continue;
-        }
-
-        if (ch == '\\') {
-            escaped = true;
-            continue;
-        }
-
-        if (ch == '"') {
-            return value;
-        }
-
-        value.push_back(ch);
-    }
-
-    return {};
-}
-
-static std::string ensure_browser_context_port(std::string browser_context_url, const char* debug_port)
-{
-    if (browser_context_url.empty() || !debug_port || debug_port[0] == '\0') {
-        return browser_context_url;
-    }
-
-    const size_t scheme_end = browser_context_url.find("://");
-    if (scheme_end == std::string::npos) {
-        return browser_context_url;
-    }
-
-    const size_t authority_start = scheme_end + 3;
-    const size_t path_start = browser_context_url.find('/', authority_start);
-    const size_t port_separator = browser_context_url.find(':', authority_start);
-
-    if (port_separator != std::string::npos && (path_start == std::string::npos || port_separator < path_start)) {
-        return browser_context_url;
-    }
-
-    if (path_start == std::string::npos) {
-        browser_context_url.append(":");
-        browser_context_url.append(debug_port);
-        return browser_context_url;
-    }
-
-    browser_context_url.insert(path_start, ":");
-    browser_context_url.insert(path_start + 1, debug_port);
-    return browser_context_url;
-}
-
-static std::string fetch_browser_context_once(const char* debug_port)
-{
-    if (!debug_port || debug_port[0] == '\0') {
-        return {};
-    }
-
-    const int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd < 0) {
-        return {};
-    }
-
-    timeval timeout = {};
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 0;
-    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-
-    sockaddr_in address = {};
-    address.sin_family = AF_INET;
-    address.sin_port = htons(static_cast<uint16_t>(strtoul(debug_port, nullptr, 10)));
-    if (inet_pton(AF_INET, "127.0.0.1", &address.sin_addr) != 1) {
-        close(fd);
-        return {};
-    }
-
-    if (connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0) {
-        close(fd);
-        return {};
-    }
-
-    const std::string request = std::string("GET /json/version HTTP/1.1\r\nHost: 127.0.0.1:") + debug_port + "\r\nConnection: close\r\n\r\n";
-
-    if (send(fd, request.c_str(), request.size(), 0) < 0) {
-        close(fd);
-        return {};
-    }
-
-    std::string response;
-    char buffer[4096];
-    while (true) {
-        const ssize_t bytes_read = recv(fd, buffer, sizeof(buffer), 0);
-        if (bytes_read <= 0) {
-            break;
-        }
-
-        response.append(buffer, static_cast<size_t>(bytes_read));
-    }
-
-    close(fd);
-    return ensure_browser_context_port(extract_browser_context_url(read_http_response_body(response)), debug_port);
-}
-
-static void start_browser_context_probe()
-{
-    const std::string debug_port = get_env_value(kDebugPortEnv);
-    if (debug_port.empty()) {
-        return;
-    }
-
-    char temp_path[] = "/tmp/millennium-browser-context-XXXXXX";
-    const int temp_fd = mkstemp(temp_path);
-    if (temp_fd < 0) {
-        return;
-    }
-    close(temp_fd);
-    unlink(temp_path);
-
-    setenv(kBrowserContextPathEnv, temp_path, 1);
-
-    const pid_t child_pid = fork();
-    if (child_pid != 0) {
-        return;
-    }
-
-    unsetenv("DYLD_INSERT_LIBRARIES");
-
-    for (size_t attempt = 0; attempt < 120; ++attempt) {
-        const std::string browser_context_url = fetch_browser_context_once(debug_port.c_str());
-        if (!browser_context_url.empty()) {
-            const int output_fd = open(temp_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-            if (output_fd >= 0) {
-                const auto bytes_written = write(output_fd, browser_context_url.c_str(), browser_context_url.size());
-                close(output_fd);
-                if (bytes_written == static_cast<ssize_t>(browser_context_url.size())) {
-                    _exit(0);
-                }
-            }
-
-            unlink(temp_path);
-            _exit(1);
-        }
-
-        usleep(250000);
-    }
-
-    unlink(temp_path);
-    _exit(0);
-}
-
 static void configure_debug_environment(int argc, char** argv)
 {
     const bool is_dev_mode = has_argument(argc, argv, "-dev");
@@ -576,24 +376,22 @@ static bool resolve_bootstrap_asset_sources(const char* wrapper_directory, std::
     }
 
 #ifdef MILLENNIUM_ROOT
+    /* Dev builds bake MILLENNIUM_ROOT to the repo root and read assets straight from the source tree. */
     const std::filesystem::path repo_root(MILLENNIUM_ROOT);
-    const std::filesystem::path legacy_loader_dir = repo_root / "src" / "typescript" / "sdk" / "packages" / "loader" / "build";
-    const std::filesystem::path legacy_frontend_candidates[] = {
-        repo_root / "src" / "typescript" / ".frontend.bin",
-        repo_root / "build" / "frontend.bin",
-    };
+    const std::filesystem::path dev_loader_dir = repo_root / "src" / "typescript" / "sdk" / "build";
+    const std::filesystem::path dev_frontend = repo_root / "src" / "typescript" / ".frontend.bin";
 
-    std::error_code legacy_error;
-    if (std::filesystem::is_regular_file(legacy_loader_dir / "millennium.js", legacy_error) && !legacy_error &&
-        std::filesystem::is_directory(legacy_loader_dir / "chunks", legacy_error) && !legacy_error) {
-        for (const auto& candidate : legacy_frontend_candidates) {
-            legacy_error.clear();
-            if (std::filesystem::is_regular_file(candidate, legacy_error) && !legacy_error) {
-                *loader_source_dir = legacy_loader_dir;
-                *frontend_source = candidate;
-                return true;
-            }
-        }
+    std::error_code dev_error;
+    const bool has_loader_entry = std::filesystem::is_regular_file(dev_loader_dir / "millennium.js", dev_error) && !dev_error;
+    dev_error.clear();
+    const bool has_chunks = std::filesystem::is_directory(dev_loader_dir / "chunks", dev_error) && !dev_error;
+    dev_error.clear();
+    const bool has_frontend = std::filesystem::is_regular_file(dev_frontend, dev_error) && !dev_error;
+
+    if (has_loader_entry && has_chunks && has_frontend) {
+        *loader_source_dir = dev_loader_dir;
+        *frontend_source = dev_frontend;
+        return true;
     }
 #endif
 
@@ -798,8 +596,6 @@ int main(int argc, char** argv)
     setenv(kSteamExecutableEnv, target_steam_path, 1);
 
     configure_debug_environment(argc, argv);
-
-    start_browser_context_probe();
 
     if (!ensure_cef_remote_debugging_marker(target_steam_path)) {
         fprintf(stderr, "[Millennium] Failed to create %s beside the Steam runtime.\n", kCefRemoteDebuggingMarker);

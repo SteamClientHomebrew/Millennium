@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly DEFAULT_STEAM_EXECUTABLE="${HOME}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steam_osx"
 readonly DEFAULT_WRAPPER_SEARCH_DIRS=(
     "${REPO_ROOT}/build/osx-debug/src/bootstrap/macos"
@@ -146,7 +146,7 @@ resolve_bootstrap_asset_paths() {
         "${REPO_ROOT}/src/typescript/.frontend.bin"
     )
     local loader_candidates=(
-        "${REPO_ROOT}/src/typescript/sdk/packages/loader/build/millennium.js"
+        "${REPO_ROOT}/src/typescript/sdk/build/millennium.js"
     )
 
     local frontend_asset=""

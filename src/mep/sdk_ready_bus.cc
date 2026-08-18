@@ -35,8 +35,10 @@ namespace mep
 
 sdk_ready_bus& sdk_ready_bus::instance()
 {
-    static sdk_ready_bus inst;
-    return inst;
+    /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during __cxa_finalize
+       teardown). See millennium_lifecycle / crash_event_bus. */
+    static sdk_ready_bus* inst = new sdk_ready_bus();
+    return *inst;
 }
 
 void sdk_ready_bus::notify(const sdk_ready_event& ev)
