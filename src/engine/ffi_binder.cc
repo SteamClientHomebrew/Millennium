@@ -471,8 +471,13 @@ void ffi_binder::binding_call_hdlr(const json& params)
         {
             const int msg_id = payload.value("id", -1);
             const double dur = std::chrono::duration<double, std::milli>(t1 - t0).count();
-            std::string plugin = payload.value("data", json::object()).value("pluginName", std::string{});
-            std::string method = payload.value("data", json::object()).value("methodName", std::string{});
+            const auto data_field = payload.value("data", json::object());
+            std::string plugin = data_field.value("pluginName", std::string{});
+            std::string method;
+            if (data_field.contains("methodName")) {
+                const auto& method_field = data_field["methodName"];
+                method = method_field.is_string() ? method_field.get<std::string>() : method_field.dump();
+            }
 
             if (!plugin.empty() && msg_id != ipc_main::ipc_method::FRONT_END_LOADED) {
                 mep::ffi_recorder::instance().record({ plugin, method, "fe_to_be", payload.value("data", json::object()).dump(), result.dump(), dur,
