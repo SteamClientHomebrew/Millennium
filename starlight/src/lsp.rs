@@ -207,6 +207,7 @@ pub fn install_types(plugin_dir: &Path, starlight_version: &str, cfg: &crate::co
 
     if needs_extract {
         let types_dir = types_dir();
+        fs::create_dir_all(&lsp_dir)?;
 
         // full client types (millennium-api + sharedjscontext)
         let client_zip = types_dir.join("types.zip");
