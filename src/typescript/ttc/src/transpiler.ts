@@ -82,6 +82,8 @@ const buildPluginWrapper = template.statements({
 	const pluginName = %%pluginName%%;
 	(window.PLUGIN_LIST ||= {})[pluginName] ||= {};
 	window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS ||= {};
+	(window.MILLENNIUM_PLUGIN_LOCALES ||= {})[pluginName] = %%locales%%;
+	(window.MILLENNIUM_PLUGIN_DEPENDENCIES ||= {})[pluginName] = %%dependencies%%;
 
 	let PluginEntryPointMain = function () {
 		%%chunkBody%%
@@ -109,6 +111,50 @@ const buildPluginWrapper = template.statements({
 	})();
 `);
 
+/**
+ * Reads the plugin's `locales` folder, if it has one. Each file is named after the
+ * Steam API language code it holds, e.g. locales/english.json. They are embedded in
+ * the bundle so nothing has to be fetched at runtime.
+ */
+function readPluginLocales(): Record<string, Record<string, string>> {
+	const localesDir = path.join(process.cwd(), 'locales');
+	const locales: Record<string, Record<string, string>> = {};
+
+	if (!fs.existsSync(localesDir)) {
+		return locales;
+	}
+
+	for (const file of fs.readdirSync(localesDir)) {
+		if (!file.endsWith('.json')) continue;
+
+		try {
+			const contents = JSON.parse(fs.readFileSync(path.join(localesDir, file), 'utf-8'));
+			if (contents && typeof contents === 'object' && !Array.isArray(contents)) {
+				locales[path.basename(file, '.json')] = contents;
+			}
+		} catch (error) {
+			Logger.warn(`Skipping locale file '${file}': ${(error as Error).message}`);
+		}
+	}
+	return locales;
+}
+
+/**
+ * Reads the plugin names this plugin declares in "requires" and "dependencies".
+ * A plugin can only contribute translations to plugins it declares, so the manifest
+ * stays the source of truth for what it reaches into.
+ */
+function readDeclaredDependencies(): string[] {
+	try {
+		const manifest = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'plugin.json'), 'utf-8'));
+		const declared = [...(manifest?.requires ?? []), ...(manifest?.dependencies ?? [])];
+
+		return declared.filter((spec: unknown): spec is string => typeof spec === 'string').map((spec: string) => spec.split('@')[0]);
+	} catch {
+		return [];
+	}
+}
+
 function insertMillennium(target: BuildTarget, props: TranspilerProps): InputPluginOption {
 	return {
 		name: 'insert-millennium',
@@ -117,6 +163,8 @@ function insertMillennium(target: BuildTarget, props: TranspilerProps): InputPlu
 			const wrapped = buildPluginWrapper({
 				isClient: t.booleanLiteral(target === BuildTarget.Plugin),
 				pluginName: t.stringLiteral(props.pluginName),
+				locales: t.valueToNode(readPluginLocales()),
+				dependencies: t.valueToNode(readDeclaredDependencies()),
 				chunkBody: chunkAst.program.body,
 			});
 
@@ -232,6 +280,10 @@ function pluginNameInjections(ns: string): Transform[] {
 		{ type: 'inject_arg', match: [ns, 'pluginConfig', 'getAll'], arg: 'pluginName' },
 		{ type: 'inject_arg', match: [ns, 'usePluginConfig'], arg: 'pluginName' },
 		{ type: 'inject_arg', match: [ns, 'subscribePluginConfig'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'useLocalization'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'getLocalization'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'getAvailableLanguages'], arg: 'pluginName' },
+		{ type: 'inject_arg', match: [ns, 'contributeLocale'], arg: 'pluginName' },
 	];
 }
 
