@@ -183,6 +183,12 @@ pub struct PluginConfig {
     pub version: String,
     pub author: String,
     pub description: Option<String>,
+    /// Plugins this one cannot run without, by id, optionally with a version range.
+    #[serde(default)]
+    pub requires: Vec<String>,
+    /// Plugins this one works with but can run without.
+    #[serde(default)]
+    pub dependencies: Vec<String>,
 }
 
 #[derive(Deserialize)]
