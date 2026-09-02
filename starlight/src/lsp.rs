@@ -96,7 +96,6 @@ fn patch_tsconfig(plugin_dir: &Path, cfg: &crate::config::PlgConfig) -> anyhow::
                         .and_then(|v| v.as_object_mut())
                         .ok_or_else(|| anyhow::anyhow!("{}: compilerOptions is not an object", webkit_tsconfig.display()))?;
 
-                    compiler_options.insert("baseUrl".to_string(), serde_json::json!(".."));
                     compiler_options.insert("typeRoots".to_string(), serde_json::json!([
                         format!("{}.millennium/types", parent_prefix),
                         format!("{}node_modules/@types", parent_prefix),
@@ -109,7 +108,7 @@ fn patch_tsconfig(plugin_dir: &Path, cfg: &crate::config::PlgConfig) -> anyhow::
                     if let Some(paths_obj) = paths.as_object_mut() {
                         paths_obj.insert(
                             "millennium".to_string(),
-                            serde_json::json!(["./.millennium/lsp/webkit-ts"]),
+                            serde_json::json!([format!("{}.millennium/lsp/webkit-ts", parent_prefix)]),
                         );
                     }
 
