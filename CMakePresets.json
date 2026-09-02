@@ -100,7 +100,8 @@
       "description": "MacOS release build.",
       "binaryDir": "${sourceDir}/build/osx-release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_OSX_SYSROOT": "macosx"
       }
     },
     {
@@ -110,7 +111,8 @@
       "description": "MacOS debug build.",
       "binaryDir": "${sourceDir}/build/osx-debug",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_OSX_SYSROOT": "macosx"
       }
     },
     {

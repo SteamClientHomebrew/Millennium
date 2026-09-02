@@ -37,8 +37,10 @@ namespace mep
 {
 console_capture& console_capture::instance()
 {
-    static console_capture inst;
-    return inst;
+    /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during
+       __cxa_finalize teardown). See millennium_lifecycle / crash_event_bus. */
+    static console_capture* inst = new console_capture();
+    return *inst;
 }
 
 void console_capture::start(std::shared_ptr<cdp_client> cdp, std::shared_ptr<plugin_manager> pm)
