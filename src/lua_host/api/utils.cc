@@ -41,6 +41,17 @@
 #include <ctime>
 #include "millennium/encoding.h"
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <vector>
+#endif
+
 int Lua_Sleep(lua_State* L)
 {
     int milliseconds = static_cast<int>(luaL_checkinteger(L, 1));
@@ -369,13 +380,67 @@ int Lua_Exec(lua_State* L)
     const char* cmd = luaL_checkstring(L, 1);
 
     std::string result;
-    char buffer[128];
 
 #ifdef _WIN32
-    FILE* pipe = _popen(cmd, "r");
+    SECURITY_ATTRIBUTES sa{};
+    sa.nLength = sizeof(sa);
+    sa.bInheritHandle = TRUE;
+
+    HANDLE read_pipe = nullptr, write_pipe = nullptr;
+    if (!CreatePipe(&read_pipe, &write_pipe, &sa, 0)) {
+        lua_pushnil(L);
+        lua_pushstring(L, "Failed to create pipe");
+        return 2;
+    }
+    SetHandleInformation(read_pipe, HANDLE_FLAG_INHERIT, 0);
+
+    STARTUPINFOA si{};
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput = write_pipe;
+    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+
+    const char* comspec = std::getenv("COMSPEC");
+    std::string command_line = "\"";
+    command_line += (comspec && *comspec) ? comspec : "cmd.exe";
+    command_line += "\" /c ";
+    command_line += cmd;
+
+    std::vector<char> mutable_cmd(command_line.begin(), command_line.end());
+    mutable_cmd.push_back('\0');
+
+    PROCESS_INFORMATION pi{};
+    BOOL created = CreateProcessA(nullptr, mutable_cmd.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi);
+
+    CloseHandle(write_pipe);
+
+    if (!created) {
+        CloseHandle(read_pipe);
+        lua_pushnil(L);
+        lua_pushstring(L, "Failed to execute command");
+        return 2;
+    }
+
+    char buffer[4096];
+    DWORD bytes_read = 0;
+    while (ReadFile(read_pipe, buffer, sizeof(buffer), &bytes_read, nullptr) && bytes_read > 0) {
+        result.append(buffer, bytes_read);
+    }
+    CloseHandle(read_pipe);
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD exit_code = 0;
+    GetExitCodeProcess(pi.hProcess, &exit_code);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    lua_pushlstring(L, result.c_str(), result.size());
+    lua_pushinteger(L, (lua_Integer)exit_code);
+    return 2;
 #else
+    char buffer[128];
     FILE* pipe = popen(cmd, "r");
-#endif
 
     if (!pipe) {
         lua_pushnil(L);
@@ -387,15 +452,12 @@ int Lua_Exec(lua_State* L)
         result += buffer;
     }
 
-#ifdef _WIN32
-    int status = _pclose(pipe);
-#else
     int status = pclose(pipe);
-#endif
 
     lua_pushstring(L, result.c_str());
     lua_pushinteger(L, status);
     return 2;
+#endif
 }
 
 // ============= Encoding =============
