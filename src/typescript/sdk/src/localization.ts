@@ -164,7 +164,7 @@ export function useLocalization(pluginName?: string): Localization {
  *
  * @example
  * ```typescript
- * // plugin.json: "dependencies": ["some-plugin"]
+ * // millennium.toml: dependencies = ["some-plugin"]
  * import russian from '../locales/russian.json';
  * contributeLocale('some-plugin', 'russian', russian);
  * ```
@@ -178,7 +178,7 @@ export function contributeLocale(a: string, b: string, c: string | Record<string
 
 	/** a plugin translates what it declares and nothing else */
 	if (caller && !(window.MILLENNIUM_PLUGIN_DEPENDENCIES[caller] ?? []).includes(targetPlugin)) {
-		console.error(`[Millennium] '${caller}' tried to translate '${targetPlugin}', which it doesn't declare in its plugin.json.`);
+		console.error(`[Millennium] '${caller}' tried to translate '${targetPlugin}', which it doesn't declare in its manifest.`);
 		return;
 	}
 
