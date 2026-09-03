@@ -266,7 +266,7 @@ std::vector<std::string> plugin_manager::get_enabled_plugin_names()
 /**
  * @brief Sort a plugin list in place so dependencies come before their dependents.
  *
- * Reads the optional "dependencies" array from each plugin.json ("name" or "name@<range>").
+ * Reads the optional "dependencies" array each v2 plugin declares ("name" or "name@<range>").
  * Without the field this is a no-op and the scan order is kept as is. Cycles, unknown
  * dependency names and unsatisfied version ranges are warned about once and never
  * prevent a plugin from loading.
@@ -289,15 +289,29 @@ static std::vector<std::string> read_string_array(const nlohmann::json& plugin_j
 }
 
 /**
+ * @brief Read a dependency field from a plugin.
+ *
+ * Dependencies are a v2 feature: only the .star manifest declares them, the fields
+ * are ignored in a loose plugin.json. Any plugin can still be depended on.
+ */
+static std::vector<std::string> read_dependency_field(const plugin_manager::plugin_t& plugin, const char* field)
+{
+    if (plugin.format != plugin_manager::plugin_format::star) {
+        return {};
+    }
+    return read_string_array(plugin.plugin_json, field);
+}
+
+/**
  * @brief Every dependency a plugin declares, required ones first.
  *
  * "requires" are hard dependencies the plugin cannot run without, "dependencies"
  * are soft ones. Both take part in load ordering.
  */
-static std::vector<std::string> read_dependency_specs(const nlohmann::json& plugin_json)
+static std::vector<std::string> read_dependency_specs(const plugin_manager::plugin_t& plugin)
 {
-    auto specs = read_string_array(plugin_json, "requires");
-    const auto soft = read_string_array(plugin_json, "dependencies");
+    auto specs = read_dependency_field(plugin, "requires");
+    const auto soft = read_dependency_field(plugin, "dependencies");
 
     specs.insert(specs.end(), soft.begin(), soft.end());
     return specs;
@@ -310,7 +324,7 @@ void plugin_manager::sort_by_dependencies(std::vector<plugin_t>& plugins)
     dependencyGraph.reserve(plugins.size());
 
     for (const auto& plugin : plugins) {
-        auto dependencies = read_dependency_specs(plugin.plugin_json);
+        auto dependencies = read_dependency_specs(plugin);
 
         hasDependencies = hasDependencies || !dependencies.empty();
         dependencyGraph.emplace_back(plugin.plugin_name, std::move(dependencies));
@@ -387,7 +401,7 @@ std::vector<std::string> plugin_manager::get_unmet_requirements(const std::strin
         return unmet;
     }
 
-    for (const auto& spec : read_string_array(plugin->plugin_json, "requires")) {
+    for (const auto& spec : read_dependency_field(*plugin, "requires")) {
         const auto name = spec.substr(0, spec.find('@'));
 
         if (!this->is_enabled(name)) {
@@ -406,7 +420,7 @@ std::vector<std::string> plugin_manager::get_enabled_dependents(const std::strin
             continue;
         }
 
-        for (const auto& spec : read_string_array(plugin.plugin_json, "requires")) {
+        for (const auto& spec : read_dependency_field(plugin, "requires")) {
             if (spec.substr(0, spec.find('@')) == plugin_name) {
                 dependents.push_back(plugin.plugin_name);
                 break;
