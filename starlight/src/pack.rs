@@ -85,6 +85,8 @@ pub fn pack(
             .as_ref()
             .map(|b| b.entry.clone())
             .unwrap_or_default(),
+        requires: cfg.plugin.requires.clone(),
+        dependencies: cfg.plugin.dependencies.clone(),
     };
     let metadata_blob = rmp_serde::to_vec_named(&metadata)
         .map_err(|e| anyhow::anyhow!("msgpack serialization failed: {}", e))?;

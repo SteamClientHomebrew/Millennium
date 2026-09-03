@@ -48,4 +48,11 @@ semver_version parse(const std::string& version);
 
 int cmp(const std::string& v1, const std::string& v2);
 int cmp_pre_release(const std::string& pre1, const std::string& pre2);
+
+/**
+ * @brief Check whether a version satisfies a range like ">=1.2.0", "<2.0.0" or "1.2.0" (exact).
+ * Supported operators: >=, <=, >, <, =. A leading 'v' is tolerated on either side.
+ * Returns true when either side cannot be parsed, so malformed input never rejects a plugin.
+ */
+bool satisfies(const std::string& version, const std::string& range);
 } // namespace semver

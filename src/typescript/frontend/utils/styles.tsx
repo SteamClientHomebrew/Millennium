@@ -308,7 +308,8 @@ html body .MillenniumButton.MillenniumIconButton.MillenniumIconButtonWithText {
 }
 
 .MillenniumItem_Version,
-.MillenniumPlugins_Metrics {
+.MillenniumPlugins_Metrics,
+.MillenniumPlugins_Dependencies {
 	display: flex;
 	gap: var(--MillenniumSpacing-Small);
 }
@@ -325,7 +326,8 @@ html body .MillenniumButton.MillenniumIconButton.MillenniumIconButtonWithText {
 }
 
 .MillenniumItem_Version span,
-.MillenniumPlugins_Metrics span {
+.MillenniumPlugins_Metrics span,
+.MillenniumPlugins_Dependencies span {
 	color: var(--MillenniumTextColor-Muted);
 	font: var(--MillenniumText-BodySmall);
 	background: rgba(255, 255, 255, 0.05);
@@ -335,6 +337,18 @@ html body .MillenniumButton.MillenniumIconButton.MillenniumIconButtonWithText {
     justify-content: center;
     align-items: center;
     gap: 5px;
+}
+
+.MillenniumPlugins_Dependencies b {
+	font-weight: normal;
+}
+
+.MillenniumDependency_Met {
+	color: var(--MillenniumTextColor-Success);
+}
+
+.MillenniumDependency_Unmet {
+	color: var(--MillenniumTextColor-Error);
 }
 
 .MillenniumPlugins_Metrics span {

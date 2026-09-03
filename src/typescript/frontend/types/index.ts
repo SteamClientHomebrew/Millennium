@@ -116,6 +116,8 @@ export interface Theme {
 	splash_image?: URL;
 	name?: string;
 	version?: string;
+	dependencies?: string[];
+	requires?: string[];
 	source?: string;
 	tags?: string[];
 }
@@ -144,6 +146,8 @@ export interface Plugin {
 	version?: string;
 	useBackend?: boolean;
 	backendType?: string;
+	dependencies?: string[];
+	requires?: string[];
 	__private_browser_extension?: boolean;
 }
 

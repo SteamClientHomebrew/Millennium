@@ -153,6 +153,29 @@ nlohmann::json head::theme_config_store::get_config()
 
 void head::theme_config_store::change_theme(const std::string& theme_name)
 {
+    /** a theme that requires plugins can't be applied without them, the same way a plugin
+        that requires others can't be enabled. the UI checks first; this is the backstop. */
+    try {
+        std::ifstream file(themes_path / theme_name / "skin.json");
+        nlohmann::json skin_json;
+        file >> skin_json;
+
+        if (skin_json.contains("requires") && skin_json["requires"].is_array()) {
+            for (const auto& spec : skin_json["requires"]) {
+                if (!spec.is_string()) continue;
+
+                const auto name = spec.get<std::string>().substr(0, spec.get<std::string>().find('@'));
+
+                if (m_plugin_manager && !m_plugin_manager->is_enabled(name)) {
+                    logger.warn("refusing to apply theme '{}': it requires plugin '{}'", theme_name, name);
+                    return;
+                }
+            }
+        }
+    } catch (const std::exception&) {
+        /** an unreadable skin.json is not a reason to block the theme */
+    }
+
     CONFIG.set({ "themes", "activeTheme" }, theme_name);
 }
 
@@ -203,12 +226,14 @@ void head::theme_config_store::start_webkit_hook(const nlohmann::json& theme, co
 
     for (const auto& item : cssItems) {
         if (theme["data"].contains(item)) {
-            m_theme_webkit_mgr->add_browser_hook((std::filesystem::path(name) / theme["data"][item].get<std::string>()).generic_string(), ".*", network_hook_ctl::TagTypes::STYLESHEET);
+            m_theme_webkit_mgr->add_browser_hook((std::filesystem::path(name) / theme["data"][item].get<std::string>()).generic_string(), ".*",
+                                                 network_hook_ctl::TagTypes::STYLESHEET);
         }
     }
 
     if (theme["data"].contains("webkitJS")) {
-        m_theme_webkit_mgr->add_browser_hook((std::filesystem::path(name) / theme["data"]["webkitJS"].get<std::string>()).generic_string(), ".*", network_hook_ctl::TagTypes::JAVASCRIPT);
+        m_theme_webkit_mgr->add_browser_hook((std::filesystem::path(name) / theme["data"]["webkitJS"].get<std::string>()).generic_string(), ".*",
+                                             network_hook_ctl::TagTypes::JAVASCRIPT);
     }
 
     m_theme_webkit_mgr->add_conditional_data(theme["data"], name);
