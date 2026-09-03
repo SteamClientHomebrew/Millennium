@@ -40,6 +40,8 @@ pub fn wrap(
     source_map_url: Option<&str>,
     inspect: &crate::config::InspectConfig,
     lua_ffi_names: &[String],
+    locales_json: &str,
+    dependencies_json: &str,
 ) -> (String, u32, u32) {
     let iife_expr = extract_iife(strip_sourcemap(bundle_js).trim_end());
 
@@ -82,6 +84,8 @@ pub fn wrap(
     let shim = SHIM_JS
         .replace("__IS_CLIENT__", if is_client { "true" } else { "false" })
         .replace("__PLUGIN_NAME__", &plugin_name_json)
+        .replace("__LOCALES__", locales_json)
+        .replace("__DEPENDENCIES__", dependencies_json)
         .replace("__FFI_STUBS__;", &ffi_stubs)
         .replace("__FRONTEND_PROXY__;", &frontend_proxy)
         .replace("__INSPECT_POLYFILL__;", INSPECT_POLYFILL_JS)
@@ -149,6 +153,8 @@ mod tests {
             Some("file:///test.map"),
             &default_inspect(),
             &[],
+            "{}",
+            "[]",
         );
         assert!(
             out.contains("//# sourceMappingURL=file:///test.map"),
@@ -158,9 +164,62 @@ mod tests {
     }
 
     #[test]
+    fn locales_and_dependencies_are_embedded() {
+        let bundle = "(function() { return {}; })()";
+        let (out, _, _) = wrap(
+            bundle,
+            "test",
+            true,
+            None,
+            &default_inspect(),
+            &[],
+            r#"{"english":{"greeting":"Hello"}}"#,
+            r#"["some-plugin"]"#,
+        );
+
+        assert!(
+            out.contains(r#"(window.MILLENNIUM_PLUGIN_LOCALES ||= {})[pluginName] = {"english":{"greeting":"Hello"}};"#),
+            "locales missing from the wrapper"
+        );
+        assert!(
+            out.contains(
+                r#"(window.MILLENNIUM_PLUGIN_DEPENDENCIES ||= {})[pluginName] = ["some-plugin"];"#
+            ),
+            "declared dependencies missing from the wrapper"
+        );
+    }
+
+    #[test]
+    fn plugin_without_locales_embeds_empty_objects() {
+        let bundle = "(function() { return {}; })()";
+        let (out, _, _) = wrap(
+            bundle,
+            "test",
+            true,
+            None,
+            &default_inspect(),
+            &[],
+            "{}",
+            "[]",
+        );
+
+        assert!(out.contains("(window.MILLENNIUM_PLUGIN_LOCALES ||= {})[pluginName] = {};"));
+        assert!(out.contains("(window.MILLENNIUM_PLUGIN_DEPENDENCIES ||= {})[pluginName] = [];"));
+    }
+
+    #[test]
     fn sourcemap_url_absent_when_none() {
         let bundle = "(function() { return {}; })()";
-        let (out, _, _) = wrap(bundle, "test", true, None, &default_inspect(), &[]);
+        let (out, _, _) = wrap(
+            bundle,
+            "test",
+            true,
+            None,
+            &default_inspect(),
+            &[],
+            "{}",
+            "[]",
+        );
         assert!(
             !out.contains("sourceMappingURL"),
             "unexpected sourceMappingURL"

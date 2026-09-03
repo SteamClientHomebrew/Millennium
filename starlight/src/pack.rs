@@ -116,6 +116,15 @@ pub fn pack(
         raw_sections.push((SECTION_BACKEND, serialize_sub_entries(&entries)));
     }
 
+    /* a plugin may only translate plugins it declares, so the ids travel with the bundle */
+    let declared_dependencies: Vec<String> = cfg
+        .plugin
+        .requires
+        .iter()
+        .chain(cfg.plugin.dependencies.iter())
+        .map(|spec| spec.split('@').next().unwrap_or(spec).to_string())
+        .collect();
+
     if let Some(frontend_cfg) = &cfg.frontend {
         let (map_disk_path, map_url) = if mode == BuildMode::Debug {
             let sm_dir = prepare_sourcemap_dir(config_dir, "bundle.js.")?;
@@ -148,6 +157,7 @@ pub fn pack(
             &cfg.inspect,
             outro,
             &lua_ffi_names,
+            &declared_dependencies,
         )?;
 
         if !ffi_exposed.is_empty() {
@@ -211,6 +221,7 @@ pub fn pack(
             &cfg.inspect,
             None,
             &lua_ffi_names,
+            &declared_dependencies,
         )?;
 
         if let (Some(path), false) = (&map_disk_path, map_bytes.is_empty()) {
