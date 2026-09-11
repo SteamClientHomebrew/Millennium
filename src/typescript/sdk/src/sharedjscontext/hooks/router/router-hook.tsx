@@ -49,7 +49,7 @@ class RouterHook extends Logger {
 		const reactRouterStackModule = findModuleByExport((e) => e == 'router-backstack', 20);
 		if (reactRouterStackModule) {
 			this.Route =
-				Object.values(reactRouterStackModule).find((e) => typeof e == 'function' && /routePath:.\.match\?\.path./.test(e.toString())) ||
+				Object.values(reactRouterStackModule).find((e) => typeof e == 'function' && /routePath:[\w$]+\.match\?\.path./.test(e.toString())) ||
 				Object.values(reactRouterStackModule).find((e) => typeof e == 'function' && /routePath:null===\(.=.\.match\)/.test(e.toString()));
 			if (!this.Route) {
 				this.error('Failed to find Route component');
@@ -60,12 +60,7 @@ class RouterHook extends Logger {
 
 		const routerModule = findModuleByExport((e) => e?.displayName == 'Router');
 		if (routerModule) {
-			this.DesktopRoute = Object.values(routerModule).find(
-				(e) =>
-					typeof e == 'function' &&
-					e?.prototype?.render?.toString()?.includes('props.computedMatch') &&
-					e?.prototype?.render?.toString()?.includes('.Children.count('),
-			);
+			this.DesktopRoute = Object.values(routerModule).find((e) => typeof e == 'function' && e?.prototype?.render?.toString()?.includes('props.computedMatch'));
 			if (!this.DesktopRoute) {
 				this.error('Failed to find DesktopRoute component');
 			}
