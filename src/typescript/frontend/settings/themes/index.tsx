@@ -69,7 +69,7 @@ export class ThemeViewModal extends Component<{}, ThemeViewModalState> {
 	};
 
 	ChangeActiveTheme = (item: ThemeItem) => {
-		ChangeActiveTheme(item.native, UIReloadProps.Prompt).then((hasClickedOk) => {
+		ChangeActiveTheme(item.native, UIReloadProps.Prompt, item.data).then((hasClickedOk) => {
 			/** Reload the themes */
 			!hasClickedOk && backend.themes.getThemes().then((themes) => this.setState({ themes }));
 		});

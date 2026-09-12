@@ -260,3 +260,35 @@ int semver::cmp(const std::string& v1, const std::string& v2)
         throw std::invalid_argument("Invalid semver format");
     }
 }
+
+bool semver::satisfies(const std::string& version, const std::string& range)
+{
+    std::string op = "=";
+    std::string target = range;
+
+    for (const std::string candidate : { ">=", "<=", ">", "<", "=" }) {
+        if (target.rfind(candidate, 0) == 0) {
+            op = candidate;
+            target = target.substr(candidate.length());
+            break;
+        }
+    }
+
+    /** Tolerate a leading 'v' on either side, matching the updater's version handling. */
+    if (!target.empty() && (target[0] == 'v' || target[0] == 'V')) target = target.substr(1);
+    std::string current = version;
+    if (!current.empty() && (current[0] == 'v' || current[0] == 'V')) current = current.substr(1);
+
+    try {
+        const int result = cmp(current, target);
+
+        if (op == ">=") return result >= 0;
+        if (op == "<=") return result <= 0;
+        if (op == ">") return result > 0;
+        if (op == "<") return result < 0;
+        return result == 0;
+    } catch (const std::exception&) {
+        /** Unparseable versions never reject a plugin. */
+        return true;
+    }
+}

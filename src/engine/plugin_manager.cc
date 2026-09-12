@@ -33,6 +33,8 @@
 #include "millennium/logger.h"
 #include "millennium/config.h"
 #include "millennium/environment.h"
+#include "millennium/plugin_deps.h"
+#include "millennium/semver.h"
 #include "millennium/star_parser.h"
 #include <format>
 #ifdef _WIN32
@@ -262,14 +264,186 @@ std::vector<std::string> plugin_manager::get_enabled_plugin_names()
 }
 
 /**
+ * @brief Sort a plugin list in place so dependencies come before their dependents.
+ *
+ * Reads the optional "dependencies" array each v2 plugin declares ("name" or "name@<range>").
+ * Without the field this is a no-op and the scan order is kept as is. Cycles, unknown
+ * dependency names and unsatisfied version ranges are warned about once and never
+ * prevent a plugin from loading.
+ */
+/**
+ * @brief Read a plugin.json string array, ignoring anything that isn't a string.
+ */
+static std::vector<std::string> read_string_array(const nlohmann::json& plugin_json, const char* field)
+{
+    std::vector<std::string> values;
+
+    if (plugin_json.contains(field) && plugin_json[field].is_array()) {
+        for (const auto& item : plugin_json[field]) {
+            if (item.is_string()) {
+                values.push_back(item.get<std::string>());
+            }
+        }
+    }
+    return values;
+}
+
+/**
+ * @brief Read a dependency field from a plugin.
+ *
+ * Dependencies are a v2 feature: only the .star manifest declares them, the fields
+ * are ignored in a loose plugin.json. Any plugin can still be depended on.
+ */
+static std::vector<std::string> read_dependency_field(const plugin_manager::plugin_t& plugin, const char* field)
+{
+    if (plugin.format != plugin_manager::plugin_format::star) {
+        return {};
+    }
+    return read_string_array(plugin.plugin_json, field);
+}
+
+/**
+ * @brief Every dependency a plugin declares, required ones first.
+ *
+ * "requires" are hard dependencies the plugin cannot run without, "dependencies"
+ * are soft ones. Both take part in load ordering.
+ */
+static std::vector<std::string> read_dependency_specs(const plugin_manager::plugin_t& plugin)
+{
+    auto specs = read_dependency_field(plugin, "requires");
+    const auto soft = read_dependency_field(plugin, "dependencies");
+
+    specs.insert(specs.end(), soft.begin(), soft.end());
+    return specs;
+}
+
+void plugin_manager::sort_by_dependencies(std::vector<plugin_t>& plugins)
+{
+    bool hasDependencies = false;
+    std::vector<std::pair<std::string, std::vector<std::string>>> dependencyGraph;
+    dependencyGraph.reserve(plugins.size());
+
+    for (const auto& plugin : plugins) {
+        auto dependencies = read_dependency_specs(plugin);
+
+        hasDependencies = hasDependencies || !dependencies.empty();
+        dependencyGraph.emplace_back(plugin.plugin_name, std::move(dependencies));
+    }
+
+    if (!hasDependencies) {
+        return;
+    }
+
+    /** The plugin list is rebuilt on every scan, so warn once per distinct problem
+     *  instead of repeating it every time the list is sorted. */
+    const auto warn_once = [this](const std::string& key, const auto&... args)
+    {
+        if (m_logged_dependency_warnings.insert(key).second) {
+            logger.warn(args...);
+        }
+    };
+
+    const auto indices = plugin_deps::index_by_name(dependencyGraph);
+
+    for (const auto& [pluginName, dependencies] : dependencyGraph) {
+        for (const auto& spec : dependencies) {
+            const auto atPos = spec.find('@');
+            const auto dependencyName = spec.substr(0, atPos);
+            const auto range = atPos == std::string::npos ? std::string() : spec.substr(atPos + 1);
+
+            const auto it = indices.find(dependencyName);
+
+            if (it == indices.end()) {
+                warn_once(std::format("missing:{}:{}", pluginName, dependencyName), "plugin '{}' depends on '{}', which is not installed", pluginName, dependencyName);
+                continue;
+            }
+
+            const auto& installedVersion = plugins[it->second].plugin_json.value("version", "");
+
+            if (!range.empty() && !semver::satisfies(installedVersion, range)) {
+                warn_once(std::format("version:{}:{}", pluginName, spec), "plugin '{}' wants '{}' version {}, but {} is installed", pluginName, dependencyName, range,
+                          installedVersion.empty() ? "<unset>" : installedVersion);
+            }
+        }
+    }
+
+    std::vector<std::string> cycle;
+    const auto order = plugin_deps::resolve_load_order(dependencyGraph, cycle);
+
+    if (!cycle.empty()) {
+        std::string cycleNames;
+        for (const auto& name : cycle) {
+            cycleNames += (cycleNames.empty() ? "" : ", ") + name;
+        }
+        warn_once(std::format("cycle:{}", cycleNames), "plugins could not be dependency-ordered because of a cycle: {}", cycleNames);
+    }
+
+    std::vector<plugin_t> sorted;
+    sorted.reserve(plugins.size());
+
+    for (const auto index : order) {
+        sorted.push_back(std::move(plugins[index]));
+    }
+    plugins = std::move(sorted);
+}
+
+std::vector<std::string> plugin_manager::get_unmet_requirements(const std::string& plugin_name)
+{
+    const auto plugins = this->get_all_plugins();
+    std::vector<std::string> unmet;
+
+    const auto plugin = std::find_if(plugins.begin(), plugins.end(), [&](const auto& candidate)
+    {
+        return candidate.plugin_name == plugin_name;
+    });
+
+    if (plugin == plugins.end()) {
+        return unmet;
+    }
+
+    for (const auto& spec : read_dependency_field(*plugin, "requires")) {
+        const auto name = spec.substr(0, spec.find('@'));
+
+        if (!this->is_enabled(name)) {
+            unmet.push_back(name);
+        }
+    }
+    return unmet;
+}
+
+std::vector<std::string> plugin_manager::get_enabled_dependents(const std::string& plugin_name)
+{
+    std::vector<std::string> dependents;
+
+    for (const auto& plugin : this->get_all_plugins()) {
+        if (!this->is_enabled(plugin.plugin_name)) {
+            continue;
+        }
+
+        for (const auto& spec : read_dependency_field(plugin, "requires")) {
+            if (spec.substr(0, spec.find('@')) == plugin_name) {
+                dependents.push_back(plugin.plugin_name);
+                break;
+            }
+        }
+    }
+    return dependents;
+}
+
+/**
  * @brief Get all the enabled backends from the plugin list.
  *
  * @note This function filters out the plugins that are not enabled or have the useBackend flag set to false.
  * Not all enabled plugins have backends.
+ *
+ * @note The full plugin list is dependency-sorted before filtering, so backends spawn
+ * after the backends they depend on (even when a disabled plugin sits between them).
  */
 std::vector<plugin_manager::plugin_t> plugin_manager::get_enabled_backends()
 {
-    const auto allPlugins = this->get_all_plugins();
+    auto allPlugins = this->get_all_plugins();
+    this->sort_by_dependencies(allPlugins);
+
     std::vector<plugin_manager::plugin_t> enabledBackends;
 
     for (auto& plugin : allPlugins) {
