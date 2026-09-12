@@ -270,7 +270,8 @@ main() {
             echo -ne "\033[1A"
             log "(2/4) Verifying checksums... OK"
         else
-            log "(2/4) Verifying checksums... FAILED"
+            log "(2/4) Verifying checksums... FAILED" >&2
+            exit 1
         fi
         log "(3/4) Unpacking millennium-v${tag}-${target}.tar.gz..."
         extract_package "${tar_file}" "${extract_path}"
