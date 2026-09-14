@@ -29,6 +29,7 @@
  */
 use crate::ffi_types::{parse_lua_type, FfiType};
 use crate::format::section::SubEntry;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub struct LuaExportedFn {
@@ -46,12 +47,42 @@ pub struct LuaFrontendCall {
     pub line: u32,
 }
 
+#[derive(Debug)]
+pub struct LuaClassDef {
+    pub name: String,
+    pub fields: Vec<(String, FfiType, bool)>,
+}
+
 pub struct LuaScanResult {
     pub exported_fns: Vec<LuaExportedFn>,
     pub frontend_calls: Vec<LuaFrontendCall>,
+    pub classes: Vec<LuaClassDef>,
 }
 
 pub fn scan(entries: &[SubEntry]) -> anyhow::Result<LuaScanResult> {
+    let mut raw_classes: HashMap<String, Vec<(String, String, bool)>> = HashMap::new();
+    for entry in entries {
+        if let Ok(source) = std::str::from_utf8(&entry.data) {
+            collect_raw_classes(source, &mut raw_classes);
+        }
+    }
+
+    let class_names: HashSet<String> = raw_classes.keys().cloned().collect();
+
+    let mut classes: Vec<LuaClassDef> = raw_classes
+        .into_iter()
+        .map(|(name, raw_fields)| LuaClassDef {
+            name,
+            fields: raw_fields
+                .into_iter()
+                .map(|(field_name, raw_type, optional)| {
+                    (field_name, parse_lua_type(&raw_type, &class_names), optional)
+                })
+                .collect(),
+        })
+        .collect();
+    classes.sort_by(|a, b| a.name.cmp(&b.name));
+
     let mut exported_fns = Vec::new();
     let mut frontend_calls = Vec::new();
 
@@ -60,7 +91,7 @@ pub fn scan(entries: &[SubEntry]) -> anyhow::Result<LuaScanResult> {
             Ok(s) => s,
             Err(_) => continue,
         };
-        let (mut fns, mut calls) = scan_source(source, &entry.name)?;
+        let (mut fns, mut calls) = scan_source(source, &entry.name, &class_names)?;
         exported_fns.append(&mut fns);
         frontend_calls.append(&mut calls);
     }
@@ -68,12 +99,61 @@ pub fn scan(entries: &[SubEntry]) -> anyhow::Result<LuaScanResult> {
     Ok(LuaScanResult {
         exported_fns,
         frontend_calls,
+        classes,
     })
+}
+
+fn collect_raw_classes(source: &str, out: &mut HashMap<String, Vec<(String, String, bool)>>) {
+    let mut current: Option<(String, Vec<(String, String, bool)>)> = None;
+
+    for line in source.lines() {
+        let trimmed = line.trim();
+        let content = match trimmed.strip_prefix("--") {
+            Some(rest) => rest.trim_start_matches('-').trim(),
+            None => {
+                if let Some((name, fields)) = current.take() {
+                    out.insert(name, fields);
+                }
+                continue;
+            }
+        };
+
+        if let Some(rest) = content.strip_prefix("@class ") {
+            if let Some((name, fields)) = current.take() {
+                out.insert(name, fields);
+            }
+            let name = rest
+                .split(|c: char| c.is_whitespace() || c == ':')
+                .next()
+                .unwrap_or("")
+                .to_string();
+            if !name.is_empty() {
+                current = Some((name, Vec::new()));
+            }
+        } else if let Some(rest) = content.strip_prefix("@field ") {
+            if let Some((_, fields)) = current.as_mut() {
+                let mut parts = rest.splitn(3, ' ');
+                let raw_name = parts.next().unwrap_or("_");
+                let optional = raw_name.ends_with('?');
+                let field_name = raw_name.trim_end_matches('?').to_string();
+                let raw_type = parts.next().unwrap_or("unknown").to_string();
+                fields.push((field_name, raw_type, optional));
+            }
+        } else if content.is_empty() {
+        } else if let Some((name, fields)) = current.take() {
+            out.insert(name, fields);
+        }
+    }
+
+    if let Some((name, fields)) = current.take() {
+        out.insert(name, fields);
+    }
 }
 
 fn scan_source(
     source: &str,
     file: &str,
+    class_names: &HashSet<String>,
 ) -> anyhow::Result<(Vec<LuaExportedFn>, Vec<LuaFrontendCall>)> {
     let ast = full_moon::parse(source)
         .map_err(|e| anyhow::anyhow!("Lua parse error in {}: {:?}", file, e))?;
@@ -83,7 +163,7 @@ fn scan_source(
     for stmt in ast.nodes().stmts() {
         use full_moon::ast::Stmt;
         if let Stmt::FunctionDeclaration(fd) = stmt {
-            if let Some(export) = extract_ffi_function(fd, file) {
+            if let Some(export) = extract_ffi_function(fd, file, class_names) {
                 exported_fns.push(export);
             }
         }
@@ -97,6 +177,7 @@ fn scan_source(
 fn extract_ffi_function(
     fd: &full_moon::ast::FunctionDeclaration,
     file: &str,
+    class_names: &HashSet<String>,
 ) -> Option<LuaExportedFn> {
     use full_moon::tokenizer::TokenType;
 
@@ -123,10 +204,10 @@ fn extract_ffi_function(
                     let mut parts = rest.splitn(3, ' ');
                     let name = parts.next().unwrap_or("_").to_string();
                     let type_str = parts.next().unwrap_or("unknown");
-                    params.push((name, parse_lua_type(type_str)));
+                    params.push((name, parse_lua_type(type_str, class_names)));
                 } else if let Some(rest) = content.strip_prefix("@return ") {
                     let type_str = rest.split_whitespace().next().unwrap_or("unknown");
-                    return_type = Some(parse_lua_type(type_str));
+                    return_type = Some(parse_lua_type(type_str, class_names));
                 }
             }
             TokenType::Whitespace { .. } => {}
@@ -217,4 +298,80 @@ fn scan_frontend_calls(source: &str, file: &str) -> Vec<LuaFrontendCall> {
     }
 
     calls
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const FIXTURE: &str = r#"
+---@class RpcLibraryResult
+---@field ok boolean
+---@field error string|nil
+---@field games EpicGame[]|nil
+---@field refreshed_at integer|nil Unix seconds of the last read from Epic
+
+---@ffi
+---@param refresh boolean
+---@param force boolean
+---@param installed boolean
+---@return RpcLibraryResult
+function GetLibrary(refresh, force, installed)
+    return { ok = true }
+end
+
+---@class EpicGame
+---@field id string
+---@field name string
+"#;
+
+    #[test]
+    fn collects_classes_with_forward_reference() {
+        let mut raw = HashMap::new();
+        collect_raw_classes(FIXTURE, &mut raw);
+
+        assert!(raw.contains_key("RpcLibraryResult"));
+        assert!(raw.contains_key("EpicGame"));
+
+        let fields = &raw["RpcLibraryResult"];
+        assert_eq!(fields.len(), 4);
+        assert_eq!(fields[2], ("games".to_string(), "EpicGame[]|nil".to_string(), false));
+    }
+
+    #[test]
+    fn scan_resolves_class_return_type() {
+        let entries = vec![SubEntry {
+            name: "main.lua".to_string(),
+            data: FIXTURE.as_bytes().to_vec(),
+        }];
+
+        let result = scan(&entries).expect("scan should succeed");
+
+        let get_library = result
+            .exported_fns
+            .iter()
+            .find(|f| f.name == "GetLibrary")
+            .expect("GetLibrary should be exported");
+
+        assert_eq!(
+            get_library.return_type,
+            Some(FfiType::Named("RpcLibraryResult".to_string()))
+        );
+
+        let rpc_result = result
+            .classes
+            .iter()
+            .find(|c| c.name == "RpcLibraryResult")
+            .expect("RpcLibraryResult should be collected");
+
+        let games_field = &rpc_result.fields[2];
+        assert_eq!(games_field.0, "games");
+        assert_eq!(
+            games_field.1,
+            FfiType::Union(vec![
+                FfiType::Array(Box::new(FfiType::Named("EpicGame".to_string()))),
+                FfiType::Nil,
+            ])
+        );
+    }
 }

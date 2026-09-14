@@ -61,12 +61,9 @@ ipc_main::vm_call_result ipc_main::lua_evaluate(std::string pluginName, nlohmann
 
         if (result.contains("value") && !result["value"].is_null()) {
             const auto& val = result["value"];
-            if (val.is_string()) {
-                /*
-                 * lua backends return JSON-encoded strings for tables/objects.
-                 * parse them into nlohmann::json so the return type is consistent
-                 * with core C++ methods (which return raw JSON values).
-                 */
+            if (val.is_object() || val.is_array()) {
+                vm_result.value = nlohmann::ordered_json(val);
+            } else if (val.is_string()) {
                 auto str = val.get<std::string>();
                 auto parsed = nlohmann::ordered_json::parse(str, nullptr, false);
                 if (!parsed.is_discarded())

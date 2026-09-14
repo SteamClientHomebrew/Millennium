@@ -39,6 +39,18 @@
 #include <cstring>
 #include <fstream>
 #include <ctime>
+#include "millennium/encoding.h"
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <vector>
+#endif
 
 int Lua_Sleep(lua_State* L)
 {
@@ -368,13 +380,67 @@ int Lua_Exec(lua_State* L)
     const char* cmd = luaL_checkstring(L, 1);
 
     std::string result;
-    char buffer[128];
 
 #ifdef _WIN32
-    FILE* pipe = _popen(cmd, "r");
+    SECURITY_ATTRIBUTES sa{};
+    sa.nLength = sizeof(sa);
+    sa.bInheritHandle = TRUE;
+
+    HANDLE read_pipe = nullptr, write_pipe = nullptr;
+    if (!CreatePipe(&read_pipe, &write_pipe, &sa, 0)) {
+        lua_pushnil(L);
+        lua_pushstring(L, "Failed to create pipe");
+        return 2;
+    }
+    SetHandleInformation(read_pipe, HANDLE_FLAG_INHERIT, 0);
+
+    STARTUPINFOA si{};
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    si.hStdOutput = write_pipe;
+    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+
+    const char* comspec = std::getenv("COMSPEC");
+    std::string command_line = "\"";
+    command_line += (comspec && *comspec) ? comspec : "cmd.exe";
+    command_line += "\" /c ";
+    command_line += cmd;
+
+    std::vector<char> mutable_cmd(command_line.begin(), command_line.end());
+    mutable_cmd.push_back('\0');
+
+    PROCESS_INFORMATION pi{};
+    BOOL created = CreateProcessA(nullptr, mutable_cmd.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi);
+
+    CloseHandle(write_pipe);
+
+    if (!created) {
+        CloseHandle(read_pipe);
+        lua_pushnil(L);
+        lua_pushstring(L, "Failed to execute command");
+        return 2;
+    }
+
+    char buffer[4096];
+    DWORD bytes_read = 0;
+    while (ReadFile(read_pipe, buffer, sizeof(buffer), &bytes_read, nullptr) && bytes_read > 0) {
+        result.append(buffer, bytes_read);
+    }
+    CloseHandle(read_pipe);
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    DWORD exit_code = 0;
+    GetExitCodeProcess(pi.hProcess, &exit_code);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    lua_pushlstring(L, result.c_str(), result.size());
+    lua_pushinteger(L, (lua_Integer)exit_code);
+    return 2;
 #else
+    char buffer[128];
     FILE* pipe = popen(cmd, "r");
-#endif
 
     if (!pipe) {
         lua_pushnil(L);
@@ -386,15 +452,12 @@ int Lua_Exec(lua_State* L)
         result += buffer;
     }
 
-#ifdef _WIN32
-    int status = _pclose(pipe);
-#else
     int status = pclose(pipe);
-#endif
 
     lua_pushstring(L, result.c_str());
     lua_pushinteger(L, status);
     return 2;
+#endif
 }
 
 // ============= Encoding =============
@@ -404,45 +467,18 @@ int Lua_Base64Encode(lua_State* L)
     size_t len;
     const char* input = luaL_checklstring(L, 1, &len);
 
-    static const char* base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                      "abcdefghijklmnopqrstuvwxyz"
-                                      "0123456789+/";
+    std::string result = Base64Encode(std::string(input, len));
+    lua_pushlstring(L, result.c_str(), result.size());
+    return 1;
+}
 
-    std::string result;
-    int i = 0;
-    unsigned char char_array_3[3];
-    unsigned char char_array_4[4];
+int Lua_Base64Decode(lua_State* L)
+{
+    size_t len;
+    const char* input = luaL_checklstring(L, 1, &len);
 
-    while (len--) {
-        char_array_3[i++] = *(input++);
-        if (i == 3) {
-            char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
-            char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-            char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-            char_array_4[3] = char_array_3[2] & 0x3f;
-
-            for (i = 0; i < 4; i++)
-                result += base64_chars[char_array_4[i]];
-            i = 0;
-        }
-    }
-
-    if (i) {
-        for (int j = i; j < 3; j++)
-            char_array_3[j] = '\0';
-
-        char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
-        char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-        char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-
-        for (int j = 0; j < i + 1; j++)
-            result += base64_chars[char_array_4[j]];
-
-        while (i++ < 3)
-            result += '=';
-    }
-
-    lua_pushstring(L, result.c_str());
+    std::string result = Base64Decode(std::string(input, len));
+    lua_pushlstring(L, result.c_str(), result.size());
     return 1;
 }
 
@@ -462,6 +498,39 @@ int Lua_UrlEncode(lua_State* L)
     }
 
     lua_pushstring(L, escaped.str().c_str());
+    return 1;
+}
+
+int Lua_UrlDecode(lua_State* L)
+{
+    size_t len;
+    const char* input = luaL_checklstring(L, 1, &len);
+
+    auto hex_value = [](char ch) -> int {
+        if (ch >= '0' && ch <= '9') return ch - '0';
+        if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
+        if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
+        return -1;
+    };
+
+    std::string result;
+    result.reserve(len);
+
+    for (size_t i = 0; i < len; i++) {
+        char c = input[i];
+        if (c == '%' && i + 2 < len) {
+            int hi = hex_value(input[i + 1]);
+            int lo = hex_value(input[i + 2]);
+            if (hi != -1 && lo != -1) {
+                result += (char)((hi << 4) | lo);
+                i += 2;
+                continue;
+            }
+        }
+        result += c;
+    }
+
+    lua_pushlstring(L, result.c_str(), result.size());
     return 1;
 }
 
@@ -645,7 +714,9 @@ static const luaL_Reg utils_lib[] = {
 
     // Encoding
     { "base64_encode",    Lua_Base64Encode   },
+    { "base64_decode",    Lua_Base64Decode   },
     { "url_encode",       Lua_UrlEncode      },
+    { "url_decode",       Lua_UrlDecode      },
     { "hex_encode",       Lua_HexEncode      },
     { "to_hex",           Lua_ToHex          },
     { "from_hex",         Lua_FromHex        },

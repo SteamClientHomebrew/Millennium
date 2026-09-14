@@ -164,10 +164,20 @@ function utils.exec(cmd) end
 ---@return string encoded Base64 encoded string
 function utils.base64_encode(input) end
 
+---Decode a Base64 encoded string
+---@param input string Base64 string to decode
+---@return string decoded Decoded string
+function utils.base64_decode(input) end
+
 ---URL encode a string
 ---@param input string String to encode
 ---@return string encoded URL encoded string
 function utils.url_encode(input) end
+
+---URL decode a percent-encoded string
+---@param input string URL encoded string to decode
+---@return string decoded Decoded string
+function utils.url_decode(input) end
 
 ---Encode binary data to hexadecimal string
 ---@param input string Binary data to encode
