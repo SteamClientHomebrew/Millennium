@@ -35,8 +35,10 @@ namespace mep
 
 sdk_ready_bus& sdk_ready_bus::instance()
 {
-    static sdk_ready_bus inst;
-    return inst;
+    /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during __cxa_finalize
+       teardown). See millennium_lifecycle / crash_event_bus. */
+    static sdk_ready_bus* inst = new sdk_ready_bus();
+    return *inst;
 }
 
 void sdk_ready_bus::notify(const sdk_ready_event& ev)
@@ -57,7 +59,7 @@ void sdk_ready_bus::notify(const sdk_ready_event& ev)
     }
 }
 
-int sdk_ready_bus::add_listener(listener_fn fn)
+int sdk_ready_bus::add_listener(listener_fn fn, bool replay_last)
 {
     std::optional<sdk_ready_event> replay;
     int id;
@@ -65,7 +67,7 @@ int sdk_ready_bus::add_listener(listener_fn fn)
         std::lock_guard<std::mutex> lock(m_mutex);
         id = ++m_id_counter;
         m_listeners[id] = fn;
-        replay = m_last;
+        if (replay_last) replay = m_last;
     }
     /* replay immediately if the event already fired before this listener registered */
     if (replay) {

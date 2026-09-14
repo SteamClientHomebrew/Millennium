@@ -123,6 +123,19 @@ static std::string make_crash_js(const mep::crash_event& ev)
 
 void plugin_loader::devtools_connection_hdlr(std::shared_ptr<cdp_client> cdp)
 {
+#ifdef __APPLE__
+    if (m_cdp) {
+        // The connector has shut down the previous client. Finish its queued
+        // initialization work before replacing the members captured by it.
+        m_thread_pool->shutdown();
+        m_thread_pool = std::make_unique<thread_pool>(2);
+        // A pipe replacement means a new browser, not a Page.reload on the old
+        // connection. Its documents have not received our startup script yet.
+        m_skip_next_inject_reload.store(false, std::memory_order_release);
+        document_script_id.clear();
+        m_shared_js_target_id.clear();
+    }
+#endif
     m_cdp = cdp;
     m_socket_con_time = std::chrono::system_clock::now();
 
@@ -591,6 +604,9 @@ void plugin_loader::start_plugin_frontends()
         logger.log("Steam is shutting down, terminating frontend thread pool...");
         return;
     }
+#elif __APPLE__
+    // The macOS connector consumes each new Helper's endpoints itself.
+    return;
 #endif
 
     logger.warn("Reconnecting to Steam...");

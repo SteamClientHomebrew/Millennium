@@ -362,6 +362,97 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> socket
     close(write_fd);
     logger.log("Disconnected from [{}] module...", name);
 }
+#elif __APPLE__
+
+#include <thread>
+#include "millennium/macos_cdp_pipe.h"
+#include "millennium/millennium_lifecycle.h"
+
+namespace
+{
+macos_cdp::broker pipe_broker;
+
+bool terminating()
+{
+    return millennium_lifecycle::get().terminate.flag.load();
+}
+} // namespace
+
+// Called before StartMillennium by both macOS bootstrap implementations.
+extern "C" __attribute__((visibility("default"))) int MillenniumAcceptPipeBroker(int fd)
+{
+    if (pipe_broker.fd >= 0) return -1;
+    pipe_broker.fd = fcntl(fd, F_DUPFD_CLOEXEC, 10);
+    return pipe_broker.fd < 0 ? -1 : 0;
+}
+
+void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> props)
+{
+    if (pipe_broker.fd < 0 || !props->on_connect) {
+        LOG_ERROR("[{}] macOS CDP pipe broker is not configured.", props->name);
+        return;
+    }
+
+    while (!terminating()) {
+        std::shared_ptr<macos_cdp::connection> conn;
+        while (!terminating() && !conn) {
+            pollfd wait{ pipe_broker.fd, POLLIN, 0 };
+            const int result = poll(&wait, 1, 100);
+            if (result < 0 && errno == EINTR) continue;
+            if (result < 0 || (wait.revents & (POLLERR | POLLHUP | POLLNVAL))) return;
+            if (wait.revents & POLLIN) conn = macos_cdp::receive(pipe_broker.fd);
+        }
+        if (!conn || terminating()) return;
+
+        auto cdp = std::make_shared<cdp_client>([conn](const std::string& payload)
+        {
+            return conn->send(payload, terminating);
+        });
+        logger.log("[{}] CDP pipe transport connected.", props->name);
+
+        // Read before on_connect: initialization may synchronously wait for CDP.
+        std::thread reader([conn, cdp]()
+        {
+            std::string buffer;
+            char chunk[8192];
+            while (!terminating() && !conn->stopped.load() && cdp->is_active()) {
+                // A queued handoff does not prove exec succeeded. Keep the
+                // current Helper connected until its own pipe closes.
+                pollfd wait{ conn->read_fd, POLLIN, 0 };
+                const int result = poll(&wait, 1, 100);
+                if (result < 0 && errno == EINTR) continue;
+                if (result < 0) break;
+                if (!wait.revents) continue;
+                const auto count = read(conn->read_fd, chunk, sizeof(chunk));
+                if (count < 0 && (errno == EINTR || errno == EAGAIN)) continue;
+                if (count <= 0) break;
+                buffer.append(chunk, static_cast<size_t>(count));
+                size_t offset = 0;
+                size_t end;
+                while ((end = buffer.find('\0', offset)) != std::string::npos) {
+                    if (end > offset) cdp->handle_message(buffer.substr(offset, end - offset));
+                    offset = end + 1;
+                }
+                buffer.erase(0, offset);
+            }
+            conn->stopped.store(true);
+            cdp->shutdown();
+        });
+
+        try {
+            props->on_connect(cdp);
+        } catch (const std::exception& e) {
+            LOG_ERROR("[{}] Exception in onConnect: {}", props->name, e.what());
+            conn->stopped.store(true);
+        } catch (...) {
+            LOG_ERROR("[{}] Unknown exception in onConnect.", props->name);
+            conn->stopped.store(true);
+        }
+        reader.join();
+        logger.log("[{}] CDP pipe disconnected; waiting for a new Helper.", props->name);
+    }
+}
+
 #else
 void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> socket_props)
 {

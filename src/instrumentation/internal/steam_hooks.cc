@@ -794,9 +794,6 @@ bool initialize_steam_hooks()
 
 bool initialize_steam_hooks()
 {
-    const char* configured_port = std::getenv("MILLENNIUM_DEBUG_PORT");
-    std::string debugger_port = (configured_port && configured_port[0] != '\0') ? configured_port : DEFAULT_DEVTOOLS_PORT;
-
     std::filesystem::path helper_hook_path;
     std::filesystem::path child_hook_path;
 
@@ -848,7 +845,7 @@ bool initialize_steam_hooks()
         return false;
     }
 
-    logger.log("Using bootstrap-based Steam Helper injection on macOS with debugger port {}", debugger_port);
+    logger.log("Using bootstrap-based Steam Helper injection on macOS with CDP pipes");
     return true;
 }
 #endif
