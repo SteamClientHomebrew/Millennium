@@ -724,6 +724,22 @@ macro_rules! inject_args_for_ns {
                 path: &[$ns, "subscribePluginConfig"],
                 arg: "pluginName",
             },
+            InjectArg {
+                path: &[$ns, "useLocalization"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "getLocalization"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "getAvailableLanguages"],
+                arg: "pluginName",
+            },
+            InjectArg {
+                path: &[$ns, "contributeLocale"],
+                arg: "pluginName",
+            },
         ]
     };
 }
