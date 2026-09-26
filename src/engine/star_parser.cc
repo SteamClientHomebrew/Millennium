@@ -509,6 +509,12 @@ std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::p
         { "trusted", is_trusted }
     };
 
+    for (const auto* field : { "requires", "dependencies" }) {
+        if (metadata.contains(field) && metadata[field].is_array()) {
+            plugin_json[field] = metadata[field];
+        }
+    }
+
     plugin_manager::plugin_t plugin;
     plugin.plugin_name = plugin_id;
     plugin.plugin_json = std::move(plugin_json);

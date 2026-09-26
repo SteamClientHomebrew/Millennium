@@ -31,6 +31,7 @@
 import { ConfirmModal } from '@steambrew/sdk';
 import { InstallerProps, Theme } from '../types';
 import { OnProgressUpdate, RendererProps } from './InstallerProgress';
+import { ResolveDependencies, ShowDependencyWarning } from './PluginInstaller';
 import { backend } from '../utils/ffi';
 import { formatString, locale } from '../utils/localization-manager';
 import { ChangeActiveTheme, UIReloadProps } from '../settings/themes/ThemeComponent';
@@ -40,7 +41,7 @@ const OnInstallComplete = (data: any, props: InstallerProps) => {
 		try {
 			const themeData = await backend.themes.getTheme(data?.skin_data?.github?.repo_name, data?.skin_data?.github?.owner, true);
 			if (themeData) {
-				await ChangeActiveTheme(themeData.native, UIReloadProps.Force);
+				await ChangeActiveTheme(themeData.native, UIReloadProps.Force, themeData.data);
 			}
 		} catch (error) {
 			console.error('Error finding theme on disk:', error);
@@ -108,6 +109,23 @@ export const StartThemeInstaller = async (data: any, props: InstallerProps): Pro
 		});
 
 		if (!shouldContinueInstall) {
+			return false;
+		}
+	}
+
+	/** Warn about missing or disabled plugin dependencies declared in skin.json.
+	 *  Installing is never blocked, not even for required ones - the theme just
+	 *  can't be applied until they are there. */
+	const declaredRequirements: string[] = Array.isArray(theme?.requires) ? theme.requires : [];
+	const declaredDependencies: string[] = Array.isArray(theme?.dependencies) ? theme.dependencies : [];
+
+	if (declaredRequirements.length || declaredDependencies.length) {
+		const dependencies = [...(await ResolveDependencies(declaredRequirements, true)), ...(await ResolveDependencies(declaredDependencies))];
+
+		if (
+			dependencies.some((dependency) => !dependency.enabled) &&
+			!(await ShowDependencyWarning(data?.name ?? theme?.name ?? locale.strUnknown, locale.themeDependencyModalBody, dependencies, props))
+		) {
 			return false;
 		}
 	}

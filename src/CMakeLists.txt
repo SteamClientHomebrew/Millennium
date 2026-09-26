@@ -52,6 +52,7 @@ set(SOURCE_FILES
     engine/http_hooks.cc
     engine/lifecycle.cc
     engine/millennium_updater.cc
+    engine/plugin_deps.cc
     engine/plugin_loader.cc
     engine/plugin_manager.cc
     engine/star_parser.cc
