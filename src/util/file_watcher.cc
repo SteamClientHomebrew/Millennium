@@ -1,6 +1,6 @@
 #include "millennium/file_watcher.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
 #include <sys/inotify.h>
 #include <unistd.h>
 #include <poll.h>
@@ -104,6 +104,39 @@ void file_watcher::watch_loop()
     CloseHandle(overlapped.hEvent);
     CloseHandle(m_dir_handle);
     m_dir_handle = INVALID_HANDLE_VALUE;
+}
+#elif defined(__APPLE__)
+void file_watcher::watch_loop()
+{
+    /* macOS has no inotify; poll last_write_time on an interval. The debounce
+       window collapses a burst of writes into a single on_change callback. */
+    auto lastModTime = std::filesystem::exists(m_file_path) ? std::filesystem::last_write_time(m_file_path) : std::filesystem::file_time_type{};
+
+    const auto pollInterval = std::chrono::milliseconds(500);
+
+    while (m_running.load()) {
+        std::this_thread::sleep_for(pollInterval);
+        if (!m_running.load()) break;
+        if (!std::filesystem::exists(m_file_path)) continue;
+
+        auto currentModTime = std::filesystem::last_write_time(m_file_path);
+        if (currentModTime == lastModTime) continue;
+
+        /* debounce: let a burst of writes settle before firing */
+        while (m_running.load()) {
+            std::this_thread::sleep_for(m_debounce);
+            if (!std::filesystem::exists(m_file_path)) break;
+            auto settledModTime = std::filesystem::last_write_time(m_file_path);
+            if (settledModTime == currentModTime) break;
+            currentModTime = settledModTime;
+        }
+
+        /* only fire if the file still exists, matching the inotify branch */
+        if (m_running.load() && std::filesystem::exists(m_file_path)) {
+            lastModTime = std::filesystem::last_write_time(m_file_path);
+            if (m_on_change) m_on_change();
+        }
+    }
 }
 #else
 void file_watcher::watch_loop()

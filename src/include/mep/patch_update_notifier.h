@@ -10,8 +10,10 @@ class patch_update_notifier
 
     static patch_update_notifier& instance()
     {
-        static patch_update_notifier inst;
-        return inst;
+        /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during __cxa_finalize
+           teardown). See millennium_lifecycle / crash_event_bus. */
+        static patch_update_notifier* inst = new patch_update_notifier();
+        return *inst;
     }
 
     int add_listener(listener_fn fn)

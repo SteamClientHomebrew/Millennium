@@ -34,12 +34,16 @@
 #include <winsock2.h>
 #include <afunix.h>
 #pragma comment(lib, "ws2_32.lib")
-#else
-#if defined(__APPLE__)
-#include <sys/endian.h>
+#elif defined(__APPLE__)
+#include <libkern/OSByteOrder.h>
+#define htole32(x) OSSwapHostToLittleInt32(x)
+#define le32toh(x) OSSwapLittleToHostInt32(x)
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
 #else
 #include <endian.h>
-#endif
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/un.h>

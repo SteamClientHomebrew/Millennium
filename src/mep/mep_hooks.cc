@@ -700,10 +700,10 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
             auto ctx_s = ctx_weak.lock();
             if (!ctx_s) return;
             ctx_s->push({
-                { "type",            "event"                    },
-                { "subscription_id", captured_sub_id            },
-                { "plugin",          captured_name              },
-                { "data",            normalize_patch_entry(ev)  },
+                { "type",            "event"                   },
+                { "subscription_id", captured_sub_id           },
+                { "plugin",          captured_name             },
+                { "data",            normalize_patch_entry(ev) },
             });
         });
         state->patch_listener_id.store(patch_id);
@@ -785,9 +785,12 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
     router.register_handler("sdk.ready", [](const request_t& req, const std::shared_ptr<client_context>& ctx)
     {
         if (!ctx) return response_t::err(req.id, "sdk.ready requires a live connection");
+        if (!req.params.is_null() && !req.params.is_object()) return response_t::err(req.id, "sdk.ready params must be an object");
+        if (req.params.contains("replay") && !req.params["replay"].is_boolean()) return response_t::err(req.id, "sdk.ready replay must be a boolean");
+        const bool replay = req.params.is_null() || req.params.value("replay", true);
 
         auto& bus = sdk_ready_bus::instance();
-        const auto last = bus.get_last();
+        const auto last = replay ? bus.get_last() : std::nullopt;
 
         auto cancelled = std::make_shared<std::atomic<bool>>(false);
         auto listener_id_r = std::make_shared<std::atomic<int>>(-1);
@@ -813,12 +816,13 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
                 { "subscription_id", captured_sub_id                                                                        },
                 { "data",            { { "millennium_version", ev.millennium_version }, { "sdk_version", ev.sdk_version } } },
             });
-        });
+        }, replay);
 
         listener_id_r->store(id);
 
         const json params = {
             { "subscription_id", sub_id                                                                                                                  },
+            { "replay",          replay                                                                                                                  },
             { "ready",           last ? json{ { "millennium_version", last->millennium_version }, { "sdk_version", last->sdk_version } } : json(nullptr) },
         };
         return response_t::ok(req.id, params);
