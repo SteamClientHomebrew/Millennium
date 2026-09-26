@@ -139,9 +139,6 @@ fn collect_raw_classes(source: &str, out: &mut HashMap<String, Vec<(String, Stri
                 let raw_type = parts.next().unwrap_or("unknown").to_string();
                 fields.push((field_name, raw_type, optional));
             }
-        } else if content.is_empty() {
-        } else if let Some((name, fields)) = current.take() {
-            out.insert(name, fields);
         }
     }
 
@@ -336,6 +333,23 @@ end
         let fields = &raw["RpcLibraryResult"];
         assert_eq!(fields.len(), 4);
         assert_eq!(fields[2], ("games".to_string(), "EpicGame[]|nil".to_string(), false));
+    }
+
+    #[test]
+    fn collects_fields_after_free_text_comment_line() {
+        const SOURCE: &str = r#"
+---@class Foo
+---@field a string
+--- some descriptive text
+---@field b string
+"#;
+        let mut raw = HashMap::new();
+        collect_raw_classes(SOURCE, &mut raw);
+
+        let fields = &raw["Foo"];
+        assert_eq!(fields.len(), 2);
+        assert_eq!(fields[0], ("a".to_string(), "string".to_string(), false));
+        assert_eq!(fields[1], ("b".to_string(), "string".to_string(), false));
     }
 
     #[test]

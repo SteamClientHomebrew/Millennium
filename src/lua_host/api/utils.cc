@@ -50,6 +50,7 @@
 #endif
 #include <windows.h>
 #include <vector>
+#include <memory>
 #endif
 
 int Lua_Sleep(lua_State* L)
@@ -394,12 +395,26 @@ int Lua_Exec(lua_State* L)
     }
     SetHandleInformation(read_pipe, HANDLE_FLAG_INHERIT, 0);
 
-    STARTUPINFOA si{};
-    si.cb = sizeof(si);
-    si.dwFlags = STARTF_USESTDHANDLES;
-    si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-    si.hStdOutput = write_pipe;
-    si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    HANDLE stdin_handle = GetStdHandle(STD_INPUT_HANDLE);
+    HANDLE stderr_handle = GetStdHandle(STD_ERROR_HANDLE);
+
+    std::vector<HANDLE> inherit_handles;
+    if (stdin_handle && stdin_handle != INVALID_HANDLE_VALUE) {
+        SetHandleInformation(stdin_handle, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
+        inherit_handles.push_back(stdin_handle);
+    }
+    inherit_handles.push_back(write_pipe);
+    if (stderr_handle && stderr_handle != INVALID_HANDLE_VALUE) {
+        SetHandleInformation(stderr_handle, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT);
+        inherit_handles.push_back(stderr_handle);
+    }
+
+    STARTUPINFOEXA siex{};
+    siex.StartupInfo.cb = sizeof(siex);
+    siex.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+    siex.StartupInfo.hStdInput = stdin_handle;
+    siex.StartupInfo.hStdOutput = write_pipe;
+    siex.StartupInfo.hStdError = stderr_handle;
 
     const char* comspec = std::getenv("COMSPEC");
     std::string command_line = "\"";
@@ -411,7 +426,24 @@ int Lua_Exec(lua_State* L)
     mutable_cmd.push_back('\0');
 
     PROCESS_INFORMATION pi{};
-    BOOL created = CreateProcessA(nullptr, mutable_cmd.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi);
+
+    SIZE_T attr_size = 0;
+    InitializeProcThreadAttributeList(nullptr, 1, 0, &attr_size);
+    auto attr_buf = std::make_unique<char[]>(attr_size);
+    auto attr_list = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attr_buf.get());
+
+    BOOL created;
+    bool attr_init_ok = InitializeProcThreadAttributeList(attr_list, 1, 0, &attr_size);
+    if (attr_init_ok &&
+        UpdateProcThreadAttribute(attr_list, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, inherit_handles.data(), inherit_handles.size() * sizeof(HANDLE), nullptr, nullptr)) {
+        siex.lpAttributeList = attr_list;
+        created = CreateProcessA(nullptr, mutable_cmd.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT, nullptr, nullptr,
+                                  reinterpret_cast<LPSTARTUPINFOA>(&siex), &pi);
+        DeleteProcThreadAttributeList(attr_list);
+    } else {
+        if (attr_init_ok) DeleteProcThreadAttributeList(attr_list);
+        created = CreateProcessA(nullptr, mutable_cmd.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &siex.StartupInfo, &pi);
+    }
 
     CloseHandle(write_pipe);
 

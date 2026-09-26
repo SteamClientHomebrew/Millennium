@@ -121,6 +121,7 @@ pub fn ffi_type_from_ts<'a>(ty: &oxc_ast::ast::TSType<'a>) -> FfiType {
         TSType::TSArrayType(t) => FfiType::Array(Box::new(ffi_type_from_ts(&t.element_type))),
         TSType::TSUnionType(t) => FfiType::Union(t.types.iter().map(ffi_type_from_ts).collect()),
         TSType::TSObjectKeyword(_) | TSType::TSTypeLiteral(_) => FfiType::Object,
+        TSType::TSTypeReference(t) => FfiType::Named(t.type_name.to_string()),
         _ => FfiType::Unknown,
     }
 }
@@ -131,6 +132,42 @@ mod tests {
 
     fn classes(names: &[&str]) -> std::collections::HashSet<String> {
         names.iter().map(|s| s.to_string()).collect()
+    }
+
+    fn parse_ts_type(source: &str) -> FfiType {
+        use oxc_allocator::Allocator;
+        use oxc_ast::ast::{Declaration, Statement};
+        use oxc_parser::Parser;
+        use oxc_span::SourceType;
+
+        let alloc = Allocator::default();
+        let ret = Parser::new(&alloc, source, SourceType::ts()).parse();
+        let stmt = ret.program.body.first().expect("expected one statement");
+        let alias = match stmt {
+            Statement::TSTypeAliasDeclaration(decl) => decl,
+            Statement::ExportNamedDeclaration(exp) => match exp.declaration.as_ref() {
+                Some(Declaration::TSTypeAliasDeclaration(decl)) => decl,
+                _ => panic!("expected a type alias declaration"),
+            },
+            _ => panic!("expected a type alias declaration"),
+        };
+        ffi_type_from_ts(&alias.type_annotation)
+    }
+
+    #[test]
+    fn resolves_ts_type_reference_to_named() {
+        assert_eq!(
+            parse_ts_type("type T = RpcLibraryResult;"),
+            FfiType::Named("RpcLibraryResult".to_string())
+        );
+    }
+
+    #[test]
+    fn resolves_ts_type_reference_array_to_named_array() {
+        assert_eq!(
+            parse_ts_type("type T = RpcLibraryResult[];"),
+            FfiType::Array(Box::new(FfiType::Named("RpcLibraryResult".to_string())))
+        );
     }
 
     #[test]
