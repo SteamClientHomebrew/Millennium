@@ -58,8 +58,14 @@ assert(merged.a == 1 and merged.b == 2, 'merge')
 
 -- encoding
 assert(utils.base64_encode('hello') == 'aGVsbG8=', 'base64_encode hello')
+assert(utils.base64_decode('aGVsbG8=') == 'hello', 'base64_decode hello')
+assert(utils.base64_decode(utils.base64_encode('the quick brown fox')) == 'the quick brown fox', 'base64 round-trip')
+assert(utils.base64_decode('') == '', 'base64_decode empty')
 -- url_encode emits lowercase hex (matches RFC 3986 either-case allowance, and the implementation uses std::hex).
 assert(utils.url_encode('hello world&x=1') == 'hello%20world%26x%3d1', 'url_encode')
+assert(utils.url_decode('hello%20world%26x%3d1') == 'hello world&x=1', 'url_decode')
+assert(utils.url_decode(utils.url_encode('a b/c?d=e+f')) == 'a b/c?d=e+f', 'url round-trip')
+assert(utils.url_decode('%2G') == '%2G', 'url_decode leaves invalid escape untouched')
 -- hex_encode: bytes -> lowercase hex string
 assert(utils.hex_encode('A') == '41', 'hex_encode single byte')
 assert(utils.hex_encode('hello') == '68656c6c6f', 'hex_encode multibyte')

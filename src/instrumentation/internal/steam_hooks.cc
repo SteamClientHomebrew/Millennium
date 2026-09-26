@@ -240,8 +240,10 @@ void stop_pipe_drain()
 }
 #endif
 
-const char* Plat_HookedCreateSimpleProcess(const char* cmd)
+const char* Plat_HookedCreateSimpleProcess(const char* cmd, bool* matched = nullptr)
 {
+    if (matched) *matched = false;
+
     if (!cmd) {
         LOG_ERROR("Plat_HookedCreateSimpleProcess: received null cmd");
         return cmd;
@@ -263,6 +265,20 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd)
         logger.log("dispatching: {}", cmd_line.exec);
         return cmd;
     }
+
+    /**
+     * CEF relaunches same bin for internal GPU/renderer/utility
+     * Only the top-level browser process launch should get
+     * CDP/loopback pipe setup below; subprocess relaunches never carry "--type="
+     */
+    for (const auto& param : cmd_line.params) {
+        if (param.compare(0, 7, "--type=") == 0) {
+            logger.log("dispatching subprocess relaunch: {}", cmd);
+            return cmd;
+        }
+    }
+
+    if (matched) *matched = true;
 
     if (!millennium_lifecycle::get().backends_loaded.flag.load()) {
         millennium_lifecycle::get().backends_loaded.wait();
@@ -426,17 +442,27 @@ PVOID g_notification_cookie = nullptr;
 using CreateProcessInternalW_t = BOOL(WINAPI*)(HANDLE, LPCWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCWSTR, LPSTARTUPINFOW,
                                                LPPROCESS_INFORMATION, PHANDLE);
 
-static snare_inline_t g_create_hook = nullptr;
 static snare_inline_t g_rdcw_hook = nullptr;
 static snare_inline_t g_create_process_internal_hook = nullptr;
-static std::once_flag g_tier0_hook_once;
 
-HMODULE steam_tier0_module;
-
-HANDLE hooked_create_simple_process(const char* commandLine, bool hideWindow, void* environmentBlockW, const char* currentDirectory)
+static std::string wide_to_utf8(const wchar_t* wide)
 {
-    auto orig = reinterpret_cast<HANDLE(__cdecl*)(const char*, bool, void*, const char*)>(snare_inline_get_trampoline(g_create_hook));
-    return orig(Plat_HookedCreateSimpleProcess(commandLine), hideWindow, environmentBlockW, currentDirectory);
+    if (!wide) return {};
+    int len = WideCharToMultiByte(CP_UTF8, 0, wide, -1, nullptr, 0, nullptr, nullptr);
+    if (len <= 0) return {};
+    std::string out(static_cast<size_t>(len - 1), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wide, -1, out.data(), len, nullptr, nullptr);
+    return out;
+}
+
+static std::wstring utf8_to_wide(const std::string& utf8)
+{
+    if (utf8.empty()) return {};
+    int len = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+    if (len <= 0) return {};
+    std::wstring out(static_cast<size_t>(len - 1), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, out.data(), len);
+    return out;
 }
 
 BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes,
@@ -445,9 +471,17 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
 {
     auto orig = reinterpret_cast<CreateProcessInternalW_t>(snare_inline_get_trampoline(g_create_process_internal_hook));
 
-    if (g_cdp_pipes_ready.load(std::memory_order_acquire) && lpCommandLine) {
-        std::wstring cmd(lpCommandLine);
-        if (cmd.find(L"steamwebhelper") != std::wstring::npos) {
+    static thread_local std::wstring rewritten_cmd_line;
+
+    if (lpCommandLine && std::wcsstr(lpCommandLine, L"steamwebhelper") != nullptr) {
+        std::string narrow_cmd = wide_to_utf8(lpCommandLine);
+        bool matched = false;
+        const char* rewritten = Plat_HookedCreateSimpleProcess(narrow_cmd.c_str(), &matched);
+
+        if (matched) {
+            rewritten_cmd_line = utf8_to_wide(rewritten);
+            LPWSTR effective_cmd_line = rewritten_cmd_line.data();
+
             logger.log("CreateProcessInternalW hook fired for steamwebhelper (bInheritHandles: {} -> TRUE, dwCreationFlags: 0x{:X})", bInheritHandles, dwCreationFlags);
 
             std::vector<HANDLE> inherit_handles;
@@ -469,7 +503,7 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
                 siex.StartupInfo.cb = sizeof(STARTUPINFOEXW);
                 siex.lpAttributeList = attr_list;
 
-                BOOL result = orig(hUserToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, TRUE, dwCreationFlags | EXTENDED_STARTUPINFO_PRESENT,
+                BOOL result = orig(hUserToken, lpApplicationName, effective_cmd_line, lpProcessAttributes, lpThreadAttributes, TRUE, dwCreationFlags | EXTENDED_STARTUPINFO_PRESENT,
                                    lpEnvironment, lpCurrentDirectory, reinterpret_cast<LPSTARTUPINFOW>(&siex), lpProcessInformation, hNewToken);
 
                 DeleteProcThreadAttributeList(attr_list);
@@ -496,7 +530,7 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
             if (attr_init_ok) DeleteProcThreadAttributeList(attr_list);
             LOG_ERROR("Failed to build PROC_THREAD_ATTRIBUTE_HANDLE_LIST (error {}), falling back to full inherit.", GetLastError());
 
-            BOOL result = orig(hUserToken, lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, TRUE, dwCreationFlags, lpEnvironment, lpCurrentDirectory,
+            BOOL result = orig(hUserToken, lpApplicationName, effective_cmd_line, lpProcessAttributes, lpThreadAttributes, TRUE, dwCreationFlags, lpEnvironment, lpCurrentDirectory,
                                lpStartupInfo, lpProcessInformation, hNewToken);
             if (g_cdp_child_read != INVALID_HANDLE_VALUE) {
                 CloseHandle(g_cdp_child_read);
@@ -522,56 +556,33 @@ BOOL WINAPI hooked_create_process_internal_w(HANDLE hUserToken, LPCWSTR lpApplic
                 lpStartupInfo, lpProcessInformation, hNewToken);
 }
 
-/**
- * tier0_s.dll is a *cross platform* library bundled with Steam that helps it
- * manage low-level system interactions and provides various utility functions.
- *
- * It houses various functions, and we are interested in hooking its functions Steam
- * uses to spawn the Steam web helper.
- *
- * Guarded by std::once_flag because the DLL notification callback and the
- * already-loaded check can both fire for the same module.  Without the guard,
- * a second call would leak the first hook object and double-hook the function.
- */
-VOID handle_tier0_dll(PVOID module_base_address)
-{
-    std::call_once(g_tier0_hook_once, [&]()
-    {
-        steam_tier0_module = static_cast<HMODULE>(module_base_address);
-        logger.log("Setting up hooks for tier0_s.dll");
+static std::once_flag g_create_process_hook_once;
 
-        FARPROC proc = GetProcAddress(steam_tier0_module, "CreateSimpleProcess");
-        if (proc != nullptr) {
-            g_create_hook = snare_inline_new(reinterpret_cast<void*>(proc), reinterpret_cast<void*>(&hooked_create_simple_process));
-            if (!g_create_hook || snare_inline_install(g_create_hook) < 0) {
-                platform::messagebox::show("Millennium", "Failed to create hook for CreateSimpleProcess", platform::messagebox::error);
-                return;
-            }
+VOID install_create_process_hook()
+{
+    std::call_once(g_create_process_hook_once, [&]()
+    {
+        HMODULE kernelbase = GetModuleHandleW(L"kernelbase.dll");
+        FARPROC cpi_proc = kernelbase ? GetProcAddress(kernelbase, "CreateProcessInternalW") : nullptr;
+        if (!cpi_proc) {
+            HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
+            cpi_proc = kernel32 ? GetProcAddress(kernel32, "CreateProcessInternalW") : nullptr;
         }
 
-        {
-            HMODULE kernelbase = GetModuleHandleW(L"kernelbase.dll");
-            FARPROC cpi_proc = kernelbase ? GetProcAddress(kernelbase, "CreateProcessInternalW") : nullptr;
-            if (!cpi_proc) {
-                HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
-                cpi_proc = kernel32 ? GetProcAddress(kernel32, "CreateProcessInternalW") : nullptr;
-            }
-
-            if (cpi_proc) {
-                g_create_process_internal_hook = snare_inline_new(reinterpret_cast<void*>(cpi_proc), reinterpret_cast<void*>(&hooked_create_process_internal_w));
-                if (g_create_process_internal_hook) {
-                    int hook_result = snare_inline_install(g_create_process_internal_hook);
-                    if (hook_result < 0) {
-                        LOG_ERROR("CreateProcessInternalW hook install failed (snare returned {})", hook_result);
-                    } else {
-                        logger.log("CreateProcessInternalW hook installed successfully");
-                    }
+        if (cpi_proc) {
+            g_create_process_internal_hook = snare_inline_new(reinterpret_cast<void*>(cpi_proc), reinterpret_cast<void*>(&hooked_create_process_internal_w));
+            if (g_create_process_internal_hook) {
+                int hook_result = snare_inline_install(g_create_process_internal_hook);
+                if (hook_result < 0) {
+                    LOG_ERROR("CreateProcessInternalW hook install failed (snare returned {})", hook_result);
                 } else {
-                    LOG_ERROR("CreateProcessInternalW hook creation failed (snare_inline_new returned null)");
+                    logger.log("CreateProcessInternalW hook installed successfully");
                 }
             } else {
-                LOG_ERROR("Failed to resolve CreateProcessInternalW from kernelbase.dll or kernel32.dll");
+                LOG_ERROR("CreateProcessInternalW hook creation failed (snare_inline_new returned null)");
             }
+        } else {
+            platform::messagebox::show("Millennium", "Failed to resolve CreateProcessInternalW from kernelbase.dll or kernel32.dll", platform::messagebox::error);
         }
     });
 }
@@ -608,12 +619,6 @@ VOID CALLBACK dll_notification_callback(ULONG notification_reason, PLDR_DLL_NOTI
     if (notification_reason == LDR_DLL_NOTIFICATION_REASON_UNLOADED && base_dll_name == L"steamclient64.dll") {
         logger.log("[dll_notification_callback] Notified that steamclient64.dll has unloaded, handling Steam unload...");
         handle_steam_unload();
-        return;
-    }
-
-    /** hook steam cross platform api (used to hook create proc) */
-    if (notification_reason == LDR_DLL_NOTIFICATION_REASON_LOADED && (base_dll_name == L"tier0_s64.dll" || base_dll_name == L"tier0_s.dll")) {
-        handle_tier0_dll(notification_data->DllBase);
         return;
     }
 }
@@ -685,15 +690,13 @@ void register_dll_notifications()
     LdrRegisterDllNotification(0, dll_notification_callback, nullptr, &g_notification_cookie);
 
     // Check modules that were already loaded before the notification was registered.
-    // handle_tier0_dll is idempotent via std::once_flag, so double-fire is safe.
-    handle_already_loaded(L"tier0_s.dll");
-    handle_already_loaded(L"tier0_s64.dll");
     handle_already_loaded(L"steamui.dll");
+    install_create_process_hook();
 }
 
 /**
  * Called from the background thread. By the time this runs, register_dll_notifications()
- * has already been called from DllMain, so the CreateSimpleProcess hook is guaranteed
+ * has already been called from DllMain, so the CreateProcessInternalW hook is guaranteed
  * to be in place.
  */
 bool initialize_steam_hooks()
@@ -723,11 +726,6 @@ void uninitialize_steam_hooks()
         snare_inline_remove(g_rdcw_hook);
         snare_inline_free(g_rdcw_hook);
         g_rdcw_hook = nullptr;
-    }
-    if (g_create_hook) {
-        snare_inline_remove(g_create_hook);
-        snare_inline_free(g_create_hook);
-        g_create_hook = nullptr;
     }
     if (g_create_process_internal_hook) {
         snare_inline_remove(g_create_process_internal_hook);

@@ -61,8 +61,8 @@ pub fn pack(
     let config_dir = config_path.parent().unwrap();
     let cfg = crate::config::load(&config_path)?;
 
-    if let Err(e) = crate::lsp::install_types(config_dir, env!("CARGO_PKG_VERSION"), &cfg) {
-        crate::log::warn(&format!("lsp: failed to install types: {}", e));
+    if let Err(e) = crate::lsp::sync_types(config_dir, env!("CARGO_PKG_VERSION")) {
+        crate::log::warn(&format!("lsp: failed to sync types: {}", e));
     }
 
     let out_path = match out_path {
