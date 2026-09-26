@@ -468,21 +468,31 @@ void ffi_binder::binding_call_hdlr(const json& params)
         const auto result = m_ipc_main->process_message(payload);
         const auto t1 = std::chrono::steady_clock::now();
 
-        {
+        /**
+         * record the call for the ffi recorder. this runs after the call has already completed, so it must never
+         * throw: an exception here would replace a successful result with an error (see #903).
+         */
+        try {
             const int msg_id = payload.value("id", -1);
             const double dur = std::chrono::duration<double, std::milli>(t1 - t0).count();
-            const auto data_field = payload.value("data", json::object());
-            std::string plugin = data_field.value("pluginName", std::string{});
+            const json data = payload.value("data", json::object());
+            std::string plugin = data.value("pluginName", std::string{});
+
+            /** PLUGIN_CONFIG calls carry the numeric config_method enum as methodName, every other call a string */
             std::string method;
-            if (data_field.contains("methodName")) {
-                const auto& method_field = data_field["methodName"];
-                method = method_field.is_string() ? method_field.get<std::string>() : method_field.dump();
+            if (const auto it = data.find("methodName"); it != data.end()) {
+                if (it->is_string())
+                    method = it->get<std::string>();
+                else if (it->is_number_integer())
+                    method = std::format("plugin_config:{}", it->get<int>());
             }
 
             if (!plugin.empty() && msg_id != ipc_main::ipc_method::FRONT_END_LOADED) {
-                mep::ffi_recorder::instance().record({ plugin, method, "fe_to_be", payload.value("data", json::object()).dump(), result.dump(), dur,
-                                                       std::chrono::system_clock::now(), payload.value("caller", std::string{}) });
+                mep::ffi_recorder::instance().record({ plugin, method, "fe_to_be", data.dump(), result.dump(), dur, std::chrono::system_clock::now(),
+                                                       payload.value("caller", std::string{}) });
             }
+        } catch (const std::exception& e) {
+            LOG_ERROR("ffi_binder: failed to record ffi call: {}", e.what());
         }
 
         try {
