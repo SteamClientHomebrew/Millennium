@@ -30,9 +30,10 @@ class Bootstrap {
 	async loadMillennium() {
 		const steambrewClientModule = await import('./sharedjscontext/index');
 		const millenniumApiModule = await import('./millennium-api');
+		const localizationModule = await import('./localization');
 
 		/** Set Auth Token */
-		Object.assign((window.MILLENNIUM_API ??= {}), steambrewClientModule, millenniumApiModule);
+		Object.assign((window.MILLENNIUM_API ??= {}), steambrewClientModule, millenniumApiModule, localizationModule);
 
 		/** send some diagnostics about the state of the frontend. it gets forwards to the MEP */
 		const apiEntries = Object.entries(window.MILLENNIUM_API);
@@ -119,8 +120,9 @@ class Bootstrap {
 	async startBrowser(enabledPlugins?: string[], legacyShimList?: string[], ctxShimList?: string[], _ftpBasePath?: string) {
 		this.init('');
 		const millenniumApiModule = await import('./millennium-api');
+		const localizationModule = await import('./localization');
 
-		window.MILLENNIUM_API = millenniumApiModule;
+		window.MILLENNIUM_API = { ...millenniumApiModule, ...localizationModule };
 
 		const browserUtils = await import('./browser-init');
 		await browserUtils.appendAccentColor();
