@@ -12,30 +12,27 @@ const LegacyPluginModal = ({ plugins, closeModal }: { plugins: PluginComponent[]
 		<ConfirmModal
 			bDisableBackgroundDismiss={false}
 			strTitle={locale.legacyPluginModalTitle}
-			strDescription={
-				<>
-					<Field description={locale.legacyPluginModalBody} />
-					{plugins.map((plugin) => (
-						<Field
-							key={plugin.data.name}
-							label={
-								<div className="MillenniumPlugins_PluginLabel">
-									{plugin.data.common_name ?? plugin.data.name}
-									{plugin.data.version && <div className="MillenniumItem_Version">{plugin.data.version}</div>}
-								</div>
-							}
-							description={plugin.data.description}
-						/>
-					))}
-				</>
-			}
+			strDescription={locale.legacyPluginModalBody}
 			bAlertDialog={false}
 			bHideCloseIcon={false}
 			strOKButtonText={locale.legacyPluginModalViewUpdates}
 			strCancelButtonText={locale.legacyPluginModalDismiss}
 			onOK={viewUpdates}
 			onCancel={closeModal}
-		/>
+		>
+			{plugins.map((plugin) => (
+				<Field
+					key={plugin.data.name}
+					label={
+						<div className="MillenniumPlugins_PluginLabel">
+							{plugin.data.common_name ?? plugin.data.name}
+							{plugin.data.version && <div className="MillenniumItem_Version">{plugin.data.version}</div>}
+						</div>
+					}
+					description={plugin.data.description}
+				/>
+			))}
+		</ConfirmModal>
 	);
 };
 
