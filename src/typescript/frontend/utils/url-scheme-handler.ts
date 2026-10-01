@@ -46,7 +46,7 @@ const contexts: Record<SteamURLContext, (action?: string, option?: string, param
 			return;
 		}
 
-		if (action === 'devtools' && parameter === 'open') {
+		if (action === 'devtools' && option === 'open') {
 			// Open the DevTools window
 			SteamClient.Browser.OpenDevTools();
 		}
