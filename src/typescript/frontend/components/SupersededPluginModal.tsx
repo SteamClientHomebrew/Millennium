@@ -30,23 +30,7 @@ const SupersededPluginModal = ({ plugins, closeModal, onDismiss }: { plugins: Pl
 		<ConfirmModal
 			bDisableBackgroundDismiss={true}
 			strTitle={locale.supersededPluginModalTitle}
-			strDescription={
-				<>
-					<Field description={<Markdown options={{ overrides: { a: { props: { target: '_blank' } } } }}>{locale.supersededPluginModalBody}</Markdown>} />
-					{plugins.map((plugin) => (
-						<Field
-							key={plugin.data.name}
-							label={
-								<div className="MillenniumPlugins_PluginLabel">
-									{plugin.data.common_name ?? plugin.data.name}
-									{plugin.data.version && <div className="MillenniumItem_Version">{plugin.data.version}</div>}
-								</div>
-							}
-							description={plugin.data.description}
-						/>
-					))}
-				</>
-			}
+			strDescription={<Markdown options={{ overrides: { a: { props: { target: '_blank' } } } }}>{locale.supersededPluginModalBody}</Markdown>}
 			bAlertDialog={false}
 			bHideCloseIcon={true}
 			strOKButtonText={locale.supersededPluginModalInstall}
@@ -56,7 +40,20 @@ const SupersededPluginModal = ({ plugins, closeModal, onDismiss }: { plugins: Pl
 				closeModal();
 				onDismiss();
 			}}
-		/>
+		>
+			{plugins.map((plugin) => (
+				<Field
+					key={plugin.data.name}
+					label={
+						<div className="MillenniumPlugins_PluginLabel">
+							{plugin.data.common_name ?? plugin.data.name}
+							{plugin.data.version && <div className="MillenniumItem_Version">{plugin.data.version}</div>}
+						</div>
+					}
+					description={plugin.data.description}
+				/>
+			))}
+		</ConfirmModal>
 	);
 };
 
