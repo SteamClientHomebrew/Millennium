@@ -11,6 +11,37 @@
 #include <filesystem>
 #include <mutex>
 #include <string>
+#include <sys/syscall.h>
+#include "pipe_bootstrap.h"
+
+extern char** environ;
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+static int raw_execve(const char* path, char* const argv[], char* const envp[])
+{
+    return static_cast<int>(syscall(SYS_execve, path, argv, envp ? envp : environ));
+}
+#pragma clang diagnostic pop
+
+static int pipe_execve(const char* path, char* const argv[], char* const envp[])
+{
+    return millennium_pipe_bootstrap::exec(path, argv, envp, raw_execve);
+}
+
+static int pipe_execv(const char* path, char* const argv[])
+{
+    return pipe_execve(path, argv, environ);
+}
+
+__attribute__((used, section("__DATA,__interpose"))) static const struct
+{
+    const void* replacement;
+    const void* replacee;
+} pipe_interposers[] = {
+    { reinterpret_cast<const void*>(pipe_execve), reinterpret_cast<const void*>(execve) },
+    { reinterpret_cast<const void*>(pipe_execv),  reinterpret_cast<const void*>(execv)  },
+};
 
 typedef int (*start_millennium_t)(void);
 typedef int (*stop_millennium_t)(void);
@@ -119,6 +150,8 @@ static bool try_extract_devtools_port_from_args(std::string& output)
             continue;
         }
 
+        if (strcmp(argument, "-dev") == 0) output = kDefaultDebugPort;
+
         if (strcmp(argument, kDevtoolsPortArgument) == 0) {
             if (argv[index + 1] && argv[index + 1][0] != '\0') {
                 output = argv[index + 1];
@@ -136,7 +169,7 @@ static bool try_extract_devtools_port_from_args(std::string& output)
         }
     }
 
-    return false;
+    return !output.empty();
 }
 
 static bool ensure_cef_remote_debugging_marker(const char* steam_executable_path)
@@ -245,8 +278,6 @@ static void ensure_runtime_environment_defaults()
         std::string argument_port;
         if (try_extract_devtools_port_from_args(argument_port)) {
             setenv(kDebugPortEnv, argument_port.c_str(), 1);
-        } else {
-            setenv(kDebugPortEnv, kDefaultDebugPort, 1);
         }
     }
 }
@@ -260,7 +291,7 @@ static void ensure_frontend_bridge_prerequisites()
     }
 
     maybe_set_env_if_unset(kSteamExecutableEnv, steam_executable_path);
-    if (!ensure_cef_remote_debugging_marker(steam_executable_path.c_str())) {
+    if (getenv(kDebugPortEnv) && !ensure_cef_remote_debugging_marker(steam_executable_path.c_str())) {
         log_proxy("Failed to create .cef-enable-remote-debugging marker beside Steam executable.");
     }
 }
@@ -295,11 +326,12 @@ static void start_millennium()
         return;
     }
 
-    const int result = start_millennium_fn();
+    const int result = millennium_pipe_bootstrap::initialize(g_millennium_handle) ? start_millennium_fn() : -1;
     if (result < 0) {
         log_proxy("StartMillennium returned failure.");
         dlclose(g_millennium_handle);
         g_millennium_handle = nullptr;
+        millennium_pipe_bootstrap::shutdown();
         return;
     }
 
@@ -322,6 +354,7 @@ static void stop_millennium()
     dlclose(g_millennium_handle);
     g_millennium_handle = nullptr;
     g_millennium_started = false;
+    millennium_pipe_bootstrap::shutdown();
 }
 
 extern "C" __attribute__((visibility("default"))) const char* millennium_tier0_proxy_marker()

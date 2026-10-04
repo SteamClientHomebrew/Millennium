@@ -74,7 +74,7 @@ fn steam_install_path() -> PathBuf {
 }
 
 #[cfg(target_os = "macos")]
-fn steam_install_path() {
+fn steam_install_path() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/Users".into());
     PathBuf::from(home).join("Library/Application Support/Steam")
 }
