@@ -219,6 +219,7 @@ export interface PluginUpdateInfo {
 export interface UpdatesResponse {
 	themes?: UpdateItem[] | { error: string };
 	plugins?: PluginUpdateInfo[] | { error: string };
+	starPlugins?: PluginUpdateInfo[] | { error: string };
 }
 
 /** Generic `{success, error/message}` result returned by uninstall/setCondition handlers. */
