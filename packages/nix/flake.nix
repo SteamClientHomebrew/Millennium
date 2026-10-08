@@ -2,41 +2,52 @@
   description = "Nix Build for Millennium";
 
   inputs = {
-    # Bun FOD is sensitive to version changes, so we use a specific commit instead of a channel.
-    nixpkgs.url = "github:nixos/nixpkgs/567a49d1913ce81ac6e9582e3553dd90a955875f";
+    nixpkgs.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst";
+    
+    # Only used for the bun FOD, whose hash depends on the exact bun version.
+    # Do not make this follow another nixpkgs.
+    nixpkgs-bun.url = "github:nixos/nixpkgs/c59305bab2065cfecc4944690d9eedbb56f3a9fa";
 
     millennium-src.url   = "github:SteamClientHomebrew/Millennium/765aa8802f8a4d942ad8ac8323a9e0f233a50fa8";
     millennium-src.flake = false;
-
   };
 
   outputs =
     {
       self,
       nixpkgs,
+      nixpkgs-bun,
       millennium-src,
       ...
-    }@inputs:
+    }:
+    let 
+      system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      bunPkgs = nixpkgs-bun.legacyPackages.${system};
+    in
     {
-      packages.x86_64-linux =
-        let
-          pkgs = import nixpkgs {
-            system = "x86_64-linux";
-            config.allowUnfree = true;
-          };
+      packages.${system} = {
+        default = self.packages.${system}.millennium-steam;
+        
+        millennium-steam = pkgs.callPackage ./steam.nix {
+          inherit (self.packages.${system}) millennium;
+        };
 
-          packages = {
-            default          = packages.millennium-steam;
-            millennium       = pkgs.callPackage ./millennium.nix { inherit millennium-src; };
-            millennium-steam = pkgs.callPackage ./steam.nix {
-              inherit (packages) millennium;
-            };
-          };
-        in
-        packages;
+        millennium = pkgs.callPackage ./millennium.nix { 
+          inherit millennium-src; 
+          inherit (bunPkgs) bun;
+        };
+      };
 
       overlays.default = final: prev: {
-        inherit (self.packages.${prev.stdenv.hostPlatform.system}) millennium-steam;
+        millennium = final.callPackage ./millennium.nix {
+          inherit millennium-src;
+          inherit (nixpkgs-bun.legacyPackages.${final.stdenv.hostPlatform.system}) bun;
+        };
+        millennium-steam = final.callPackage ./steam.nix { };
       };
     };
 }
