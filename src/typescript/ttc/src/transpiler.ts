@@ -95,12 +95,7 @@ const buildPluginWrapper = template.statements({
 			__millennium_internal_plugin_name_do_not_use_or_change__: pluginName,
 		});
 		const pluginProps = await PluginModule.default();
-		if (
-			pluginProps &&
-			pluginProps.title !== undefined &&
-			pluginProps.icon !== undefined &&
-			pluginProps.content !== undefined
-		) {
+		if (pluginProps && pluginProps.content !== undefined && pluginProps.icon !== undefined) {
 			window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS[pluginName] = pluginProps;
 		}
 		if (MILLENNIUM_IS_CLIENT_MODULE) {
