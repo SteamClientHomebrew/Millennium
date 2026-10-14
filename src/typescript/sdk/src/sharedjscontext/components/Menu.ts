@@ -141,7 +141,7 @@ export interface MenuGroupProps {
 }
 
 const MenuGoupModule = findModuleByExport(
-	(e) => e?.prototype?.Focus && e?.prototype?.OnOKButton && e?.prototype?.render?.toString().includes?.(`"emphasis"==this.props.tone`),
+	(e) => e?.prototype?.Focus && e?.prototype?.OnOKButton && e?.prototype?.render?.toString().includes?.(`this.props.tone=="emphasis"`),
 );
 /** @component React Components */
 export const MenuGroup: FC<MenuGroupProps> =
