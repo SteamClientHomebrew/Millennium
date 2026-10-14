@@ -59,8 +59,8 @@ class sdk_ready_bus
 
     void notify(const sdk_ready_event& ev);
 
-    /* if sdk.ready already fired before this call, the listener is invoked immediately. */
-    int add_listener(listener_fn fn);
+    // By default, a new listener also receives the last readiness event.
+    int add_listener(listener_fn fn, bool replay_last = true);
     void remove_listener(int id);
 
     std::optional<sdk_ready_event> get_last() const;

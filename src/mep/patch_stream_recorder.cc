@@ -36,8 +36,10 @@ namespace mep
 
 patch_stream_recorder& patch_stream_recorder::instance()
 {
-    static patch_stream_recorder inst;
-    return inst;
+    /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during __cxa_finalize
+       teardown). See millennium_lifecycle / crash_event_bus. */
+    static patch_stream_recorder* inst = new patch_stream_recorder();
+    return *inst;
 }
 
 void patch_stream_recorder::notify(const patch_event& ev)

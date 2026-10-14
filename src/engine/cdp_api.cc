@@ -122,7 +122,6 @@ void cdp_client::shutdown()
         m_cleanup_cv.notify_all();
     }
     if (m_cleanup_thread.joinable()) m_cleanup_thread.join();
-    if (m_callback_pool) m_callback_pool->shutdown();
 
     /** fail all pending requests */
     std::unique_lock<std::mutex> lock(m_requests_mutex);
@@ -136,6 +135,9 @@ void cdp_client::shutdown()
         }
     }
     m_pending_requests.clear();
+    lock.unlock();
+    // Callbacks may be waiting on these futures; resolve them before joining.
+    if (m_callback_pool) m_callback_pool->shutdown();
     /** clear all event callbacks */
     {
         std::unique_lock<std::shared_mutex> events_lock(m_events_mutex);
@@ -215,7 +217,7 @@ std::future<json> cdp_client::send_host(const std::string& method, const json& p
 
     std::lock_guard<std::mutex> send_lock(m_send_mutex);
 
-    bool ok = m_sender(payload);
+    bool ok = !m_shutdown.load(std::memory_order_acquire) && m_sender(payload);
 
     if (!ok) {
         /** remove from pending and fail the promise */
