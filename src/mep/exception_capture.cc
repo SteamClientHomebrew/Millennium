@@ -36,8 +36,10 @@ namespace mep
 
 exception_capture& exception_capture::instance()
 {
-    static exception_capture inst;
-    return inst;
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
+    static exception_capture* inst = new exception_capture();
+    return *inst;
 }
 
 void exception_capture::start(std::shared_ptr<cdp_client> cdp, std::shared_ptr<plugin_manager> pm)

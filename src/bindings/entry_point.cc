@@ -691,7 +691,7 @@ builtin_payload head::millennium_backend::Core_GetPluginBackendLogs(const builti
             { "timestamp", ""                    }
         };
 
-        auto& loggers = get_plugin_logger_mgr();
+        const auto loggers = get_plugin_logger_mgr();
         for (size_t i = 0; i < loggers.size() && i < logData.size(); ++i) {
             if (loggers[i]->get_plugin_name(false) == crash.plugin_name) {
                 logData[i]["logs"].push_back(crash_entry);
