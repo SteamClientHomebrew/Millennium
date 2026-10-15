@@ -33,6 +33,7 @@
 #include "millennium/plugin_ipc.h"
 #include "mep/crash_event_bus.h"
 
+#include <cerrno>
 #include <cstring>
 #include <future>
 #include <stdexcept>
@@ -141,19 +142,36 @@ PluginProcess::~PluginProcess()
     ::unlink(m_socket_path.c_str());
 
     /* make sure the child is actually gone */
-    if (is_alive()) {
 #ifdef _WIN32
+    if (is_alive()) {
         TerminateProcess(m_process_handle, 1);
         CloseHandle(m_process_handle);
-#else
-        ::kill(m_pid, SIGTERM);
-        for (int i = 0; i < 30 && ::kill(m_pid, 0) == 0; ++i)
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (::kill(m_pid, 0) == 0) ::kill(m_pid, SIGKILL);
-        int status;
-        ::waitpid(m_pid, &status, 0);
-#endif
     }
+#else
+    if (m_pid > 0) {
+        const auto child_running = [this]()
+        {
+            int status;
+            pid_t result;
+            do {
+                result = ::waitpid(m_pid, &status, WNOHANG);
+            } while (result < 0 && errno == EINTR);
+            // Reap exited children immediately. ECHILD also covers reaping by Steam.
+            return result == 0;
+        };
+
+        if (child_running()) {
+            ::kill(m_pid, SIGTERM);
+            for (int i = 0; i < 30 && child_running(); ++i)
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (child_running()) {
+                ::kill(m_pid, SIGKILL);
+                int status;
+                while (::waitpid(m_pid, &status, 0) < 0 && errno == EINTR) {}
+            }
+        }
+    }
+#endif
 
 #ifdef _WIN32
     if (m_job_handle != INVALID_HANDLE_VALUE) {

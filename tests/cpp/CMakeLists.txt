@@ -23,6 +23,7 @@ add_subdirectory(cdp_shutdown)
 if(UNIX)
   add_subdirectory(posix_lifecycle)
   add_subdirectory(logger_concurrency)
+  add_subdirectory(child_shutdown)
 endif()
 
 add_executable(sdk_health sdk_health.cc)
