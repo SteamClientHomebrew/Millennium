@@ -10,8 +10,10 @@ class patch_update_notifier
 
     static patch_update_notifier& instance()
     {
-        static patch_update_notifier inst;
-        return inst;
+        // Backend shutdown still notifies listeners after static destruction starts.
+        // Intentionally retain this service for the lifetime of the process.
+        static patch_update_notifier* inst = new patch_update_notifier();
+        return *inst;
     }
 
     int add_listener(listener_fn fn)

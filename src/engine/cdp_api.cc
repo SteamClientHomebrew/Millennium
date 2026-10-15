@@ -110,6 +110,21 @@ void cdp_client::shutdown()
         return; /** already shutdown */
     }
 
+    /** Callbacks can be blocked in send_host().get(). Release them before joining workers. */
+    {
+        std::unique_lock<std::mutex> lock(m_requests_mutex);
+        for (auto& [id, req] : m_pending_requests) {
+            if (!req->completed.exchange(true, std::memory_order_acq_rel)) {
+                try {
+                    req->promise.set_exception(std::make_exception_ptr(std::runtime_error("CDPClient shutdown")));
+                } catch (...) {
+                    LOG_ERROR("Failed to set exception on pending request during shutdown");
+                }
+            }
+        }
+        m_pending_requests.clear();
+    }
+
     /** wake up all waiting threads */
     m_incoming_cv.notify_all();
     m_incoming_space_cv.notify_all();
@@ -124,18 +139,6 @@ void cdp_client::shutdown()
     if (m_cleanup_thread.joinable()) m_cleanup_thread.join();
     if (m_callback_pool) m_callback_pool->shutdown();
 
-    /** fail all pending requests */
-    std::unique_lock<std::mutex> lock(m_requests_mutex);
-    for (auto& [id, req] : m_pending_requests) {
-        if (!req->completed.exchange(true, std::memory_order_acq_rel)) {
-            try {
-                req->promise.set_exception(std::make_exception_ptr(std::runtime_error("CDPClient shutdown")));
-            } catch (...) {
-                LOG_ERROR("Failed to set exception on pending request during shutdown");
-            }
-        }
-    }
-    m_pending_requests.clear();
     /** clear all event callbacks */
     {
         std::unique_lock<std::shared_mutex> events_lock(m_events_mutex);
@@ -196,20 +199,20 @@ std::future<json> cdp_client::send_host(const std::string& method, const json& p
 
     std::string payload = message.dump();
 
-    if (m_shutdown.load(std::memory_order_acquire)) {
-        if (!pending->completed.exchange(true, std::memory_order_acq_rel)) {
-            try {
-                pending->promise.set_exception(std::make_exception_ptr(std::runtime_error("Client shutdown")));
-            } catch (...) {
-                LOG_ERROR("Failed to set exception on pending request due to client shutdown");
-            }
-        }
-        return future;
-    }
-
-    /** register req before sending it to avoid race conditions or deadlocking */
+    /** Check shutdown and register atomically with respect to draining pending requests. */
     {
         std::lock_guard<std::mutex> lock(m_requests_mutex);
+        if (m_shutdown.load(std::memory_order_acquire)) {
+            if (!pending->completed.exchange(true, std::memory_order_acq_rel)) {
+                try {
+                    pending->promise.set_exception(std::make_exception_ptr(std::runtime_error("Client shutdown")));
+                } catch (...) {
+                    LOG_ERROR("Failed to set exception on pending request due to client shutdown");
+                }
+            }
+            return future;
+        }
+        /** register req before sending it to avoid race conditions or deadlocking */
         m_pending_requests[id] = pending;
     }
 

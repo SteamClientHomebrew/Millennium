@@ -211,11 +211,9 @@ inline std::string format_log_timestamp(uint64_t timestamp_us)
     return buf;
 }
 
-inline std::vector<plugin_logger*>& get_plugin_logger_mgr()
-{
-    static std::vector<plugin_logger*> loggerList;
-    return loggerList;
-}
+// Return a snapshot so callers can iterate while plugin IPC threads create loggers.
+std::vector<plugin_logger*> get_plugin_logger_mgr();
+plugin_logger& get_or_create_plugin_logger(const std::string& pluginName);
 
 static void add_logger_message(const std::string pluginName, const std::string message, logger_base::log_level level, const bool v2, uint64_t timestamp_us = 0,
                                std::string file = "", int line = 0)
@@ -235,16 +233,7 @@ static void add_logger_message(const std::string pluginName, const std::string m
         }
     };
 
-    for (auto logger : get_plugin_logger_mgr()) {
-        if (logger->get_plugin_name(false) == pluginName) {
-            add_log(logger, message, level);
-            return;
-        }
-    }
-
-    plugin_logger* newLogger = new plugin_logger(pluginName);
-    add_log(newLogger, message, level);
-    get_plugin_logger_mgr().push_back(newLogger);
+    add_log(&get_or_create_plugin_logger(pluginName), message, level);
 }
 
 inline void InfoToLogger(const std::string pluginNme, const std::string message, const bool v2, uint64_t timestamp_us = 0, std::string file = "", int line = 0)
@@ -264,16 +253,7 @@ inline void ErrorToLogger(const std::string pluginNme, const std::string message
 
 inline void RawToLogger(const std::string pluginName, const std::string message)
 {
-    for (auto logger : get_plugin_logger_mgr()) {
-        if (logger->get_plugin_name(false) == pluginName) {
-            logger->print(message);
-            return;
-        }
-    }
-
-    plugin_logger* logger = new plugin_logger(pluginName);
-    logger->print(message);
-    get_plugin_logger_mgr().push_back(logger);
+    get_or_create_plugin_logger(pluginName).print(message);
 }
 
 void CleanupLoggers();

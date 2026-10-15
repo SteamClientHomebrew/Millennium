@@ -35,8 +35,10 @@ namespace mep
 
 sdk_ready_bus& sdk_ready_bus::instance()
 {
-    static sdk_ready_bus inst;
-    return inst;
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
+    static sdk_ready_bus* inst = new sdk_ready_bus();
+    return *inst;
 }
 
 void sdk_ready_bus::notify(const sdk_ready_event& ev)
