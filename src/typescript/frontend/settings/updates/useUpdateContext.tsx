@@ -140,12 +140,18 @@ export const refetchMillenniumUpdates = async (channel: MillenniumUpdateChannel)
  * Module-level fetchAvailableUpdates — survives unmount so background update
  * completions can refresh the list without calling setState on a dead component.
  */
+const mergePluginUpdateLists = (...lists: Array<PluginUpdateInfo[] | { error: string } | undefined>): PluginUpdateInfo[] | { error: string } => {
+	const error = lists.find((list) => list && !Array.isArray(list)) as { error: string } | undefined;
+	if (error) return error;
+	return lists.filter(Array.isArray).flat() as PluginUpdateInfo[];
+};
+
 export const fetchAvailableUpdates = async (force: boolean = false): Promise<boolean> => {
 	try {
 		if (force || !pluginSelf.hasCheckedForUpdates) {
 			const isFirstCheck = !pluginSelf.hasCheckedForUpdates;
 			const updates = await backend.updater.getUpdates(force);
-			pluginSelf.updates = { themes: updates.themes, plugins: updates.plugins };
+			pluginSelf.updates = { themes: updates.themes, plugins: mergePluginUpdateLists(updates.plugins, updates.starPlugins) };
 			pluginSelf.hasCheckedForUpdates = true;
 			NotifyUpdateListeners();
 			if (isFirstCheck && settingsManager.config.general.shouldShowThemePluginUpdateNotifications) {
