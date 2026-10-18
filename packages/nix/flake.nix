@@ -8,7 +8,7 @@
     # Do not make this follow another nixpkgs.
     nixpkgs-bun.url = "github:nixos/nixpkgs/c59305bab2065cfecc4944690d9eedbb56f3a9fa";
 
-    millennium-src.url   = "github:SteamClientHomebrew/Millennium/401d532543a0fbff469653ccba802bdd7e45f861";
+    millennium-src.url   = "github:SteamClientHomebrew/Millennium/426c05a0f0a14fee19c7cc04f5c2fc5cc000e51e";
     millennium-src.flake = false;
   };
 
