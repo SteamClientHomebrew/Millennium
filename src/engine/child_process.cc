@@ -149,22 +149,11 @@ PluginProcess::~PluginProcess()
     }
 #else
     if (m_pid > 0) {
-        const auto child_running = [this]()
-        {
-            int status;
-            pid_t result;
-            do {
-                result = ::waitpid(m_pid, &status, WNOHANG);
-            } while (result < 0 && errno == EINTR);
-            // Reap exited children immediately. ECHILD also covers reaping by Steam.
-            return result == 0;
-        };
-
-        if (child_running()) {
+        if (is_alive()) {
             ::kill(m_pid, SIGTERM);
-            for (int i = 0; i < 30 && child_running(); ++i)
+            for (int i = 0; i < 30 && is_alive(); ++i)
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            if (child_running()) {
+            if (is_alive()) {
                 ::kill(m_pid, SIGKILL);
                 int status;
                 while (::waitpid(m_pid, &status, 0) < 0 && errno == EINTR) {}
@@ -268,7 +257,15 @@ bool PluginProcess::is_alive() const
     if (!GetExitCodeProcess(m_process_handle, &exitCode)) return false;
     return exitCode == STILL_ACTIVE;
 #else
-    return ::kill(m_pid, 0) == 0;
+    if (m_pid <= 0) return false;
+
+    int status;
+    pid_t result;
+    do {
+        result = ::waitpid(m_pid, &status, WNOHANG);
+    } while (result < 0 && errno == EINTR);
+
+    return result == 0;
 #endif
 }
 
