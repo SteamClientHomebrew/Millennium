@@ -90,6 +90,24 @@ int main(int argc, char* argv[])
 
     unsetenv("PRESSURE_VESSEL_PREFIX");
 
+    /**
+     * SteamRT3 mode: the caller is already inside the pressure-vessel container, so there is no
+     * unruntime to exec. Reopen the FIFOs above and exec the real command directly.
+     */
+    const char* direct_exec = getenv("MILLENNIUM_PVS64_DIRECT_EXEC");
+    if (direct_exec && *direct_exec) {
+        unsetenv("MILLENNIUM_PVS64_DIRECT_EXEC");
+
+        if (argc < 2) {
+            fprintf(stderr, "[pvs64] ERROR: direct exec requested without a command\n");
+            return 1;
+        }
+
+        execv(argv[1], &argv[1]);
+        fprintf(stderr, "[pvs64] direct exec of %s failed: %s\n", argv[1], strerror(errno));
+        return 1;
+    }
+
     if (!runtime_base || !*runtime_base) {
         fprintf(stderr, "[pvs64] ERROR: PRESSURE_VESSEL_RUNTIME_BASE not set\n");
         return 1;

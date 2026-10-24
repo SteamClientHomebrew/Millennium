@@ -65,6 +65,13 @@ echo ""
 ln -sfv "${BOOTSTRAP_X86}" "${U32}/libXtst.so.6"
 ln -sfv "${BOOTSTRAP_HHX64}" "${U64}/libXtst.so.6"
 
+# Optional: the SteamRT3 x64 payload only exists in a build tree configured with
+# -DMILLENNIUM_LINUX_X64=ON. Do not fail an x86-only build over it.
+if [ -f "${BUILD_DIR}/libmillennium_bootstrap_x64.so" ]; then
+    mkdir -p "${STEAM_DIR}/steamrt64"
+    ln -sfv "${BUILD_DIR}/libmillennium_bootstrap_x64.so" "${STEAM_DIR}/steamrt64/libXtst.so.6"
+fi
+
 rm -f "${STEAM_DIR}/.cef-enable-remote-debugging"
 
 echo ""

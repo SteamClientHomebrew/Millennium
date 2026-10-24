@@ -1,5 +1,7 @@
 # Build files
 **/build
+**/build64
+**/build64-*
 src/typescript/.build-cache.json
 src/typescript/.frontend.bin
 

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(unix-hooks LANGUAGES CXX)
 set(CMAKE_C_STANDARD 11)
 
-if(NOT MILLENNIUM_NIX_64BIT)
+if(NOT MILLENNIUM_NIX_64BIT AND NOT MILLENNIUM_LINUX_X64)
     add_library(unix-hooks SHARED libmillennium_bootstrap.c)
 
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -19,7 +19,7 @@ if(NOT MILLENNIUM_NIX_64BIT)
     )
 endif()
 
-if(MILLENNIUM_NIX_64BIT OR NOT DISTRO_NIX)
+if(MILLENNIUM_NIX_64BIT OR MILLENNIUM_LINUX_X64 OR NOT DISTRO_NIX)
     cmake_minimum_required(VERSION 3.10)
     project(bootstrap64 C)
     set(CMAKE_C_STANDARD 11)
@@ -49,5 +49,26 @@ if(MILLENNIUM_NIX_64BIT OR NOT DISTRO_NIX)
     set_target_properties(libmillennium_pvs64 PROPERTIES
         OUTPUT_NAME "libmillennium_pvs64"
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+    )
+endif()
+
+if(MILLENNIUM_LINUX_X64)
+    add_library(bootstrap_x64 SHARED libmillennium_bootstrap_x64.c)
+
+    target_compile_options(bootstrap_x64 PRIVATE -fvisibility=hidden -Wall -Wextra)
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_definitions(bootstrap_x64 PRIVATE
+            MILLENNIUM_X64_PATH="$<TARGET_FILE:Millennium>"
+            MILLENNIUM_HHX64_PATH="$<TARGET_FILE:hhx64>"
+        )
+    endif()
+
+    target_link_options(bootstrap_x64 PRIVATE -Wl,--no-undefined -ldl)
+
+    set_target_properties(bootstrap_x64 PROPERTIES
+        PREFIX ""
+        OUTPUT_NAME "${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}"
+        SUFFIX ""
     )
 endif()
