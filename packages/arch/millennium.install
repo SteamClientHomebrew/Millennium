@@ -31,6 +31,12 @@ link_millennium() {
 
     ln -sf /usr/lib/millennium/libmillennium_bootstrap_x86.so   "$steam/ubuntu12_32/libXtst.so.6"
     ln -sf /usr/lib/millennium/libmillennium_bootstrap_hhx64.so "$steam/ubuntu12_64/libXtst.so.6"
+
+    # SteamRT3 runs the client inside a pressure-vessel container where /usr is not the host's,
+    # so the link has to go through /run/host. Created unconditionally: install hooks run once,
+    # and a user who opts into RT3 later would otherwise have no link at all.
+    mkdir -p "$steam/steamrt64"
+    ln -sf /run/host/usr/lib/millennium/libmillennium_bootstrap_x64.so "$steam/steamrt64/libXtst.so.6"
 }
 
 unlink_millennium() {
@@ -39,6 +45,7 @@ unlink_millennium() {
 
     rm -f "$steam/ubuntu12_32/libXtst.so.6"
     rm -f "$steam/ubuntu12_64/libXtst.so.6"
+    rm -f "$steam/steamrt64/libXtst.so.6"
     rm -f "$home/.steam/steam/.cef-enable-remote-debugging"
 }
 

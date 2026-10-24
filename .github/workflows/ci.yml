@@ -176,7 +176,7 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y build-essential gcc-14 g++-14 gcc-14-multilib g++-14-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386
+          sudo apt-get install -y build-essential gcc-14 g++-14 gcc-14-multilib g++-14-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386 libxtst-dev libxi-dev libx11-dev libssl-dev rustc cargo
 
       - name: Install CMake
         uses: jwlawson/actions-setup-cmake@v2
@@ -203,6 +203,9 @@ jobs:
 
           cmake --build build --config Release -- -j$(nproc)
 
+          cmake --preset=linux-release-x64 -G "Ninja" -DGITHUB_ACTION_BUILD=ON
+          cmake --build build64 --config Release -- -j$(nproc)
+
           mkdir -p ~/build/usr/lib/millennium
           cp build/libmillennium_x86.so ~/build/usr/lib/millennium/
           cp build/libmillennium_bootstrap_x86.so ~/build/usr/lib/millennium/
@@ -210,6 +213,9 @@ jobs:
           cp build/libmillennium_hhx64.so ~/build/usr/lib/millennium/
           cp build/libmillennium_luavm_x86 ~/build/usr/lib/millennium/
           cp build/libmillennium_pvs64 ~/build/usr/lib/millennium/
+          cp build64/libmillennium_x64.so ~/build/usr/lib/millennium/
+          cp build64/libmillennium_luavm_x64 ~/build/usr/lib/millennium/
+          cp build64/libmillennium_bootstrap_x64.so ~/build/usr/lib/millennium/
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
@@ -270,6 +276,9 @@ jobs:
             "usr/lib/millennium/libmillennium_luavm_x86"
             "usr/lib/millennium/libmillennium_bootstrap_hhx64.so"
             "usr/lib/millennium/libmillennium_pvs64"
+            "usr/lib/millennium/libmillennium_x64.so"
+            "usr/lib/millennium/libmillennium_luavm_x64"
+            "usr/lib/millennium/libmillennium_bootstrap_x64.so"
           )
           MISSING=0
           for f in "${REQUIRED[@]}"; do
@@ -303,6 +312,9 @@ jobs:
           check_arch "usr/lib/millennium/libmillennium_hhx64.so"           64 || ARCH_FAIL=1
           check_arch "usr/lib/millennium/libmillennium_bootstrap_hhx64.so" 64 || ARCH_FAIL=1
           check_arch "usr/lib/millennium/libmillennium_pvs64"              64 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_x64.so"             64 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_luavm_x64"          64 || ARCH_FAIL=1
+          check_arch "usr/lib/millennium/libmillennium_bootstrap_x64.so"   64 || ARCH_FAIL=1
           [ $ARCH_FAIL -eq 0 ] || { echo "ERROR: binary architecture mismatch"; exit 1; }
 
   release:
