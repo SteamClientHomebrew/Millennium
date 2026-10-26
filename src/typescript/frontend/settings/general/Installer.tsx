@@ -151,7 +151,7 @@ export class Installer {
 	 * @param onStateSetter Called with the modal's state setter once the component
 	 *   mounts — lets the caller swap content without touching pluginSelf.
 	 */
-	async PromptInstallation(type: InstallType, data: any, onStateSetter: (setter: (el: React.ReactElement) => void) => void): Promise<ShowModalResult> {
+	async PromptInstallation(type: InstallType, data: any, onStateSetter: (setter: (el: React.ReactElement) => void) => void): Promise<ShowModalResult | null> {
 		const itemName = (type === InstallType.Plugin ? data?.pluginJson?.common_name : data?.name) ?? locale.strUnknown;
 
 		return new Promise((resolve) => {
@@ -165,7 +165,10 @@ export class Installer {
 						onOK={() => resolve(modal)}
 						bHideCloseIcon={true}
 						closeModal={() => {}}
-						onCancel={() => modal?.Close()}
+						onCancel={() => {
+							modal?.Close();
+							resolve(null);
+						}}
 					/>,
 				);
 
@@ -192,8 +195,14 @@ export class Installer {
 
 		function ShowMessageBox(message: React.ReactNode, title: React.ReactNode, props?: ConfirmModalProps) {
 			return new Promise((resolve) => {
+				let standaloneModal: ShowModalResult | undefined;
 				const handle = (result: boolean, cb?: () => void) => {
 					cb?.();
+					// A message with no custom action is terminal. The installer owns
+					// this modal, so Steam cannot dismiss it automatically.
+					if (!cb) {
+						(updateInstallerState ? modal : standaloneModal)?.Close();
+					}
 					resolve(result);
 				};
 
@@ -211,7 +220,7 @@ export class Installer {
 				if (updateInstallerState) {
 					updateInstallerState(element);
 				} else {
-					showModal(element, pluginSelf.mainWindow, {
+					standaloneModal = showModal(element, pluginSelf.mainWindow, {
 						bNeverPopOut: true,
 						popupWidth: 500,
 						popupHeight: 275,
@@ -248,6 +257,7 @@ export class Installer {
 			modal = await this.PromptInstallation(type, data, (setter) => {
 				updateInstallerState = setter;
 			});
+			if (!modal) return;
 
 			// updateInstallerState is guaranteed set here — the Renderer useEffect
 			// fires before the user can click OK.
