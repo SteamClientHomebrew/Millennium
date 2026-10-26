@@ -418,7 +418,7 @@ html body .MillenniumButton.MillenniumIconButton.MillenniumIconButtonWithText {
 }
 `;
 
-export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpen }: { openAnimStart: boolean; isDesktopMenuOpen: boolean; isViewingPlugin: boolean }) => {
+export const MillenniumDesktopSidebarStyles = ({ openAnimStart, isDesktopMenuOpen }: { openAnimStart: boolean; isDesktopMenuOpen: boolean }) => {
 	const styles = `
     .title-area {
       	z-index: 999999 !important;
