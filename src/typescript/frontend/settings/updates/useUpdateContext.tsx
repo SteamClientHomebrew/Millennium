@@ -74,17 +74,6 @@ export type UpdateContextProviderState = {
 	fetchAvailableUpdates: (force?: boolean) => Promise<boolean>;
 };
 
-const updateListeners = new Set<() => void>();
-
-export const RegisterUpdateListener = (callback: () => void) => {
-	updateListeners.add(callback);
-	return () => updateListeners.delete(callback);
-};
-
-export const NotifyUpdateListeners = () => {
-	updateListeners.forEach((callback) => callback());
-};
-
 const UpdateContext = createContext<UpdateContextProviderState | null>(null);
 
 /**
@@ -153,7 +142,6 @@ export const fetchAvailableUpdates = async (force: boolean = false): Promise<boo
 			const updates = await backend.updater.getUpdates(force);
 			pluginSelf.updates = { themes: updates.themes, plugins: mergePluginUpdateLists(updates.plugins, updates.starPlugins) };
 			pluginSelf.hasCheckedForUpdates = true;
-			NotifyUpdateListeners();
 			if (isFirstCheck && settingsManager.config.general.shouldShowThemePluginUpdateNotifications) {
 				sleep(5000).then(notificationService.notifyLibraryUpdates);
 			}
