@@ -194,24 +194,6 @@ html body .MillenniumButton.MillenniumIconButton.MillenniumIconButtonWithText {
 		overflow: visible !important;
 		flex-grow: 1;
 	}
-
-	.sideBarUpdatesItem {
-		display: flex;
-		gap: var(--MillenniumSpacing-Normal);
-		justify-content: space-between;
-		align-items: center;
-		overflow: visible !important;
-	}
-
-	.FriendMessageCount {
-		display: flex !important;
-		margin-top: 0px !important;
-		position: initial !important;
-
-		line-height: 20px;
-		height: fit-content !important;
-		width: fit-content !important;
-	}
 }
 
 /**
@@ -341,15 +323,6 @@ html body .MillenniumButton.MillenniumIconButton.MillenniumIconButtonWithText {
 	animation: MillenniumMetrics_Flash 0.6s ease-out;
 }
 
-.MillenniumItem_BrowserExtension {
-	height: 20px;
-	padding: 0 8px;
-	border-radius: 6px;
-	background-color: var(--MillenniumTextColor-Muted);
-	border: 1px solid #5c5c5c;
-	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
-}
-
 /**
  * Themes
  */
@@ -394,21 +367,6 @@ html body .MillenniumButton.MillenniumIconButton.MillenniumIconButtonWithText {
 	}
 }
 
-.MillenniumUpdates_ProgressBar {
-	/* <Field> override */
-	align-self: baseline;
-
-	&:not([role="progressbar"]) {
-		padding: 0 !important;
-		/* icon button size + .DialogButton margin-block * 2 */
-		height: calc(32px + 2px * 2) !important;
-
-		&::after {
-			content: unset !important;
-		}
-	}
-}
-
 /**
  * Dialogs
  */
@@ -434,18 +392,10 @@ html body .MillenniumButton.MillenniumIconButton.MillenniumIconButtonWithText {
 /**
  * Other
  */
-.MillenniumPluginSettingsGrid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--MillenniumSpacing-Large);
-    padding: 2ex 5ex 2ex 5ex;
-}
-
 ._1aw7cA3mAZfWt8idAlVJWi:has(.SliderControlPanelGroup) {
 	width: -webkit-fill-available;
 }
 
-.MillenniumPluginSettingsSliderValue,
 .MillenniumThemeSliderValue {
     position: absolute;
     right: 0;
