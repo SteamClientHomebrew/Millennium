@@ -19,6 +19,15 @@
   re2,
   runCommand,
 
+  openssl,
+  curl,
+  minizip-ng,
+  bzip2,
+  xz,
+  zstd,
+  nlohmann_json,
+  zlib,
+
   millennium-src,
   ...
 }:
@@ -151,6 +160,9 @@ let
     pname = "millennium-64";
 
     nativeBuildInputs = commonBuild.nativeBuildInputs ++ [
+      bun
+      nodejs
+      patchelf
       cargo
       rustc
     ];
@@ -161,9 +173,34 @@ let
       libXtst
       re2
       re2.dev
+      openssl
+      curl
+      minizip-ng
+      bzip2
+      xz
+      zstd
+      nlohmann_json
+      zlib
     ];
 
     postPatch = ''
+      export HOME=$TMPDIR
+
+      for dir in ${tsDirs}; do
+        if [ -d ${bunDeps}/$dir ]; then
+          mkdir -p "$(dirname "$dir")"
+          cp -r ${bunDeps}/$dir "$dir"
+          chmod -R u+w "$dir"
+        fi
+      done
+
+      mkdir -p src/typescript/ttc
+      cp -r ${bunDeps}/src/typescript/ttc/dist src/typescript/ttc/dist
+      chmod -R u+w src/typescript/ttc/dist
+
+      patchShebangs src/typescript/node_modules
+      ${tsBuildCmds}
+
       mkdir -p src/instrumentation/loopback/.cargo
       cat > src/instrumentation/loopback/.cargo/config.toml << 'EOF'
       [source.crates-io]
@@ -174,15 +211,23 @@ let
       EOF
     '';
 
-    cmakeFlags = commonBuild.cmakeFlags ++ [ "-DMILLENNIUM_NIX_64BIT=ON" ];
+    cmakeFlags = commonBuild.cmakeFlags ++ [ "-DMILLENNIUM_LINUX_X64=ON" "-DDISTRO_NIX=ON" ];
 
     installPhase = ''
       runHook preInstall
       mkdir -p $out/lib/
-      install -Dm755 libmillennium_hhx64.so           $out/lib/libmillennium_hhx64.so
-      install -Dm755 libmillennium_pvs64              $out/lib/libmillennium_pvs64
+      install -Dm755 libmillennium_x64.so            $out/lib/libmillennium_x64.so
+      install -Dm755 libmillennium_luavm_x64         $out/lib/libmillennium_luavm_x64
+      install -Dm755 libmillennium_bootstrap_x64.so  $out/lib/libmillennium_bootstrap_x64.so
+      install -Dm755 libmillennium_hhx64.so          $out/lib/libmillennium_hhx64.so
+      install -Dm755 libmillennium_pvs64             $out/lib/libmillennium_pvs64
       install -Dm755 libmillennium_bootstrap_hhx64.so $out/lib/libmillennium_bootstrap_hhx64.so
       runHook postInstall
+    '';
+
+    postFixup = ''
+      patchelf --force-rpath --set-rpath "$(patchelf --print-rpath $out/lib/libmillennium_x64.so)" $out/lib/libmillennium_x64.so
+      patchelf --force-rpath --set-rpath "$(patchelf --print-rpath $out/lib/libmillennium_bootstrap_x64.so)" $out/lib/libmillennium_bootstrap_x64.so
     '';
   });
 in

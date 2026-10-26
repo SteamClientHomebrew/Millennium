@@ -60,7 +60,17 @@ static int show(const std::string title, const std::string message, platform::me
     const std::string steam_path = platform::get_steam_path().generic_string();
 
     char zenity_path[PATH_MAX];
+#if defined(MILLENNIUM_LINUX_X64)
+    char zenity_legacy[PATH_MAX];
+    snprintf(zenity_legacy, sizeof(zenity_legacy), "%s%s", steam_path.c_str(), "ubuntu12_32/steam-runtime/i386/usr/bin/zenity");
+    if (access(zenity_legacy, X_OK) == 0) {
+        snprintf(zenity_path, sizeof(zenity_path), "%s", zenity_legacy);
+    } else {
+        snprintf(zenity_path, sizeof(zenity_path), "%s", "zenity");
+    }
+#else
     snprintf(zenity_path, sizeof(zenity_path), "%s%s", steam_path.c_str(), "ubuntu12_32/steam-runtime/i386/usr/bin/zenity");
+#endif
 
     std::string cmd = zenity_path;
 

@@ -147,6 +147,41 @@
         "CMAKE_CXX_FLAGS": "-m32 -fdebug-prefix-map=${sourceDir}/= -fmacro-prefix-map=${sourceDir}/=",
         "CMAKE_C_FLAGS": "-m32 -fdebug-prefix-map=${sourceDir}/= -fmacro-prefix-map=${sourceDir}/="
       }
+    },
+    {
+      "name": "linux-debug-x64",
+      "inherits": "default",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build64-debug",
+      "displayName": "linux-debug-x64",
+      "description": "Debug build for the SteamRT3 64-bit Steam client",
+      "cacheVariables": {
+        "MILLENNIUM_LINUX_X64": "ON",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "linux-release-x64",
+      "inherits": "default",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build64",
+      "displayName": "linux-release-x64",
+      "description": "Release build for the SteamRT3 64-bit Steam client",
+      "cacheVariables": {
+        "MILLENNIUM_LINUX_X64": "ON",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "linux-arch-pkgbuild-x64",
+      "inherits": "linux-release-x64",
+      "displayName": "linux-arch-pkgbuild-x64",
+      "description": "Arch Linux PKGBUILD build for SteamRT3 (RelWithDebInfo, remapped debug paths)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS": "-fdebug-prefix-map=${sourceDir}/= -fmacro-prefix-map=${sourceDir}/=",
+        "CMAKE_C_FLAGS": "-fdebug-prefix-map=${sourceDir}/= -fmacro-prefix-map=${sourceDir}/="
+      }
     }
   ]
 }
