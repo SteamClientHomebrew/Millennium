@@ -28,6 +28,7 @@ if(MILLENNIUM_NIX_64BIT OR MILLENNIUM_LINUX_X64 OR NOT DISTRO_NIX)
 
     target_compile_options(bootstrap64 PRIVATE -fvisibility=hidden -m64)
     target_link_options(bootstrap64 PRIVATE -m64 -Wl,--no-undefined -ldl)
+    millennium_configure_linux_host_rpath(bootstrap64)
 
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_compile_definitions(bootstrap64 PRIVATE MILLENNIUM_HHX64_PATH="$<TARGET_FILE:hhx64>")
@@ -45,6 +46,7 @@ if(MILLENNIUM_NIX_64BIT OR MILLENNIUM_LINUX_X64 OR NOT DISTRO_NIX)
 
     target_compile_options(libmillennium_pvs64 PRIVATE -m64 -Wall -Wextra)
     target_link_options(libmillennium_pvs64 PRIVATE -m64)
+    millennium_configure_linux_host_rpath(libmillennium_pvs64)
 
     set_target_properties(libmillennium_pvs64 PROPERTIES
         OUTPUT_NAME "libmillennium_pvs64"
@@ -65,6 +67,7 @@ if(MILLENNIUM_LINUX_X64)
     endif()
 
     target_link_options(bootstrap_x64 PRIVATE -Wl,--no-undefined -ldl)
+    millennium_configure_linux_host_rpath(bootstrap_x64)
 
     set_target_properties(bootstrap_x64 PROPERTIES
         PREFIX ""

@@ -51,6 +51,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 include(FetchContent)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    include("${MILLENNIUM_BASE}/scripts/cmake/linux_runtime_paths.cmake")
+endif()
 set(snare_SOURCE_DIR "${CMAKE_SOURCE_DIR}/thirdparty")
 
 option(MILLENNIUM_BUILD_MAIN          "Build main Millennium library and tools"            ON)

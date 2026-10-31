@@ -26,6 +26,10 @@ if(UNIX)
   add_subdirectory(child_shutdown)
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_subdirectory(linux_rt3)
+endif()
+
 add_executable(sdk_health sdk_health.cc)
 target_compile_features(sdk_health PRIVATE cxx_std_17)
 target_link_libraries(sdk_health PRIVATE nlohmann_json::nlohmann_json)

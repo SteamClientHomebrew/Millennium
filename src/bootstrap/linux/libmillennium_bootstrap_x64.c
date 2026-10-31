@@ -153,7 +153,7 @@ static int is_steam_client_process(void)
     if (!get_process_path()) return 0;
     if (!realpath(get_process_path(), exe)) return 0;
 
-    if (cmdline_has_arg("-child-update-ui")) return 0;
+    if (cmdline_has_arg("-child-update-ui") || cmdline_has_arg("-child-update-ui-socket")) return 0;
 
     char copy[PATH_MAX];
     snprintf(copy, sizeof(copy), "%s", exe);

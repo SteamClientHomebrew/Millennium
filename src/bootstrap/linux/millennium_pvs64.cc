@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-        execv(argv[1], &argv[1]);
+        execvp(argv[1], &argv[1]);
         fprintf(stderr, "[pvs64] direct exec of %s failed: %s\n", argv[1], strerror(errno));
         return 1;
     }

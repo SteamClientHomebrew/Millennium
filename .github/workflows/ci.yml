@@ -203,6 +203,12 @@ jobs:
 
           cmake --build build --config Release -- -j$(nproc)
 
+      - name: Build Millennium RT3 Backend
+        run: |
+          export CC=gcc-14
+          export CXX=g++-14
+          export PKG_CONFIG_LIBDIR="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig"
+
           cmake --preset=linux-release-x64 -G "Ninja" -DGITHUB_ACTION_BUILD=ON
           cmake --build build64 --config Release -- -j$(nproc)
 
