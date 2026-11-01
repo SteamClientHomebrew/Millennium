@@ -183,7 +183,7 @@ jobs:
         with:
           cmake-version: "3.28"
 
-      - name: Build Millennium Backend
+      - name: Build Millennium x86 Backend
         run: |
           export CC=gcc-14
           export CXX=g++-14
@@ -192,7 +192,7 @@ jobs:
           export CMAKE_INCLUDE_PATH="/usr/include/i386-linux-gnu"
           export PKG_CONFIG_LIBDIR="/usr/lib/i386-linux-gnu/pkgconfig"
 
-          cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
+          cmake --preset=linux-release-x86 -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
             -DCMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
             -DCMAKE_INCLUDE_PATH="/usr/include" \
             -DCMAKE_FIND_ROOT_PATH="/usr/lib/i386-linux-gnu" \
@@ -201,27 +201,29 @@ jobs:
             -DPKG_CONFIG_EXECUTABLE="/usr/bin/pkg-config" \
             -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=ON
 
-          cmake --build build --config Release -- -j$(nproc)
+          cmake --build build32 --config Release -- -j$(nproc)
 
-      - name: Build Millennium RT3 Backend
+      - name: Build Millennium x64 Backend
         run: |
           export CC=gcc-14
           export CXX=g++-14
           export PKG_CONFIG_LIBDIR="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig"
 
-          cmake --preset=linux-release-x64 -G "Ninja" -DGITHUB_ACTION_BUILD=ON
-          cmake --build build64 --config Release -- -j$(nproc)
+          cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
+          cmake --build build --config Release -- -j$(nproc)
 
+      - name: Collect Linux Artifacts
+        run: |
           mkdir -p ~/build/usr/lib/millennium
-          cp build/libmillennium_x86.so ~/build/usr/lib/millennium/
-          cp build/libmillennium_bootstrap_x86.so ~/build/usr/lib/millennium/
-          cp build/libmillennium_bootstrap_hhx64.so ~/build/usr/lib/millennium/
+          cp build32/libmillennium_x86.so ~/build/usr/lib/millennium/
+          cp build32/libmillennium_bootstrap_x86.so ~/build/usr/lib/millennium/
+          cp build32/libmillennium_luavm_x86 ~/build/usr/lib/millennium/
           cp build/libmillennium_hhx64.so ~/build/usr/lib/millennium/
-          cp build/libmillennium_luavm_x86 ~/build/usr/lib/millennium/
+          cp build/libmillennium_bootstrap_hhx64.so ~/build/usr/lib/millennium/
           cp build/libmillennium_pvs64 ~/build/usr/lib/millennium/
-          cp build64/libmillennium_x64.so ~/build/usr/lib/millennium/
-          cp build64/libmillennium_luavm_x64 ~/build/usr/lib/millennium/
-          cp build64/libmillennium_bootstrap_x64.so ~/build/usr/lib/millennium/
+          cp build/libmillennium_x64.so ~/build/usr/lib/millennium/
+          cp build/libmillennium_luavm_x64 ~/build/usr/lib/millennium/
+          cp build/libmillennium_bootstrap_x64.so ~/build/usr/lib/millennium/
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4

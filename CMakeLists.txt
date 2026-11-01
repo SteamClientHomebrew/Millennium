@@ -5,6 +5,26 @@ set(MILLENNIUM_BASE            ${CMAKE_SOURCE_DIR})
 project(MillenniumBuildSlave)
 add_compile_definitions(MILLENNIUM_$<IF:$<CONFIG:Debug>,DEBUG,RELEASE> MILLENNIUM_64BIT)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(_linux_x64_default ON)
+else()
+    set(_linux_x64_default OFF)
+endif()
+option(MILLENNIUM_NIX_64BIT           "Build only the 64-bit Nix targets (hhx64 + bootstrap64 + pvs64)" OFF)
+option(MILLENNIUM_LINUX_X64           "Build the 64-bit Linux client tree (SteamRT3): main lib, lua host, x64 proxy" ${_linux_x64_default})
+
+if(MILLENNIUM_NIX_64BIT)
+    set(MILLENNIUM_LINUX_X64 OFF)
+    message(STATUS "[MLNM] MILLENNIUM_NIX_64BIT=ON builds only the 64-bit helpers; MILLENNIUM_LINUX_X64 is disabled")
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND MILLENNIUM_LINUX_X64 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(FATAL_ERROR
+        "MILLENNIUM_LINUX_X64 is enabled, but the compiler targets a 32-bit ABI (CMAKE_SIZEOF_VOID_P=4). "
+        "This usually means an existing build directory was configured for the 32-bit client or a cached -m32 flag. "
+        "Configure a fresh build directory, or build the 32-bit tree with -DMILLENNIUM_LINUX_X64=OFF.")
+endif()
+
 if(WIN32)
     # Windows build names
     set(MILLENNIUM_OUTPUT_NAME                     "millennium.dll"                )
@@ -65,8 +85,6 @@ else()
     set(_build_to_steam_default OFF)
 endif()
 option(MILLENNIUM_BUILD_TO_STEAM_PATH "Build Millennium to Steam path" ${_build_to_steam_default})
-option(MILLENNIUM_NIX_64BIT           "Build only the 64-bit Nix targets (hhx64 + bootstrap64 + pvs64)" OFF)
-option(MILLENNIUM_LINUX_X64           "Build the 64-bit Linux client tree (SteamRT3): main lib, lua host, x64 proxy" OFF)
 
 if(MILLENNIUM_LINUX_X64)
     add_compile_definitions(MILLENNIUM_LINUX_X64)

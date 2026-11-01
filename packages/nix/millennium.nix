@@ -120,7 +120,7 @@ let
       pkgsi686Linux.zlib
     ];
 
-    cmakeFlags = commonBuild.cmakeFlags ++ [ "-DDISTRO_NIX=ON" ];
+    cmakeFlags = commonBuild.cmakeFlags ++ [ "-DMILLENNIUM_LINUX_X64=OFF" "-DDISTRO_NIX=ON" ];
 
     postPatch = ''
       export HOME=$TMPDIR

@@ -1,5 +1,6 @@
 set(TEST_SOURCES
   ffi_recorder_test.cc
+  test_encoding.cc
   test_target_url.cc
   ${CMAKE_SOURCE_DIR}/src/mep/ffi_recorder.cc
   ${CMAKE_SOURCE_DIR}/src/engine/target_url.cc
@@ -26,7 +27,7 @@ if(UNIX)
   add_subdirectory(child_shutdown)
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND (MILLENNIUM_LINUX_X64 OR MILLENNIUM_NIX_64BIT))
   add_subdirectory(linux_rt3)
 endif()
 
