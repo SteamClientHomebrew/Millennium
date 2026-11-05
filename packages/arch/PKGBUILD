@@ -8,7 +8,7 @@ pkgver=3.6.3_beta.1
 pkgrel=1
 pkgdesc="${_Pkgname} is an open-source low-code modding framework to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead. (git-version, next branch)"
 arch=('x86_64')
-url="https://steambrew.app"
+url="https://github.com/SteamClientHomebrew/${_Pkgname}"
 license=('MIT')
 depends=('steam')
 makedepends=(
@@ -35,48 +35,45 @@ makedepends=(
     'libxtst'
 )
 provides=("${_pkgname}=${pkgver}")
-conflicts=(
-    "${_pkgname}-bin"
-    "${_pkgname}-git"
-)
-source=("git+https://github.com/SteamClientHomebrew/${_Pkgname}.git#commit=3858d60a2081f612739f07386ceac9b79f68274b")
+install=millennium.install
+source=("git+${url}.git#commit=3858d60a2081f612739f07386ceac9b79f68274b")
 sha256sums=('SKIP')
-
-prepare() {
-    cmake -GNinja --preset linux-arch-pkgbuild     .
-    cmake -GNinja --preset linux-arch-pkgbuild-x86 .
-}
 
 build() {
     cd "${srcdir}/${_Pkgname}"
+
+    cmake -GNinja --preset linux-arch-pkgbuild     .
+    cmake -GNinja --preset linux-arch-pkgbuild-x86 .
 
     cmake --build build
     cmake --build build32
 }
 
 _install_millennium_variant() {
-    local _arch=${1}
-    local _build_dir=${2}
-
     install -Dm755 "${_build_dir}/lib${_pkgname}_${_arch}.so"           -t "${pkgdir}/usr/lib/${_pkgname}/"
     install -Dm755 "${_build_dir}/lib${_pkgname}_bootstrap_${_arch}.so" -t "${pkgdir}/usr/lib/${_pkgname}/"
     install -Dm755 "${_build_dir}/lib${_pkgname}_luavm_${_arch}"        -t "${pkgdir}/usr/lib/${_pkgname}/"
+    install -Dm755 "build/lib${_pkgname}_pvs64"                         -t "${pkgdir}/usr/lib/${_pkgname}/"
+    install -Dm644 'LICENSE.md'                                         -t "${pkgdir}/usr/share/licenses/${pkgname}/"
 }
 
 package_millennium() {
     cd "${srcdir}/${_Pkgname}"
 
-    _install_millennium_variant "x64" "build"
+    _arch="x64"
+    _build_dir="build"
+
+    _install_millennium_variant
+
     install -Dm755 "build/lib${_pkgname}_hhx64.so"           -t "${pkgdir}/usr/lib/${_pkgname}/"
     install -Dm755 "build/lib${_pkgname}_bootstrap_hhx64.so" -t "${pkgdir}/usr/lib/${_pkgname}/"
-    install -Dm755 "build/lib${_pkgname}_pvs64"              -t "${pkgdir}/usr/lib/${_pkgname}/"
-    install -Dm644 'LICENSE.md'                              -t "${pkgdir}/usr/share/licenses/${_pkgname}/"
 }
 
 package_millennium-x86() {
     cd "${srcdir}/${_Pkgname}"
 
-    _install_millennium_variant "x86" "build32"
-    install -Dm755 "build32/lib${_pkgname}_bootstrap_x86.so" -t "${pkgdir}/usr/lib/${_pkgname}/"
-    install -Dm644 'LICENSE.md'                              -t "${pkgdir}/usr/share/licenses/${_pkgname}/"
+    _arch="x86"
+    _build_dir="build32"
+
+    _install_millennium_variant
 }
