@@ -264,65 +264,55 @@ jobs:
           su builder -c "git config --global --add safe.directory /home/builder/pkg/src/Millennium"
           su builder -c 'cd /home/builder/pkg && makepkg -s --noconfirm --noextract'
 
-      - name: Verify package
+      - name: Verify packages
+        shell: bash
         run: |
           echo "=== Built packages ==="
           ls -lh /home/builder/pkg/*.pkg.tar.zst
 
           echo ""
-          echo "=== Extracting package for verification ==="
-          mkdir -p /tmp/pkg-verify
-          MAIN_PKG=$(ls /home/builder/pkg/millennium-*.pkg.tar.zst | grep -v -- '-debug-')
-          tar -xf "$MAIN_PKG" -C /tmp/pkg-verify
-
-          echo ""
-          echo "=== Verifying required binaries are present ==="
-          REQUIRED=(
-            "usr/lib/millennium/libmillennium_x86.so"
-            "usr/lib/millennium/libmillennium_hhx64.so"
-            "usr/lib/millennium/libmillennium_bootstrap_x86.so"
-            "usr/lib/millennium/libmillennium_luavm_x86"
-            "usr/lib/millennium/libmillennium_bootstrap_hhx64.so"
-            "usr/lib/millennium/libmillennium_pvs64"
-            "usr/lib/millennium/libmillennium_x64.so"
-            "usr/lib/millennium/libmillennium_luavm_x64"
-            "usr/lib/millennium/libmillennium_bootstrap_x64.so"
-          )
-          MISSING=0
-          for f in "${REQUIRED[@]}"; do
-            if [ -f "/tmp/pkg-verify/$f" ]; then
-              echo "  FOUND:   $f"
-            else
-              echo "  MISSING: $f"
-              MISSING=1
+          echo "=== Extracting packages for verification ==="
+          shopt -s nullglob
+          for package in millennium millennium-x86; do
+            archives=(/home/builder/pkg/"$package"-[0-9]*.pkg.tar.zst)
+            if [ "${#archives[@]}" -ne 1 ]; then
+              echo "ERROR: expected exactly one archive for $package, found ${#archives[@]}"
+              exit 1
             fi
+            mkdir -p "/tmp/pkg-verify/$package"
+            tar -xf "${archives[0]}" -C "/tmp/pkg-verify/$package"
+            test -f "/tmp/pkg-verify/$package/usr/share/licenses/$package/LICENSE.md"
           done
-          [ $MISSING -eq 0 ] || { echo "ERROR: one or more required binaries missing from package"; exit 1; }
 
           echo ""
-          echo "=== Verifying binary architectures ==="
+          echo "=== Verifying required binaries and architectures ==="
           check_arch() {
-            local path="$1" bits="$2"
+            local package="$1" name="$2" bits="$3"
+            local path="/tmp/pkg-verify/$package/usr/lib/millennium/$name"
             local info
-            info=$(file "/tmp/pkg-verify/$path")
+            if [ ! -f "$path" ]; then
+              echo "  MISSING: $package/$name"
+              return 1
+            fi
+            info=$(file "$path")
             if echo "$info" | grep -q "ELF ${bits}-bit"; then
-              echo "  OK  (${bits}-bit ELF): $path"
+              echo "  OK  (${bits}-bit ELF): $package/$name"
             else
-              echo "  FAIL (expected ${bits}-bit ELF): $path"
+              echo "  FAIL (expected ${bits}-bit ELF): $package/$name"
               echo "       got: $info"
               return 1
             fi
           }
           ARCH_FAIL=0
-          check_arch "usr/lib/millennium/libmillennium_x86.so"             32 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_bootstrap_x86.so"   32 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_luavm_x86"          32 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_hhx64.so"           64 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_bootstrap_hhx64.so" 64 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_pvs64"              64 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_x64.so"             64 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_luavm_x64"          64 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_bootstrap_x64.so"   64 || ARCH_FAIL=1
+          check_arch millennium-x86 libmillennium_x86.so             32 || ARCH_FAIL=1
+          check_arch millennium-x86 libmillennium_bootstrap_x86.so   32 || ARCH_FAIL=1
+          check_arch millennium-x86 libmillennium_luavm_x86          32 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_hhx64.so           64 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_bootstrap_hhx64.so 64 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_pvs64              64 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_x64.so             64 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_luavm_x64          64 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_bootstrap_x64.so   64 || ARCH_FAIL=1
           [ $ARCH_FAIL -eq 0 ] || { echo "ERROR: binary architecture mismatch"; exit 1; }
 
   release:

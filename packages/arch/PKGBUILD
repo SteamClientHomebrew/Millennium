@@ -36,7 +36,7 @@ makedepends=(
 )
 provides=("${_pkgname}=${pkgver}")
 install=millennium.install
-source=("git+${url}.git#commit=3858d60a2081f612739f07386ceac9b79f68274b")
+source=("git+$url.git#commit=3858d60a2081f612739f07386ceac9b79f68274b")
 sha256sums=('SKIP')
 
 build() {
@@ -53,7 +53,6 @@ _install_millennium_variant() {
     install -Dm755 "${_build_dir}/lib${_pkgname}_${_arch}.so"           -t "${pkgdir}/usr/lib/${_pkgname}/"
     install -Dm755 "${_build_dir}/lib${_pkgname}_bootstrap_${_arch}.so" -t "${pkgdir}/usr/lib/${_pkgname}/"
     install -Dm755 "${_build_dir}/lib${_pkgname}_luavm_${_arch}"        -t "${pkgdir}/usr/lib/${_pkgname}/"
-    install -Dm755 "build/lib${_pkgname}_pvs64"                         -t "${pkgdir}/usr/lib/${_pkgname}/"
     install -Dm644 'LICENSE.md'                                         -t "${pkgdir}/usr/share/licenses/${pkgname}/"
 }
 
@@ -67,9 +66,14 @@ package_millennium() {
 
     install -Dm755 "build/lib${_pkgname}_hhx64.so"           -t "${pkgdir}/usr/lib/${_pkgname}/"
     install -Dm755 "build/lib${_pkgname}_bootstrap_hhx64.so" -t "${pkgdir}/usr/lib/${_pkgname}/"
+    install -Dm755 "build/lib${_pkgname}_pvs64"              -t "${pkgdir}/usr/lib/${_pkgname}/"
 }
 
 package_millennium-x86() {
+    depends+=("${_pkgname}=${pkgver}")
+    provides=()
+    install=''
+
     cd "${srcdir}/${_Pkgname}"
 
     _arch="x86"
