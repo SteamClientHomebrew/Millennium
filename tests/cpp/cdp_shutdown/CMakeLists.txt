@@ -22,7 +22,7 @@ target_include_directories(millennium_cdp_shutdown_test BEFORE PRIVATE
 )
 target_link_libraries(millennium_cdp_shutdown_test PRIVATE Threads::Threads nlohmann_json::nlohmann_json)
 
-foreach(_mode callback pending concurrent)
+foreach(_mode callback pending concurrent responses lifecycle detach error-race blocked races queued)
   add_test(NAME cdp_shutdown_${_mode} COMMAND millennium_cdp_shutdown_test ${_mode})
   set_tests_properties(cdp_shutdown_${_mode} PROPERTIES TIMEOUT 10)
 endforeach()

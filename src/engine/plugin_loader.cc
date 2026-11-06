@@ -203,7 +203,7 @@ void plugin_loader::init_devtools()
     constexpr auto targetFrame = "SharedJSContext";
     int attempts = 0;
 
-    while (true) {
+    while (m_cdp->is_active()) {
         auto targets = m_cdp->send_host("Target.getTargets").get();
 
         if (targets.contains("targetInfos") && targets["targetInfos"].is_array() && !targets["targetInfos"].empty()) {
@@ -221,9 +221,16 @@ void plugin_loader::init_devtools()
                     { "flatten",  true     }
                 };
 
-                auto result = m_cdp->send_host("Target.attachToTarget", attach_params).get();
-                /** set the session ID of the SharedJSContext */
-                m_cdp->set_shared_js_session_id(result.at("sessionId").get<std::string>());
+                try {
+                    auto result = m_cdp->send_host("Target.attachToTarget", attach_params).get();
+                    if (!result.contains("sessionId") || !result["sessionId"].is_string()) {
+                        throw std::runtime_error("SharedJSContext attach response missing sessionId");
+                    }
+                    /** set the session ID of the SharedJSContext */
+                    m_cdp->set_shared_js_session_id(result.at("sessionId").get<std::string>());
+                } catch (const cdp_cancelled&) {
+                    return;
+                }
 
                 break;
             }
@@ -236,6 +243,7 @@ void plugin_loader::init_devtools()
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
 
+    if (!m_cdp->is_active() || m_cdp->get_shared_js_session_id().empty()) return;
     m_thread_pool->enqueue([this]()
     {
         logger.log("Connected to SharedJSContext in {} ms", duration_cast<milliseconds>(system_clock::now() - m_socket_con_time).count());
@@ -364,28 +372,31 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
         return;
     }
 
+    const std::string shared_session = cdp->get_shared_js_session_id();
+    if (!cdp->is_session_active(shared_session)) return;
+
     /**
      * add the initial binding for the shared js context.
      * the rest is handled by the ffi_binder.
      */
-    const auto insert_ipc = std::make_shared<std::function<void()>>([self, cdp]()
+    const auto insert_ipc = std::make_shared<std::function<void()>>([self, cdp, shared_session]()
     {
-        cdp->send("Runtime.enable").get();
+        cdp->send_host("Runtime.enable", json::object(), shared_session).get();
 
         const json add_binding_params = {
             { "name", ffi_constants::binding_name }
         };
-        cdp->send("Runtime.addBinding", add_binding_params).get();
+        cdp->send_host("Runtime.addBinding", add_binding_params, shared_session).get();
 
         const json add_extension_binding_params = {
             { "name", ffi_constants::extension_binding_name }
         };
-        cdp->send("Runtime.addBinding", add_extension_binding_params).get();
+        cdp->send_host("Runtime.addBinding", add_extension_binding_params, shared_session).get();
 
         const json add_cdp_proxy_params = {
             { "name", ffi_constants::cdp_proxy_binding_name }
         };
-        cdp->send("Runtime.addBinding", add_cdp_proxy_params).get();
+        cdp->send_host("Runtime.addBinding", add_cdp_proxy_params, shared_session).get();
 
         logger.log("Frontend notifier finished!");
     });
@@ -396,17 +407,17 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
      * whatever document is current when it's called - i.e. after any pending reload
      * below has actually finished, never before it.
      */
-    const auto create_isolated_worlds = std::make_shared<std::function<void()>>([self, cdp]()
+    const auto create_isolated_worlds = std::make_shared<std::function<void()>>([self, cdp, shared_session]()
     {
         const std::string isolated_ctx_script = get_cdp_isolated_ctx_script();
-        const std::string shared_js_session = cdp->get_shared_js_session_id();
+        const std::string shared_js_session = shared_session;
 
         if (isolated_ctx_script.empty()) return;
 
         const auto plugins = self->m_plugin_manager->get_enabled_plugins();
         for (const auto& plugin : plugins) {
             try {
-                auto frame_result = cdp->send("Page.getFrameTree").get();
+                auto frame_result = cdp->send_host("Page.getFrameTree", json::object(), shared_session).get();
                 const std::string frame_id = frame_result["frameTree"]["frame"]["id"].get<std::string>();
 
                 const json create_world_params = {
@@ -414,20 +425,22 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
                     { "worldName", std::format("millennium-{}", plugin.plugin_name) },
                     { "grantUniversalAccess", false }
                 };
-                auto world_result = cdp->send("Page.createIsolatedWorld", create_world_params).get();
+                auto world_result = cdp->send_host("Page.createIsolatedWorld", create_world_params, shared_session).get();
                 const int ctx_id = world_result["executionContextId"].get<int>();
 
                 const json eval_params = {
                     { "expression", isolated_ctx_script },
                     { "contextId",  ctx_id              }
                 };
-                cdp->send("Runtime.evaluate", eval_params).get();
+                cdp->send_host("Runtime.evaluate", eval_params, shared_session).get();
 
                 if (self->m_ffi_binder) {
                     self->m_ffi_binder->register_isolated_ctx(plugin.plugin_name, ctx_id, shared_js_session);
                 }
 
                 logger.log("Created isolated CDP world for plugin '{}' (ctx {})", plugin.plugin_name, ctx_id);
+            } catch (const cdp_cancelled&) {
+                return;
             } catch (const std::exception& e) {
                 LOG_ERROR("Failed to create isolated world for plugin '{}': {}", plugin.plugin_name, e.what());
             }
@@ -440,7 +453,7 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
      * or the existing one otherwise. Isolated worlds must never be created before a pending
      * reload actually completes, since chromium destroys them on navigation.
      */
-    const auto reload = std::make_shared<std::function<void()>>([reload_frontend, self, cdp, create_isolated_worlds]()
+    const auto reload = std::make_shared<std::function<void()>>([reload_frontend, self, cdp, shared_session, create_isolated_worlds]()
     {
         json reload_params = {
             { "ignoreCache", true }
@@ -454,17 +467,15 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
             self->m_skip_next_inject_reload.store(true, std::memory_order_release);
 
             try {
-                json result;
-                do {
-                    result = cdp->send("Page.reload", reload_params).get();
-                }
-                /** empty means it was successful */
-                while (!result.empty());
-            } catch (...) {
+                cdp->send_host("Page.reload", reload_params, shared_session).get();
+            } catch (const cdp_cancelled&) {
                 /* CDP died before/during reload — clear the flag so the next genuine
                    reconnect still gets its own reload rather than silently skipping it. */
                 self->m_skip_next_inject_reload.store(false, std::memory_order_release);
                 return;
+            } catch (const std::exception&) {
+                self->m_skip_next_inject_reload.store(false, std::memory_order_release);
+                throw;
             }
         }
 
@@ -474,9 +485,9 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
     /**
      * tell chromium to run Millennium's frontend every time a new document is loaded.
      */
-    const auto insert_millennium = std::make_shared<std::function<void()>>([self, cdp]()
+    const auto insert_millennium = std::make_shared<std::function<void()>>([self, cdp, shared_session]()
     {
-        cdp->send("Page.enable").get();
+        cdp->send_host("Page.enable", json::object(), shared_session).get();
 
         if (!self->document_script_id.empty()) {
             const json params = {
@@ -484,7 +495,9 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
             };
 
             try {
-                cdp->send("Page.removeScriptToEvaluateOnNewDocument", params).get();
+                cdp->send_host("Page.removeScriptToEvaluateOnNewDocument", params, shared_session).get();
+            } catch (const cdp_cancelled&) {
+                throw;
             } catch (const std::exception& e) {
                 LOG_ERROR("Page.removeScriptToEvaluateOnNewDocument failed (stale identifier?): {}", e.what());
             }
@@ -495,26 +508,11 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
             { "source", self->cdp_generate_shim_module() }
         };
 
-        constexpr int max_retries = 3;
-        for (int attempt = 0; attempt < max_retries; ++attempt) {
-            try {
-                auto result = cdp->send("Page.addScriptToEvaluateOnNewDocument", params).get();
-
-                if (!result.contains("identifier") || !result["identifier"].is_string()) {
-                    LOG_ERROR("Page.addScriptToEvaluateOnNewDocument returned unexpected result: {}", result.dump());
-                    continue;
-                }
-
-                self->document_script_id = result["identifier"].get<std::string>();
-                return;
-            } catch (const std::exception& e) {
-                LOG_ERROR("Page.addScriptToEvaluateOnNewDocument failed (attempt {}/{}): {}", attempt + 1, max_retries, e.what());
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        auto result = cdp->send_host("Page.addScriptToEvaluateOnNewDocument", params, shared_session).get();
+        if (!result.contains("identifier") || !result["identifier"].is_string()) {
+            throw std::runtime_error("Page.addScriptToEvaluateOnNewDocument response missing identifier");
         }
-
-        LOG_ERROR("Failed to register SDK script after {} attempts — frontend will not load", max_retries);
+        self->document_script_id = result["identifier"].get<std::string>();
     });
 
     /**
@@ -529,9 +527,13 @@ void plugin_loader::inject_frontend_shims(bool reload_frontend)
             logger.log("Notifying frontend of backend load...");
             self->m_backend_initializer->compat_restore_shared_js_context();
 
-            (*insert_ipc)();
-            (*insert_millennium)();
-            (*reload)();
+            try {
+                (*insert_ipc)();
+                (*insert_millennium)();
+                (*reload)();
+            } catch (const cdp_cancelled&) {
+                return;
+            }
         });
     });
 }
