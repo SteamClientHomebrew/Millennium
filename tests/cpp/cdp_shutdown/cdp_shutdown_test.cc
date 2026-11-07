@@ -146,6 +146,15 @@ struct fixture
         response.get();
     }
 
+    void drain_callbacks()
+    {
+        auto drained = std::make_shared<std::barrier<>>(5);
+        const int token = client.on("Test.drain", [drained](const json&) { drained->arrive_and_wait(); });
+        for (int i = 0; i < 4; ++i) event("Test.drain", {});
+        drained->arrive_and_wait();
+        client.off(token);
+    }
+
     void attach(const std::string& target, const std::string& session, const std::string& parent = "")
     {
         auto response = client.send_host("Target.attachToTarget", {{"targetId", target}, {"flatten", true}}, parent.empty() ? std::nullopt : std::optional<std::string>(parent));
@@ -348,6 +357,87 @@ static void detached_sessions()
     f.client.off_all("Target.detachedFromTarget");
 }
 
+static void lifecycle_command_responses()
+{
+    for (bool detach : {false, true}) {
+        for (bool parent_owned : {false, true}) {
+            for (bool event_first : {false, true}) {
+                for (bool protocol_error : {false, true}) {
+                    fixture f;
+                    f.attach("parent-target", "parent");
+                    f.attach("child-target", "child", "parent");
+                    const std::string method = detach ? "Target.detachFromTarget" : "Target.closeTarget";
+                    const json params = detach ? json{{"sessionId", "child"}} : json{{"targetId", "child-target"}};
+                    const auto owner = parent_owned ? std::optional<std::string>("parent") : std::nullopt;
+                    auto child_work = f.client.send_host("Runtime.evaluate", {}, "child");
+                    auto response = f.client.send_host(method, params, owner);
+                    const int id = f.last_id();
+                    const json expected = detach ? json::object() : json{{"success", true}};
+                    const auto close_operand = [&]
+                    {
+                        if (detach) f.event("Target.detachedFromTarget", {{"sessionId", "child"}}, "parent");
+                        else f.event("Target.targetDestroyed", {{"targetId", "child-target"}});
+                        f.sync();
+                    };
+                    const auto reply = [&]
+                    {
+                        if (protocol_error) f.client.handle_message(json{{"id", id}, {"error", {{"code", -32000}, {"message", "Lifecycle command rejected"}}}}.dump());
+                        else f.result(id, expected);
+                        f.sync();
+                    };
+                    if (event_first) {
+                        close_operand();
+                        require(response.wait_for(0ms) != std::future_status::ready, "Operand closure settled its surviving caller's request before the real reply");
+                        reply();
+                    } else {
+                        reply();
+                        close_operand();
+                    }
+                    require_cancelled(child_work, "child-target", "child");
+                    require(response.wait_for(1s) == std::future_status::ready, "Lifecycle command reply stalled");
+                    if (protocol_error) {
+                        try {
+                            response.get();
+                            throw std::logic_error("Lifecycle protocol error became success");
+                        } catch (const cdp_cancelled&) {
+                            throw std::runtime_error("Operand closure replaced a real protocol error with cancellation");
+                        } catch (const cdp_protocol_error& error) {
+                            require(error.code == -32000 && error.method == method && std::string(error.what()) == "Lifecycle command rejected", "Lifecycle protocol details changed");
+                        }
+                    } else {
+                        require(response.get() == expected, "Lifecycle command result changed");
+                    }
+                    require(f.client.is_active() && f.client.is_session_active("parent"), "Operand closure killed its caller");
+                    auto parent_work = f.client.send_host("Runtime.evaluate", {}, "parent");
+                    f.result(f.last_id(), {{"alive", true}});
+                    require(parent_work.wait_for(1s) == std::future_status::ready && parent_work.get().at("alive") == true, "Surviving caller stopped resolving work");
+                }
+            }
+        }
+        for (bool closes_itself : {false, true}) {
+            fixture f;
+            f.attach("parent-target", "parent");
+            f.attach("child-target", "child", "parent");
+            const std::string method = detach ? "Target.detachFromTarget" : "Target.closeTarget";
+            const std::string operand_session = closes_itself ? "parent" : "child";
+            const std::string operand_target = closes_itself ? "parent-target" : "child-target";
+            auto response = f.client.send_host(method, detach ? json{{"sessionId", operand_session}} : json{{"targetId", operand_target}}, "parent");
+            const int id = f.last_id();
+            f.event("Target.targetDestroyed", {{"targetId", "parent-target"}});
+            require(response.wait_for(1s) == std::future_status::ready, "Actual execution owner closure left lifecycle command pending");
+            try {
+                response.get();
+                throw std::logic_error("Actual execution owner closure did not cancel lifecycle command");
+            } catch (const cdp_cancelled& error) {
+                require(error.method == method, "Owner cancellation lost command method");
+            }
+            f.result(id, detach ? json::object() : json{{"success", true}});
+            f.sync();
+            require(!f.client.is_session_active("parent") && !f.client.is_session_active("child"), "Execution owner closure did not invalidate descendants");
+        }
+    }
+}
+
 static void error_before_event()
 {
     fixture f;
@@ -411,9 +501,67 @@ static void blocked_callbacks()
     f.event("Runtime.executionContextCreated", {{"context", {{"id", 7}}}}, "closing-session");
     f.event("Target.targetDestroyed", {{"targetId", "closing"}});
     f.sync();
-    f.client.shutdown();
+    f.drain_callbacks();
     require(cancelled == 4, "Lifecycle processing depended on a free callback worker");
     require(stale == 0, "Known-stale queued callback ran");
+    require(f.client.is_active(), "Callback filtering was only checked after shutdown");
+    f.client.shutdown();
+}
+
+static void queued_context_cleanup()
+{
+    fixture f;
+    f.attach("closing", "closing-session");
+    f.attach("healthy", "healthy-session");
+    std::promise<void> release;
+    auto released = release.get_future().share();
+    std::array<std::promise<void>, 4> started;
+    std::array<std::future<void>, 4> starts;
+    for (size_t i = 0; i < starts.size(); ++i) starts[i] = started[i].get_future();
+    std::atomic<int> next{0};
+    std::atomic<int> stale{0};
+    std::atomic<int> healthy{0};
+    std::atomic<int> destroyed{0};
+    f.client.on("Test.block", [&](const json&)
+    {
+        started[next.fetch_add(1)].set_value();
+        released.wait();
+    });
+    const auto work = [&](const json& params)
+    {
+        if (params.at("sessionId") == "closing-session") ++stale;
+        else if (params.at("sessionId") == "healthy-session") ++healthy;
+    };
+    f.client.on("Runtime.executionContextCreated", work);
+    f.client.on("Runtime.bindingCalled", work);
+    f.client.on("Runtime.executionContextDestroyed", [&](const json& params)
+    {
+        require(params.at("sessionId") == "closing-session" && params.at("executionContextId") == 7, "Cleanup event lost context identity");
+        require(!f.client.is_session_active("closing-session"), "Cleanup ran before session closure");
+        ++destroyed;
+    });
+    for (int i = 0; i < 4; ++i) f.event("Test.block", {});
+    bool blocked = true;
+    for (auto& start : starts) blocked &= start.wait_for(1s) == std::future_status::ready;
+    if (!blocked) release.set_value();
+    require(blocked, "Callback workers did not block for queued cleanup");
+    f.event("Runtime.executionContextCreated", {{"context", {{"id", 7}}}}, "closing-session");
+    f.event("Runtime.bindingCalled", {{"name", "stale"}}, "closing-session");
+    f.event("Runtime.executionContextDestroyed", {{"executionContextId", 7}}, "closing-session");
+    f.event("Runtime.executionContextCreated", {{"context", {{"id", 8}}}}, "healthy-session");
+    f.event("Runtime.bindingCalled", {{"name", "healthy"}}, "healthy-session");
+    f.event("Target.targetDestroyed", {{"targetId", "closing"}});
+    f.sync();
+    release.set_value();
+    f.drain_callbacks();
+    require(destroyed == 1, "Queued context destruction cleanup was dropped after session closure");
+    require(stale == 0, "Queued stale creation or binding work ran after session closure");
+    require(healthy == 2 && f.client.is_session_active("healthy-session"), "Healthy session callbacks were suppressed");
+    require(f.errors == 0 && f.client.is_active(), "Callback cleanup failed or was checked after shutdown");
+    auto response = f.client.send_host("Runtime.evaluate", {}, "healthy-session");
+    f.result(f.last_id(), {{"alive", true}});
+    require(response.wait_for(1s) == std::future_status::ready && response.get().at("alive") == true, "Healthy session stopped resolving work");
+    f.client.shutdown();
 }
 
 static void completion_races()
@@ -571,7 +719,9 @@ int main(int argc, char** argv)
         else if (mode == "responses") command_responses();
         else if (mode == "lifecycle") lifecycle_closure();
         else if (mode == "detach") detached_sessions();
+        else if (mode == "lifecycle-commands") lifecycle_command_responses();
         else if (mode == "error-race") error_before_event();
+        else if (mode == "context-cleanup") queued_context_cleanup();
         else if (mode == "blocked") blocked_callbacks();
         else if (mode == "races") completion_races();
         else if (mode == "queued") queued_transport();

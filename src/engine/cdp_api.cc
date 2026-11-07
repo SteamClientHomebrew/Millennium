@@ -164,9 +164,10 @@ void cdp_client::fail_request(const std::shared_ptr<async_request>& request, std
 
 bool cdp_client::owner_closed_locked(const async_request& request) const
 {
-    return (!request.target_id.empty() && m_closed_targets.count(request.target_id)) ||
-           (!request.session_id.empty() && m_closed_sessions.count(request.session_id)) ||
-           (!request.child_session_id.empty() && m_closed_sessions.count(request.child_session_id));
+    const bool tears_down_operand = request.method == "Target.closeTarget" || request.method == "Target.detachFromTarget";
+    return (!request.session_id.empty() && m_closed_sessions.count(request.session_id)) ||
+           (!tears_down_operand && ((!request.target_id.empty() && m_closed_targets.count(request.target_id)) ||
+                                    (!request.child_session_id.empty() && m_closed_sessions.count(request.child_session_id))));
 }
 
 std::exception_ptr cdp_client::cancellation_locked(const async_request& request, const std::string& reason, std::optional<int> code) const
@@ -531,7 +532,7 @@ void cdp_client::process_message(const std::string& payload)
                 m_callback_pool->enqueue([this, callback, params, session, method]()
                 {
                     try {
-                        if (!session.empty() && method.rfind("Target.", 0) != 0 && !is_session_active(session)) return;
+                        if (!session.empty() && method.rfind("Target.", 0) != 0 && method != "Runtime.executionContextDestroyed" && !is_session_active(session)) return;
                         (*callback)(params);
                     } catch (const cdp_cancelled&) {
                         return;

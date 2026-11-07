@@ -57,6 +57,8 @@ _install_millennium_variant() {
 }
 
 package_millennium() {
+    optdepends=("${_pkgname}-x86: Required for legacy 32-bit Steam clients")
+
     cd "${srcdir}/${_Pkgname}"
 
     _arch="x64"
