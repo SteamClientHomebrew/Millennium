@@ -147,6 +147,7 @@ static std::vector<uint8_t> build_patch_list_payload()
 struct LoopbackConn
 {
     std::atomic<bool> alive{ true };
+    std::atomic<bool> ready{ false };
     std::mutex write_mu;
     fd_t write_fd = INVALID_FD;
     fd_t read_fd = INVALID_FD;
@@ -234,26 +235,35 @@ void register_loopback_conn(fd_t write_fd, fd_t read_fd)
     conn->write_fd = write_fd;
     conn->read_fd = read_fd;
 
-    auto payload = build_patch_list_payload();
-    if (!conn_write_frame(*conn, payload)) {
-        logger.warn("loopback IPC: initial patch list write failed, dropping connection");
-        close_fd(write_fd);
-        close_fd(read_fd);
-        return;
-    }
-
-    conn->notifier_id = patch_update_notifier::instance().add_listener([conn]()
-    {
-        if (!conn->alive.load()) return;
-        auto p = build_patch_list_payload();
-        if (!conn_write_frame(*conn, p)) {
-            conn->alive.store(false);
-            conn_close_write(*conn);
-        }
-    });
-
+    /**
+     * The first frame is written from the connection's own thread: on Windows this runs inside the
+     * CreateProcess hook, before the webhelper exists to read the pipe, so a patch list bigger than
+     * the pipe buffer (~4 KB) would block the hook and Steam would never start (#947).
+     */
     std::thread([conn = std::move(conn)]() mutable
     {
+        conn->notifier_id = patch_update_notifier::instance().add_listener([conn]()
+        {
+            if (!conn->alive.load() || !conn->ready.load()) return;
+            if (!conn_write_frame(*conn, build_patch_list_payload())) {
+                conn->alive.store(false);
+                conn_close_write(*conn);
+            }
+        });
+
+        bool delivered = conn_write_frame(*conn, build_patch_list_payload());
+        conn->ready.store(true);
+        delivered = delivered && conn_write_frame(*conn, build_patch_list_payload());
+
+        if (!delivered) {
+            logger.warn("loopback IPC: initial patch list write failed, dropping connection");
+            conn->alive.store(false);
+            patch_update_notifier::instance().remove_listener(conn->notifier_id);
+            conn_close_write(*conn);
+            close_fd(conn->read_fd);
+            return;
+        }
+
         reader_loop(std::move(conn));
     }).detach();
 }

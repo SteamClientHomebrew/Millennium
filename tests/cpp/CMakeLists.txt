@@ -1,5 +1,6 @@
 set(TEST_SOURCES
   ffi_recorder_test.cc
+  test_encoding.cc
   test_target_url.cc
   ${CMAKE_SOURCE_DIR}/src/mep/ffi_recorder.cc
   ${CMAKE_SOURCE_DIR}/src/engine/target_url.cc
@@ -17,6 +18,18 @@ target_link_libraries(millennium_cpp_tests PRIVATE Catch2::Catch2WithMain libcur
 
 include(Catch)
 catch_discover_tests(millennium_cpp_tests)
+
+add_subdirectory(cdp_shutdown)
+
+if(UNIX)
+  add_subdirectory(posix_lifecycle)
+  add_subdirectory(logger_concurrency)
+  add_subdirectory(child_shutdown)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND (MILLENNIUM_LINUX_X64 OR MILLENNIUM_NIX_64BIT))
+  add_subdirectory(linux_rt3)
+endif()
 
 add_executable(sdk_health sdk_health.cc)
 target_compile_features(sdk_health PRIVATE cxx_std_17)

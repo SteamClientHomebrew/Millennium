@@ -37,8 +37,10 @@ namespace mep
 {
 console_capture& console_capture::instance()
 {
-    static console_capture inst;
-    return inst;
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
+    static console_capture* inst = new console_capture();
+    return *inst;
 }
 
 void console_capture::start(std::shared_ptr<cdp_client> cdp, std::shared_ptr<plugin_manager> pm)

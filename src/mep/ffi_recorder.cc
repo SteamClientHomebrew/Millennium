@@ -35,8 +35,10 @@ namespace mep
 {
 ffi_recorder& ffi_recorder::instance()
 {
-    static ffi_recorder inst;
-    return inst;
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
+    static ffi_recorder* inst = new ffi_recorder();
+    return *inst;
 }
 
 void ffi_recorder::record(ffi_call_entry entry)

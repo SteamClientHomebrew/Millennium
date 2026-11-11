@@ -39,7 +39,21 @@
 #include "millennium/http.h"
 #include "millennium/environment.h"
 #include "millennium/encoding.h"
+#include "millennium/star_parser.h"
 #include "millennium/zip.h"
+
+namespace
+{
+bool looks_like_zip(const std::filesystem::path& path)
+{
+    std::ifstream f(path, std::ios::binary);
+    if (!f) return false;
+
+    char magic[2] = {};
+    f.read(magic, sizeof(magic));
+    return f.gcount() == sizeof(magic) && magic[0] == 'P' && magic[1] == 'K';
+}
+} // namespace
 
 head::plugin_installer::plugin_installer(std::weak_ptr<millennium_backend> millennium_backend, std::shared_ptr<::plugin_manager> plugin_mgr,
                                          std::shared_ptr<library_updater> updater)
@@ -93,7 +107,7 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
         const auto downloadPath = get_plugins_path();
         std::filesystem::create_directories(downloadPath);
         std::string uuidStr = GenerateUUID();
-        std::filesystem::path zipPath = downloadPath / (uuidStr + ".zip");
+        std::filesystem::path downloadedFile = downloadPath / uuidStr;
 
         auto progressCallback = [&](size_t downloaded, size_t)
         {
@@ -101,21 +115,38 @@ nlohmann::json head::plugin_installer::install_plugin(const std::string& downloa
             m_updater->dispatch_progress("##strDownloadingPluginArchive", 50.0 * (percent / 100.0), false);
         };
 
-        Http::DownloadWithProgress({ downloadUrl, totalSize }, zipPath, progressCallback);
+        Http::DownloadWithProgress({ downloadUrl, totalSize }, downloadedFile, progressCallback);
         m_updater->dispatch_progress("##strSettingUpPlugin", 50, false);
-        const bool extracted = Util::ExtractZipArchive(zipPath.string(), downloadPath.string(), [&](int current, int total, const char*)
+
+        if (!looks_like_zip(downloadedFile)) {
+            auto plugin = parse_star_file(downloadedFile);
+            if (!plugin) {
+                std::filesystem::remove(downloadedFile);
+                throw std::runtime_error("Downloaded file is not a valid plugin archive");
+            }
+
+            std::filesystem::path starPath = downloadPath / (plugin->plugin_json.value("name", std::string{}) + ".star");
+            std::filesystem::rename(downloadedFile, starPath);
+
+            m_updater->dispatch_progress("##strDone", 100, true);
+            return {
+                { "success", true }
+            };
+        }
+
+        const bool extracted = Util::ExtractZipArchive(downloadedFile.string(), downloadPath.string(), [&](int current, int total, const char*)
         {
             double percent = (double(current) / total) * 100.0;
             m_updater->dispatch_progress("##strExtractingPluginArchive", 50.0 + (45.0 * (percent / 100.0)), false);
         });
 
         if (!extracted) {
-            std::filesystem::remove(zipPath);
+            std::filesystem::remove(downloadedFile);
             throw std::runtime_error("Failed to extract plugin archive");
         }
 
         m_updater->dispatch_progress("##strCleaningUp", 95, false);
-        std::filesystem::remove(zipPath);
+        std::filesystem::remove(downloadedFile);
         m_updater->dispatch_progress("##strDone", 100, true);
 
         return {
@@ -171,8 +202,77 @@ std::vector<nlohmann::json> head::plugin_installer::get_plugin_data()
     return pluginData;
 }
 
+std::optional<nlohmann::json> head::plugin_installer::read_star_plugin_metadata(const std::filesystem::path& starPath)
+{
+    auto plugin = parse_star_file(starPath);
+    if (!plugin) return std::nullopt;
+
+    return nlohmann::json{
+        { "id",     plugin->plugin_json.value("name", std::string{})         },
+        { "commit", plugin->plugin_json.value("sourceCommit", std::string{}) },
+        { "name",   starPath.stem().string()                                 }
+    };
+}
+
+std::vector<nlohmann::json> head::plugin_installer::get_star_plugin_data()
+{
+    std::vector<nlohmann::json> pluginData;
+    const auto pluginsPath = get_plugins_path();
+    if (!std::filesystem::exists(pluginsPath)) return pluginData;
+
+    for (const auto& entry : std::filesystem::directory_iterator(pluginsPath)) {
+        if (!entry.is_regular_file() || entry.path().extension() != ".star") continue;
+
+        auto metadata = read_star_plugin_metadata(entry.path());
+        if (metadata) pluginData.push_back(*metadata);
+    }
+    return pluginData;
+}
+
+bool head::plugin_installer::update_star_plugin(const std::string& id, const std::string& name, [[maybe_unused]] const std::string& commit, const std::filesystem::path& starPath)
+{
+    try {
+        std::string url = "https://steambrew.app/api/v1/plugins/download?id=" + id + "&n=" + name + ".star";
+        logger.log("Starting star plugin update for '{}'. Download URL: {}", name, url);
+
+        std::filesystem::path tempFile = get_plugins_path() / ("__tmp_" + GenerateUUID() + ".star");
+
+        m_updater->dispatch_progress("##strDownloadingPluginUpdate", 5, false);
+        logger.log("Downloading plugin archive...");
+        Http::DownloadWithProgress({ url, 0 }, tempFile, [&](size_t downloaded, size_t total)
+        {
+            if (total > 0) {
+                double percent = (double(downloaded) / total) * 100.0;
+                m_updater->dispatch_progress("##strDownloadingPluginUpdate", 5.0 + (85.0 * (percent / 100.0)), false);
+            }
+        });
+        logger.log("Download complete for '{}'.", name);
+
+        if (!parse_star_file(tempFile)) {
+            std::filesystem::remove(tempFile);
+            LOG_ERROR("Downloaded update for '{}' is not a valid .star file", name);
+            return false;
+        }
+
+        m_updater->dispatch_progress("##strCleaningUp", 95, false);
+        std::filesystem::rename(tempFile, starPath);
+
+        logger.log("Plugin '{}' updated successfully at '{}'", name, starPath.string());
+        m_updater->dispatch_progress("##strDone", 100, true);
+        return true;
+    } catch (const std::exception& e) {
+        LOG_ERROR("Failed to update star plugin '{}': {}", name, e.what());
+        return false;
+    }
+}
+
 bool head::plugin_installer::update_plugin(const std::string& id, const std::string& name, const std::string& commit)
 {
+    std::filesystem::path starPath = get_plugins_path() / (name + ".star");
+    if (std::filesystem::exists(starPath)) {
+        return update_star_plugin(id, name, commit, starPath);
+    }
+
     std::filesystem::path tempDir;
     try {
         std::string url = "https://steambrew.app/api/v1/plugins/download?id=" + id + "&n=" + name + ".zip";
@@ -272,5 +372,11 @@ bool head::plugin_installer::update_plugin(const std::string& id, const std::str
 nlohmann::json head::plugin_installer::get_updater_request_body()
 {
     auto data = get_plugin_data();
+    return data.empty() ? nlohmann::json::array() : nlohmann::json(data);
+}
+
+nlohmann::json head::plugin_installer::get_star_updater_request_body()
+{
+    auto data = get_star_plugin_data();
     return data.empty() ? nlohmann::json::array() : nlohmann::json(data);
 }

@@ -36,13 +36,14 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
-pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> anyhow::Result<()> {
+pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode, source_commit: Option<&str>) -> anyhow::Result<()> {
     let config_path = dunce::canonicalize(config_path)
         .map_err(|_| anyhow::anyhow!("config not found: {}", config_path.display()))?;
 
     let config_dir = config_path.parent().unwrap().to_path_buf();
     let out_owned = out_path.map(|p| p.to_path_buf());
-    let dev = run_pack(&config_path, out_owned.as_deref(), mode)
+    let source_commit_owned = source_commit.map(|s| s.to_string());
+    let dev = run_pack(&config_path, out_owned.as_deref(), mode, source_commit_owned.as_deref())
         .ok()
         .flatten();
 
@@ -151,7 +152,7 @@ pub fn watch(config_path: &Path, out_path: Option<&Path>, mode: BuildMode) -> an
             }
         }
 
-        match run_pack(&config_path, out_owned.as_deref(), mode) {
+        match run_pack(&config_path, out_owned.as_deref(), mode, source_commit_owned.as_deref()) {
             Err(()) => {}
             Ok(new_dev) => {
                 let effective_dev = new_dev.as_ref().or(dev.as_ref());
@@ -190,9 +191,10 @@ fn stop(
 fn run_pack(
     config_path: &Path,
     out_path: Option<&Path>,
-    mode: BuildMode
+    mode: BuildMode,
+    source_commit: Option<&str>,
 ) -> Result<Option<DevRuntime>, ()> {
-    match crate::pack::pack(config_path, out_path, mode) {
+    match crate::pack::pack(config_path, out_path, mode, source_commit) {
         Ok(dev) => Ok(dev),
         Err(e) => {
             if e.downcast_ref::<crate::bundler::js::BundleCompileError>()

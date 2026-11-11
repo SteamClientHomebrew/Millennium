@@ -504,6 +504,7 @@ std::optional<plugin_manager::plugin_t> parse_star_file(const std::filesystem::p
         { "description", metadata.value("description", std::string{}) },
         { "author", metadata.value("author", std::string{}) },
         { "version", metadata.value("version", std::string{}) },
+        { "sourceCommit", metadata.value("sourceCommit", std::string{}) },
         { "backendType", "lua" },
         { "useBackend", has_backend },
         { "trusted", is_trusted }

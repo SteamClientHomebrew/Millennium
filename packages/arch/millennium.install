@@ -18,31 +18,46 @@ remove_deprecated_patches() {
 
 for_each_steam_user() {
     local callback="$1"
-    getent passwd | while IFS=: read -r _ _ uid _ _ home _; do
+    getent passwd | while IFS=: read -r user _ uid _ _ home _; do
         [ "$uid" -ge 1000 ] || continue
         [ -d "$home/.local/share/Steam" ] || continue
-        "$callback" "$home"
+        "$callback" "$home" "$user"
     done
 }
 
 link_millennium() {
     local home="$1"
+    local user="$2"
     local steam="$home/.local/share/Steam"
 
-    ln -sf /usr/lib/millennium/libmillennium_bootstrap_x86.so   "$steam/ubuntu12_32/libXtst.so.6"
-    ln -sf /usr/lib/millennium/libmillennium_bootstrap_hhx64.so "$steam/ubuntu12_64/libXtst.so.6"
+    if [ -L "$steam/ubuntu12_32/libXtst.so.6" ] && [ ! -e "$steam/ubuntu12_32/libXtst.so.6" ]; then
+        runuser -u "$user" -- rm -f "$steam/ubuntu12_32/libXtst.so.6"
+    fi
+
+    runuser -u "$user" -- ln -sf /usr/lib/millennium/libmillennium_bootstrap_hhx64.so "$steam/ubuntu12_64/libXtst.so.6"
+
+    # SteamRT3 runs the client inside a pressure-vessel container where /usr is not the host's,
+    # so the link has to go through /run/host. Created unconditionally: install hooks run once,
+    # and a user who opts into RT3 later would otherwise have no link at all.
+    runuser -u "$user" -- mkdir -p "$steam/steamrt64"
+    runuser -u "$user" -- ln -sf /run/host/usr/lib/millennium/libmillennium_bootstrap_x64.so "$steam/steamrt64/libXtst.so.6"
 }
 
 unlink_millennium() {
     local home="$1"
+    local user="$2"
     local steam="$home/.local/share/Steam"
 
-    rm -f "$steam/ubuntu12_32/libXtst.so.6"
-    rm -f "$steam/ubuntu12_64/libXtst.so.6"
-    rm -f "$home/.steam/steam/.cef-enable-remote-debugging"
+    runuser -u "$user" -- rm -f "$steam/ubuntu12_64/libXtst.so.6"
+    runuser -u "$user" -- rm -f "$steam/steamrt64/libXtst.so.6"
+    runuser -u "$user" -- rm -f "$home/.steam/steam/.cef-enable-remote-debugging"
 }
 
 post_install() {
+    printf '%s\n' \
+        '==> Millennium defaults to the 64-bit Steam client.' \
+        '==> Legacy 32-bit Steam users must install millennium-x86 explicitly.' \
+        '==> Upgrading millennium alone removes the formerly bundled x86 files; the add-on is not installed automatically.'
     remove_deprecated_patches
     for_each_steam_user link_millennium
 }

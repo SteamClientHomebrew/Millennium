@@ -41,6 +41,7 @@ pub(crate) mod lua_ffi;
 pub(crate) mod mep;
 mod minify;
 mod pack;
+mod sign_cli;
 pub(crate) mod signing;
 pub(crate) mod ts_ffi;
 mod verify;
@@ -74,6 +75,9 @@ struct Cli {
     #[arg(short = 'o', long = "of", value_name = "FILE", global = true)]
     of: Option<PathBuf>,
 
+    #[arg(long = "source-commit", value_name = "SHA", global = true)]
+    source_commit: Option<String>,
+
     #[arg(long = "if", short = 'i', value_name = "FILE")]
     input_file: Option<PathBuf>,
 
@@ -93,6 +97,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     Pack,
+    Sign { file: PathBuf },
     Verify { file: PathBuf },
     Inspect { file: PathBuf },
     Watch,
@@ -125,17 +130,19 @@ fn main() {
     let cfg_path = resolve_config(cli.dir.as_deref(), &cli.config);
 
     let result = match cli.command.unwrap_or(Command::Pack) {
-        Command::Pack => pack::pack(&cfg_path, cli.of.as_deref(), mode).map(|dev| {
+        Command::Pack => pack::pack(&cfg_path, cli.of.as_deref(), mode, cli.source_commit.as_deref()).map(|dev| {
             if let Some(d) = dev {
                 mep::restart_plugin(&d.plugin_name, &d.socket, d.reload_steamui_when.is_active());
             }
         }),
+        Command::Sign { file } => sign_cli::sign(&file),
         Command::Verify { file } => verify::verify(&file),
         Command::Inspect { file } => verify::inspect(&file),
         Command::Watch => watch::watch(
             &cfg_path,
             cli.of.as_deref(),
             if cli.release { BuildMode::Release } else { BuildMode::Debug },
+            cli.source_commit.as_deref(),
         ),
         Command::Lsp => {
             let plugin_dir = cfg_path.parent().unwrap_or(Path::new(".")).to_path_buf();

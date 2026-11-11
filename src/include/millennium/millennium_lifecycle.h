@@ -63,8 +63,10 @@ class millennium_lifecycle
 
     static millennium_lifecycle& get()
     {
-        static millennium_lifecycle instance;
-        return instance;
+        // Bootstrap cleanup may call StopMillennium after static destruction starts.
+        // Keep synchronization primitives alive until the process exits.
+        static millennium_lifecycle* instance = new millennium_lifecycle();
+        return *instance;
     }
 
     gate steam_ui_loaded;

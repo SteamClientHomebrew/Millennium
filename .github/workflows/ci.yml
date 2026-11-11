@@ -176,14 +176,14 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y build-essential gcc-14 g++-14 gcc-14-multilib g++-14-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386
+          sudo apt-get install -y build-essential gcc-14 g++-14 gcc-14-multilib g++-14-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386 libxtst-dev libxi-dev libx11-dev libssl-dev rustc cargo
 
       - name: Install CMake
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: "3.28"
 
-      - name: Build Millennium Backend
+      - name: Build Millennium x86 Backend
         run: |
           export CC=gcc-14
           export CXX=g++-14
@@ -192,7 +192,7 @@ jobs:
           export CMAKE_INCLUDE_PATH="/usr/include/i386-linux-gnu"
           export PKG_CONFIG_LIBDIR="/usr/lib/i386-linux-gnu/pkgconfig"
 
-          cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
+          cmake --preset=linux-release-x86 -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
             -DCMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
             -DCMAKE_INCLUDE_PATH="/usr/include" \
             -DCMAKE_FIND_ROOT_PATH="/usr/lib/i386-linux-gnu" \
@@ -201,15 +201,29 @@ jobs:
             -DPKG_CONFIG_EXECUTABLE="/usr/bin/pkg-config" \
             -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=ON
 
+          cmake --build build32 --config Release -- -j$(nproc)
+
+      - name: Build Millennium x64 Backend
+        run: |
+          export CC=gcc-14
+          export CXX=g++-14
+          export PKG_CONFIG_LIBDIR="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig"
+
+          cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
           cmake --build build --config Release -- -j$(nproc)
 
+      - name: Collect Linux Artifacts
+        run: |
           mkdir -p ~/build/usr/lib/millennium
-          cp build/libmillennium_x86.so ~/build/usr/lib/millennium/
-          cp build/libmillennium_bootstrap_x86.so ~/build/usr/lib/millennium/
-          cp build/libmillennium_bootstrap_hhx64.so ~/build/usr/lib/millennium/
+          cp build32/libmillennium_x86.so ~/build/usr/lib/millennium/
+          cp build32/libmillennium_bootstrap_x86.so ~/build/usr/lib/millennium/
+          cp build32/libmillennium_luavm_x86 ~/build/usr/lib/millennium/
           cp build/libmillennium_hhx64.so ~/build/usr/lib/millennium/
-          cp build/libmillennium_luavm_x86 ~/build/usr/lib/millennium/
+          cp build/libmillennium_bootstrap_hhx64.so ~/build/usr/lib/millennium/
           cp build/libmillennium_pvs64 ~/build/usr/lib/millennium/
+          cp build/libmillennium_x64.so ~/build/usr/lib/millennium/
+          cp build/libmillennium_luavm_x64 ~/build/usr/lib/millennium/
+          cp build/libmillennium_bootstrap_x64.so ~/build/usr/lib/millennium/
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
@@ -250,59 +264,55 @@ jobs:
           su builder -c "git config --global --add safe.directory /home/builder/pkg/src/Millennium"
           su builder -c 'cd /home/builder/pkg && makepkg -s --noconfirm --noextract'
 
-      - name: Verify package
+      - name: Verify packages
+        shell: bash
         run: |
           echo "=== Built packages ==="
           ls -lh /home/builder/pkg/*.pkg.tar.zst
 
           echo ""
-          echo "=== Extracting package for verification ==="
-          mkdir -p /tmp/pkg-verify
-          MAIN_PKG=$(ls /home/builder/pkg/millennium-*.pkg.tar.zst | grep -v -- '-debug-')
-          tar -xf "$MAIN_PKG" -C /tmp/pkg-verify
-
-          echo ""
-          echo "=== Verifying required binaries are present ==="
-          REQUIRED=(
-            "usr/lib/millennium/libmillennium_x86.so"
-            "usr/lib/millennium/libmillennium_hhx64.so"
-            "usr/lib/millennium/libmillennium_bootstrap_x86.so"
-            "usr/lib/millennium/libmillennium_luavm_x86"
-            "usr/lib/millennium/libmillennium_bootstrap_hhx64.so"
-            "usr/lib/millennium/libmillennium_pvs64"
-          )
-          MISSING=0
-          for f in "${REQUIRED[@]}"; do
-            if [ -f "/tmp/pkg-verify/$f" ]; then
-              echo "  FOUND:   $f"
-            else
-              echo "  MISSING: $f"
-              MISSING=1
+          echo "=== Extracting packages for verification ==="
+          shopt -s nullglob
+          for package in millennium millennium-x86; do
+            archives=(/home/builder/pkg/"$package"-[0-9]*.pkg.tar.zst)
+            if [ "${#archives[@]}" -ne 1 ]; then
+              echo "ERROR: expected exactly one archive for $package, found ${#archives[@]}"
+              exit 1
             fi
+            mkdir -p "/tmp/pkg-verify/$package"
+            tar -xf "${archives[0]}" -C "/tmp/pkg-verify/$package"
+            test -f "/tmp/pkg-verify/$package/usr/share/licenses/$package/LICENSE.md"
           done
-          [ $MISSING -eq 0 ] || { echo "ERROR: one or more required binaries missing from package"; exit 1; }
 
           echo ""
-          echo "=== Verifying binary architectures ==="
+          echo "=== Verifying required binaries and architectures ==="
           check_arch() {
-            local path="$1" bits="$2"
+            local package="$1" name="$2" bits="$3"
+            local path="/tmp/pkg-verify/$package/usr/lib/millennium/$name"
             local info
-            info=$(file "/tmp/pkg-verify/$path")
+            if [ ! -f "$path" ]; then
+              echo "  MISSING: $package/$name"
+              return 1
+            fi
+            info=$(file "$path")
             if echo "$info" | grep -q "ELF ${bits}-bit"; then
-              echo "  OK  (${bits}-bit ELF): $path"
+              echo "  OK  (${bits}-bit ELF): $package/$name"
             else
-              echo "  FAIL (expected ${bits}-bit ELF): $path"
+              echo "  FAIL (expected ${bits}-bit ELF): $package/$name"
               echo "       got: $info"
               return 1
             fi
           }
           ARCH_FAIL=0
-          check_arch "usr/lib/millennium/libmillennium_x86.so"             32 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_bootstrap_x86.so"   32 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_luavm_x86"          32 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_hhx64.so"           64 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_bootstrap_hhx64.so" 64 || ARCH_FAIL=1
-          check_arch "usr/lib/millennium/libmillennium_pvs64"              64 || ARCH_FAIL=1
+          check_arch millennium-x86 libmillennium_x86.so             32 || ARCH_FAIL=1
+          check_arch millennium-x86 libmillennium_bootstrap_x86.so   32 || ARCH_FAIL=1
+          check_arch millennium-x86 libmillennium_luavm_x86          32 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_hhx64.so           64 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_bootstrap_hhx64.so 64 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_pvs64              64 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_x64.so             64 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_luavm_x64          64 || ARCH_FAIL=1
+          check_arch millennium     libmillennium_bootstrap_x64.so   64 || ARCH_FAIL=1
           [ $ARCH_FAIL -eq 0 ] || { echo "ERROR: binary architecture mismatch"; exit 1; }
 
   release:
@@ -442,7 +452,9 @@ jobs:
         with:
           pkgname: millennium
           pkgbuild: ./packages/arch/PKGBUILD
-          assets: ./packages/arch/millennium.install
+          assets: |
+            ./packages/arch/millennium.install
+            ./packages/arch/millennium-x86.install
           commit_username: GitHub Actions
           commit_email: github-actions@github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}

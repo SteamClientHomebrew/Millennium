@@ -51,14 +51,6 @@ function ThemeIdModal({ installer, modal, refetchDataCb }: ThemeIdModalProps) {
 			strDescription={
 				<>
 					{locale.themeInstallerDescription} <Utils.URLComponent url={THEMES_URL} />
-					<br />
-					<br />
-					<TextField
-						// @ts-ignore
-						placeholder={locale.strEnterIdPlaceholder}
-						value={installID}
-						onChange={(e) => setInstallID(e.target.value)}
-					/>
 				</>
 			}
 			bHideCloseIcon={true}
@@ -70,7 +62,16 @@ function ThemeIdModal({ installer, modal, refetchDataCb }: ThemeIdModalProps) {
 				modal?.Close();
 			}}
 			strOKButtonText={locale.strDownloadAndInstall}
-		/>
+		>
+			<br />
+			<br />
+			<TextField
+				// @ts-ignore
+				placeholder={locale.strEnterIdPlaceholder}
+				value={installID}
+				onChange={(e) => setInstallID(e.target.value)}
+			/>
+		</ConfirmModal>
 	);
 }
 

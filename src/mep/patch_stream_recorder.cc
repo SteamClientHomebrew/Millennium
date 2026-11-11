@@ -36,8 +36,10 @@ namespace mep
 
 patch_stream_recorder& patch_stream_recorder::instance()
 {
-    static patch_stream_recorder inst;
-    return inst;
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
+    static patch_stream_recorder* inst = new patch_stream_recorder();
+    return *inst;
 }
 
 void patch_stream_recorder::notify(const patch_event& ev)

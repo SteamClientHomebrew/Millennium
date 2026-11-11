@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-import { ConfirmModalProps, ShowModalResult, SingleDropdownOption } from '@steambrew/sdk';
+import { ConfirmModalProps, ShowModalResult } from '@steambrew/sdk';
 
 export interface Patch {
 	MatchRegexString: string;
@@ -130,13 +130,6 @@ export interface ThemeItem {
 	failed: boolean;
 }
 
-/**
- * MultiDropdownOption extended to hold theme data
- */
-export interface ComboItem extends SingleDropdownOption {
-	theme: ThemeItem;
-}
-
 export interface Plugin {
 	common_name?: string;
 	name: string;
@@ -144,7 +137,6 @@ export interface Plugin {
 	version?: string;
 	useBackend?: boolean;
 	backendType?: string;
-	__private_browser_extension?: boolean;
 }
 
 export type PluginStatus = 'running' | 'disabled' | 'crashed';
@@ -219,6 +211,7 @@ export interface PluginUpdateInfo {
 export interface UpdatesResponse {
 	themes?: UpdateItem[] | { error: string };
 	plugins?: PluginUpdateInfo[] | { error: string };
+	starPlugins?: PluginUpdateInfo[] | { error: string };
 }
 
 /** Generic `{success, error/message}` result returned by uninstall/setCondition handlers. */
@@ -305,12 +298,6 @@ export interface ColorProp {
 
 export interface ThemeItemV1 extends Theme {
 	GlobalsColors: ColorProp[];
-}
-
-export enum UpdaterOptionProps {
-	UNSET,
-	YES,
-	NO,
 }
 
 export enum OSType {

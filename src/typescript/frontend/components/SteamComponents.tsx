@@ -64,7 +64,6 @@ export const DesktopTooltip = findModuleDetailsByExport(
 export const createWindowContext = findModuleDetailsByExport(
 	(m) =>
 		m?.toString?.()?.includes('current?.params.bNoInitialShow') &&
-		m?.toString?.()?.includes('current?.params.bNoFocusOnShow') &&
 		m?.toString?.()?.includes('current.m_callbacks'),
 )?.[1];
 

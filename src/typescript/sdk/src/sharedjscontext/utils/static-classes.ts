@@ -1054,7 +1054,7 @@ type MainBrowserClasses = Record<
 >;
 
 /** @component Static Classes */
-export const quickAccessMenuClasses = findClassModule((m) => m.Title && m.QuickAccessMenu && m.BatteryDetailsLabels) as QuickAccessMenuClasses;
+export const quickAccessMenuClasses = findClassModule((m) => m.Title && m.QuickAccessMenu) as QuickAccessMenuClasses;
 /** @component Static Classes */
 export const scrollPanelClasses = findClassModule((m) => m.ScrollPanel) as ScrollPanelClasses;
 /** @component Static Classes */

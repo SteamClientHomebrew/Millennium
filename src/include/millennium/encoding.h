@@ -34,6 +34,7 @@
 #include <sstream>
 #include <iomanip>
 #include <random>
+#include <format>
 
 // https://stackoverflow.com/questions/180947/base64-decode-snippet-in-c
 
@@ -141,10 +142,6 @@ inline std::string GenerateUUID()
     for (int i = 0; i < 4; ++i)
         data[i] = dis(gen);
 
-    std::stringstream ss;
-    ss << std::hex << std::setfill('0') << std::setw(8) << data[0] << "-" << std::setw(4) << ((data[1] >> 16) & 0xFFFF) << "-" << std::setw(4)
-       << (((data[1] >> 0) & 0x0FFF) | 0x4000) << "-" << std::setw(4) << (((data[2] >> 16) & 0x3FFF) | 0x8000) << "-" << std::setw(4) << (data[2] & 0xFFFF) << std::setw(8)
-       << data[3];
-
-    return ss.str();
+    return std::format("{:08x}-{:04x}-{:04x}-{:04x}-{:04x}{:08x}", data[0], (data[1] >> 16) & 0xFFFF,
+                       ((data[1] >> 0) & 0x0FFF) | 0x4000, ((data[2] >> 16) & 0x3FFF) | 0x8000, data[2] & 0xFFFF, data[3]);
 }

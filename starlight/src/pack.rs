@@ -54,6 +54,7 @@ pub fn pack(
     config_path: &Path,
     out_path: Option<&Path>,
     mode: BuildMode,
+    source_commit: Option<&str>,
 ) -> anyhow::Result<Option<crate::config::DevRuntime>> {
     let start = std::time::Instant::now();
     let config_path = dunce::canonicalize(config_path)
@@ -85,6 +86,7 @@ pub fn pack(
             .as_ref()
             .map(|b| b.entry.clone())
             .unwrap_or_default(),
+        source_commit: source_commit.unwrap_or_default().to_string(),
     };
     let metadata_blob = rmp_serde::to_vec_named(&metadata)
         .map_err(|e| anyhow::anyhow!("msgpack serialization failed: {}", e))?;

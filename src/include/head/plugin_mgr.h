@@ -48,6 +48,7 @@ class plugin_installer
     bool update_plugin(const std::string& id, const std::string& name, const std::string& commit);
     nlohmann::json install_plugin(const std::string& downloadUrl, size_t totalSize);
     nlohmann::json get_updater_request_body();
+    nlohmann::json get_star_updater_request_body();
 
   private:
     std::weak_ptr<millennium_backend> m_millennium_backend;
@@ -58,5 +59,9 @@ class plugin_installer
 
     std::optional<nlohmann::json> read_plugin_metadata(const std::filesystem::path& pluginPath);
     std::vector<nlohmann::json> get_plugin_data();
+
+    std::optional<nlohmann::json> read_star_plugin_metadata(const std::filesystem::path& starPath);
+    std::vector<nlohmann::json> get_star_plugin_data();
+    bool update_star_plugin(const std::string& id, const std::string& name, const std::string& commit, const std::filesystem::path& starPath);
 };
 } // namespace head

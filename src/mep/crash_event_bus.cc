@@ -6,8 +6,10 @@ namespace mep
 
 crash_event_bus& crash_event_bus::instance()
 {
-    static crash_event_bus s;
-    return s;
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
+    static crash_event_bus* s = new crash_event_bus();
+    return *s;
 }
 
 void crash_event_bus::notify(const crash_event& ev)
