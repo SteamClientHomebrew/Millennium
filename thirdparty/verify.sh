@@ -69,7 +69,7 @@ check() {
 check zlib-2.2.5.tar.gz https://github.com/zlib-ng/zlib-ng/archive/refs/tags/2.2.5.tar.gz
 check nlohmann_json-v3.12.0.tar.gz https://github.com/nlohmann/json/archive/refs/tags/v3.12.0.tar.gz
 check minizip_ng-4.0.10.tar.gz https://github.com/zlib-ng/minizip-ng/archive/refs/tags/4.0.10.tar.gz
-check curl-8_13_0.tar.gz https://github.com/curl/curl/archive/refs/tags/curl-8_13_0.tar.gz
+check curl-8_23_0.tar.gz https://github.com/curl/curl/archive/refs/tags/curl-8_23_0.tar.gz
 check catch2-v3.5.3.tar.gz https://github.com/catchorg/Catch2/archive/refs/tags/v3.5.3.tar.gz
 
 echo ""
