@@ -254,10 +254,11 @@ export class Installer {
 
 		try {
 			const data = await this.FetchInformationFromId(id, type);
-			modal = await this.PromptInstallation(type, data, (setter) => {
+			const prompted = await this.PromptInstallation(type, data, (setter) => {
 				updateInstallerState = setter;
 			});
-			if (!modal) return;
+			if (!prompted) return;
+			modal = prompted;
 
 			// updateInstallerState is guaranteed set here — the Renderer useEffect
 			// fires before the user can click OK.
