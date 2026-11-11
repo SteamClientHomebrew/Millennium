@@ -33,6 +33,14 @@ if(MILLENNIUM_RUN_TESTS_ON_BUILD)
     if(MILLENNIUM_BUILD_MAIN)
         list(APPEND _run_tests_deps millennium_lua_tests Millennium)
     endif()
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND (MILLENNIUM_LINUX_X64 OR MILLENNIUM_NIX_64BIT))
+        list(APPEND _run_tests_deps millennium_rt3_test_proxy millennium_rt3_test_client millennium_pvs64_test)
+        if(TARGET libmillennium_pvs64)
+            list(APPEND _run_tests_deps libmillennium_pvs64)
+        else()
+            list(APPEND _run_tests_deps millennium_pvs64_test_binary)
+        endif()
+    endif()
 
     add_custom_target(run_all_tests ALL
     COMMAND ${CMAKE_COMMAND}
