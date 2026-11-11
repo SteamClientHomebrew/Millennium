@@ -74,7 +74,7 @@ package_millennium() {
 package_millennium-x86() {
     depends+=("${_pkgname}=${pkgver}")
     provides=()
-    install=''
+    install=millennium-x86.install
 
     cd "${srcdir}/${_Pkgname}"
 

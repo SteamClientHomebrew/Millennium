@@ -452,7 +452,9 @@ jobs:
         with:
           pkgname: millennium
           pkgbuild: ./packages/arch/PKGBUILD
-          assets: ./packages/arch/millennium.install
+          assets: |
+            ./packages/arch/millennium.install
+            ./packages/arch/millennium-x86.install
           commit_username: GitHub Actions
           commit_email: github-actions@github.com
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}

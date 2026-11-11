@@ -30,7 +30,10 @@ link_millennium() {
     local user="$2"
     local steam="$home/.local/share/Steam"
 
-    runuser -u "$user" -- ln -sf /usr/lib/millennium/libmillennium_bootstrap_x86.so   "$steam/ubuntu12_32/libXtst.so.6"
+    if [ -L "$steam/ubuntu12_32/libXtst.so.6" ] && [ ! -e "$steam/ubuntu12_32/libXtst.so.6" ]; then
+        runuser -u "$user" -- rm -f "$steam/ubuntu12_32/libXtst.so.6"
+    fi
+
     runuser -u "$user" -- ln -sf /usr/lib/millennium/libmillennium_bootstrap_hhx64.so "$steam/ubuntu12_64/libXtst.so.6"
 
     # SteamRT3 runs the client inside a pressure-vessel container where /usr is not the host's,
@@ -45,7 +48,6 @@ unlink_millennium() {
     local user="$2"
     local steam="$home/.local/share/Steam"
 
-    runuser -u "$user" -- rm -f "$steam/ubuntu12_32/libXtst.so.6"
     runuser -u "$user" -- rm -f "$steam/ubuntu12_64/libXtst.so.6"
     runuser -u "$user" -- rm -f "$steam/steamrt64/libXtst.so.6"
     runuser -u "$user" -- rm -f "$home/.steam/steam/.cef-enable-remote-debugging"
