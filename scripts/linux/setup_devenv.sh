@@ -24,16 +24,36 @@ BUILD_DIR="$(cd "${BUILD_DIR}" 2>/dev/null && pwd)" || {
     exit 1
 }
 
-BOOTSTRAP_X86="${BUILD_DIR}/libmillennium_bootstrap_x86.so"
-BOOTSTRAP_HHX64="${BUILD_DIR}/libmillennium_bootstrap_hhx64.so"
-MAIN_X86="${BUILD_DIR}/libmillennium_x86.so"
-LUAVM="${BUILD_DIR}/libmillennium_luavm_x86"
+if [ -f "${BUILD_DIR}/libmillennium_bootstrap_x64.so" ] && [ -f "${BUILD_DIR}/libmillennium_bootstrap_x86.so" ]; then
+    echo "error: ${BUILD_DIR} contains both the x86 and x64 bootstrap proxies."
+    echo "       configure each client architecture in its own build directory."
+    exit 1
+elif [ -f "${BUILD_DIR}/libmillennium_bootstrap_x64.so" ]; then
+    CLIENT_ARCH=x64
+    CLIENT_BINS=(
+        libmillennium_x64.so
+        libmillennium_bootstrap_x64.so
+        libmillennium_hhx64.so
+        libmillennium_luavm_x64
+    )
+elif [ -f "${BUILD_DIR}/libmillennium_bootstrap_x86.so" ]; then
+    CLIENT_ARCH=x86
+    CLIENT_BINS=(
+        libmillennium_x86.so
+        libmillennium_bootstrap_x86.so
+        libmillennium_bootstrap_hhx64.so
+        libmillennium_luavm_x86
+    )
+else
+    echo "error: ${BUILD_DIR} has no Millennium bootstrap proxy."
+    echo "       expected libmillennium_bootstrap_x64.so or libmillennium_bootstrap_x86.so."
+    exit 1
+fi
 
-# Verify all binaries exist
 missing=0
-for bin in "${BOOTSTRAP_X86}" "${BOOTSTRAP_HHX64}" "${MAIN_X86}" "${LUAVM}"; do
-    if [ ! -f "${bin}" ]; then
-        echo "error: missing ${bin}"
+for bin in "${CLIENT_BINS[@]}"; do
+    if [ ! -f "${BUILD_DIR}/${bin}" ]; then
+        echo "error: missing ${BUILD_DIR}/${bin}"
         missing=1
     fi
 done
@@ -48,22 +68,28 @@ else
     exit 1
 fi
 
-U32="${STEAM_DIR}/ubuntu12_32"
-U64="${STEAM_DIR}/ubuntu12_64"
-
-if [ ! -d "${U32}" ] || [ ! -d "${U64}" ]; then
-    echo "error: Steam runtime dirs not found (${U32}, ${U64})."
-    echo "       Launch Steam at least once first."
-    exit 1
-fi
-
 echo "repo:  ${REPO_ROOT}"
 echo "build: ${BUILD_DIR}"
+echo "arch:  ${CLIENT_ARCH}"
 echo "steam: ${STEAM_DIR}"
 echo ""
 
-ln -sfv "${BOOTSTRAP_X86}" "${U32}/libXtst.so.6"
-ln -sfv "${BOOTSTRAP_HHX64}" "${U64}/libXtst.so.6"
+if [ "${CLIENT_ARCH}" = "x64" ]; then
+    mkdir -p "${STEAM_DIR}/steamrt64"
+    ln -sfv "${BUILD_DIR}/libmillennium_bootstrap_x64.so" "${STEAM_DIR}/steamrt64/libXtst.so.6"
+else
+    U32="${STEAM_DIR}/ubuntu12_32"
+    U64="${STEAM_DIR}/ubuntu12_64"
+
+    if [ ! -d "${U32}" ] || [ ! -d "${U64}" ]; then
+        echo "error: Steam runtime dirs not found (${U32}, ${U64})."
+        echo "       Launch Steam at least once first."
+        exit 1
+    fi
+
+    ln -sfv "${BUILD_DIR}/libmillennium_bootstrap_x86.so" "${U32}/libXtst.so.6"
+    ln -sfv "${BUILD_DIR}/libmillennium_bootstrap_hhx64.so" "${U64}/libXtst.so.6"
+fi
 
 rm -f "${STEAM_DIR}/.cef-enable-remote-debugging"
 

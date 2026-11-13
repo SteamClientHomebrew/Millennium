@@ -13,7 +13,7 @@ fn extract_zip(data: &[u8], dest: &Path) -> anyhow::Result<()> {
     let mut archive = zip::ZipArchive::new(Cursor::new(data))?;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
-        let out = dest.join(file.mangled_name());
+        let out = dest.join(file.mangled_name()?);
         if file.is_dir() {
             fs::create_dir_all(&out)?;
         } else {

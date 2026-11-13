@@ -35,6 +35,7 @@
 #include <deque>
 #include <memory>
 #include <unordered_map>
+#include <limits>
 
 cdp_client::cdp_client(send_fn sender) : m_sender(std::move(sender)), m_callback_pool(std::make_shared<thread_pool>(4))
 {
@@ -111,18 +112,14 @@ void cdp_client::shutdown()
     }
 
     /** Callbacks can be blocked in send_host().get(). Release them before joining workers. */
+    std::unordered_map<int, std::shared_ptr<async_request>> pending;
     {
-        std::unique_lock<std::mutex> lock(m_requests_mutex);
-        for (auto& [id, req] : m_pending_requests) {
-            if (!req->completed.exchange(true, std::memory_order_acq_rel)) {
-                try {
-                    req->promise.set_exception(std::make_exception_ptr(std::runtime_error("CDPClient shutdown")));
-                } catch (...) {
-                    LOG_ERROR("Failed to set exception on pending request during shutdown");
-                }
-            }
-        }
-        m_pending_requests.clear();
+        std::lock_guard<std::mutex> lock(m_requests_mutex);
+        pending.swap(m_pending_requests);
+        m_shared_js_session_id.clear();
+    }
+    for (auto& [id, request] : pending) {
+        fail_request(request, std::make_exception_ptr(std::runtime_error("CDPClient shutdown")));
     }
 
     /** wake up all waiting threads */
@@ -158,82 +155,203 @@ void cdp_client::set_error_handler(error_callback handler)
     m_error_handler = std::move(handler);
 }
 
+void cdp_client::fail_request(const std::shared_ptr<async_request>& request, std::exception_ptr error)
+{
+    if (!request->completed.exchange(true, std::memory_order_acq_rel)) {
+        request->promise.set_exception(std::move(error));
+    }
+}
+
+bool cdp_client::owner_closed_locked(const async_request& request) const
+{
+    const bool tears_down_operand = request.method == "Target.closeTarget" || request.method == "Target.detachFromTarget";
+    return (!request.session_id.empty() && m_closed_sessions.count(request.session_id)) ||
+           (!tears_down_operand && ((!request.target_id.empty() && m_closed_targets.count(request.target_id)) ||
+                                    (!request.child_session_id.empty() && m_closed_sessions.count(request.child_session_id))));
+}
+
+std::exception_ptr cdp_client::cancellation_locked(const async_request& request, const std::string& reason, std::optional<int> code) const
+{
+    std::string target = request.target_id;
+    const std::string session = request.child_session_id.empty() ? request.session_id : request.child_session_id;
+    auto it = m_sessions.find(session);
+    if (target.empty() && it != m_sessions.end()) target = it->second.target_id;
+    return std::make_exception_ptr(cdp_cancelled(reason, code, request.method, target, session));
+}
+
+bool cdp_client::bind_session_locked(const std::string& session, const std::string& target, const std::string& parent)
+{
+    if (session.empty()) return false;
+    if (m_closed_sessions.count(session) || m_closed_targets.count(target) || (!parent.empty() && m_closed_sessions.count(parent))) {
+        m_closed_sessions.insert(session);
+        return false;
+    }
+    m_sessions[session] = {target, parent};
+    return true;
+}
+
+void cdp_client::invalidate_locked(const std::string& target, const std::string& session, cancelled_requests& cancelled)
+{
+    if (!target.empty()) m_closed_targets.insert(target);
+    if (!session.empty()) m_closed_sessions.insert(session);
+    bool changed;
+    do {
+        changed = false;
+        for (const auto& [id, owner] : m_sessions) {
+            if (m_closed_targets.count(owner.target_id) || m_closed_sessions.count(owner.parent_session_id)) {
+                changed |= m_closed_sessions.insert(id).second;
+            }
+        }
+    } while (changed);
+    if (m_closed_sessions.count(m_shared_js_session_id)) m_shared_js_session_id.clear();
+    for (auto it = m_pending_requests.begin(); it != m_pending_requests.end();) {
+        if (owner_closed_locked(*it->second)) {
+            cancelled.push_back(it->second);
+            it = m_pending_requests.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void cdp_client::process_lifecycle(const std::string& method, const json& params, const std::string& parent)
+{
+    const auto string_field = [](const json& value, const char* key) -> std::string
+    {
+        auto it = value.find(key);
+        return it != value.end() && it->is_string() ? it->get<std::string>() : std::string{};
+    };
+    cancelled_requests cancelled;
+    std::vector<std::exception_ptr> errors;
+    {
+        std::lock_guard<std::mutex> lock(m_requests_mutex);
+        if (method == "Target.targetDestroyed") {
+            invalidate_locked(string_field(params, "targetId"), "", cancelled);
+        } else if (method == "Target.detachedFromTarget") {
+            invalidate_locked("", string_field(params, "sessionId"), cancelled);
+        } else if (method == "Target.attachedToTarget") {
+            const auto child = string_field(params, "sessionId");
+            const auto info = params.find("targetInfo");
+            const auto target = info != params.end() ? string_field(*info, "targetId") : std::string{};
+            if (!bind_session_locked(child, target, parent)) invalidate_locked("", child, cancelled);
+        }
+        for (const auto& request : cancelled) errors.push_back(cancellation_locked(*request, "CDP owner closed"));
+    }
+    for (size_t i = 0; i < cancelled.size(); ++i) fail_request(cancelled[i], errors[i]);
+}
+
+void cdp_client::set_shared_js_session_id(const std::string& sessionId)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_requests_mutex);
+        if (m_shutdown.load(std::memory_order_acquire) || m_closed_sessions.count(sessionId)) {
+            async_request request;
+            request.session_id = sessionId;
+            std::rethrow_exception(cancellation_locked(request, "SharedJSContext session closed"));
+        }
+        m_shared_js_session_id = sessionId;
+    }
+    m_session_cv.notify_all();
+}
+
+std::string cdp_client::get_shared_js_session_id() const
+{
+    std::lock_guard<std::mutex> lock(m_requests_mutex);
+    return m_shared_js_session_id;
+}
+
+void cdp_client::wait_for_shared_js_session()
+{
+    std::unique_lock<std::mutex> lock(m_requests_mutex);
+    m_session_cv.wait(lock, [this] { return !m_shared_js_session_id.empty() || m_shutdown.load(std::memory_order_acquire); });
+}
+
+bool cdp_client::is_session_active(const std::string& session_id) const
+{
+    std::lock_guard<std::mutex> lock(m_requests_mutex);
+    return !session_id.empty() && !m_shutdown.load(std::memory_order_acquire) && !m_closed_sessions.count(session_id);
+}
+
+bool cdp_client::is_target_active(const std::string& target_id) const
+{
+    std::lock_guard<std::mutex> lock(m_requests_mutex);
+    return !target_id.empty() && !m_shutdown.load(std::memory_order_acquire) && !m_closed_targets.count(target_id);
+}
+
 /**
  * Send a CDP message to the SharedJSContext session if available.
  * This function assumes we've already found the sessionId of the SharedJSContext.
  */
 std::future<json> cdp_client::send(const std::string& method, const json& params, std::chrono::milliseconds timeout)
 {
-    /** we don't actually want to throw any exceptions */
-    if (m_shared_js_session_id.empty()) {
-        LOG_ERROR("cdp_client::send(): SharedJSContext session ID is not set.");
+    auto session = get_shared_js_session_id();
+    if (session.empty()) {
+        std::promise<json> promise;
+        auto future = promise.get_future();
+        promise.set_exception(std::make_exception_ptr(cdp_cancelled("SharedJSContext session is not available", std::nullopt, method, "", "")));
+        return future;
     }
-
     /** forward the message to the host session with proper sessionId */
-    return this->send_host(method, params, m_shared_js_session_id, timeout);
+    return send_host(method, params, session, timeout);
 }
 
 std::future<json> cdp_client::send_host(const std::string& method, const json& params, std::optional<std::string> sessionId, std::chrono::milliseconds timeout)
 {
     int id = m_next_id.fetch_add(1, std::memory_order_relaxed);
-
     auto pending = std::make_shared<async_request>();
+    pending->method = method;
+    pending->session_id = sessionId.value_or("");
+    if (params.contains("targetId") && params["targetId"].is_string()) pending->target_id = params["targetId"].get<std::string>();
+    if (method.rfind("Target.", 0) == 0 && params.contains("sessionId") && params["sessionId"].is_string()) {
+        pending->child_session_id = params["sessionId"].get<std::string>();
+    }
     pending->timestamp = std::chrono::steady_clock::now();
     pending->timeout = timeout;
     auto future = pending->promise.get_future();
-
     /** construct the underlying CDP message */
-    json message = {
-        { "id",     id     },
-        { "method", method },
-        { "params", params }
-    };
-
+    json message = {{"id", id}, {"method", method}, {"params", params}};
     /**
      * add the sessionId of the request. this has to be done here as
      * this api only exposes the params, and sessionId needs to be top level
      */
-    if (sessionId.has_value()) {
-        message["sessionId"] = sessionId.value();
-    }
-
-    std::string payload = message.dump();
-
+    if (sessionId.has_value()) message["sessionId"] = *sessionId;
+    const std::string payload = message.dump();
+    std::exception_ptr error;
     /** Check shutdown and register atomically with respect to draining pending requests. */
     {
         std::lock_guard<std::mutex> lock(m_requests_mutex);
         if (m_shutdown.load(std::memory_order_acquire)) {
-            if (!pending->completed.exchange(true, std::memory_order_acq_rel)) {
-                try {
-                    pending->promise.set_exception(std::make_exception_ptr(std::runtime_error("Client shutdown")));
-                } catch (...) {
-                    LOG_ERROR("Failed to set exception on pending request due to client shutdown");
-                }
-            }
-            return future;
+            error = std::make_exception_ptr(std::runtime_error("Client shutdown"));
+        } else if (owner_closed_locked(*pending)) {
+            error = cancellation_locked(*pending, "CDP owner closed");
+        } else {
+            /** register req before sending it to avoid race conditions or deadlocking */
+            m_pending_requests[id] = pending;
         }
-        /** register req before sending it to avoid race conditions or deadlocking */
-        m_pending_requests[id] = pending;
     }
-
+    if (error) {
+        fail_request(pending, error);
+        return future;
+    }
     std::lock_guard<std::mutex> send_lock(m_send_mutex);
-
-    bool ok = m_sender(payload);
-
-    if (!ok) {
-        /** remove from pending and fail the promise */
+    {
         std::lock_guard<std::mutex> lock(m_requests_mutex);
-        m_pending_requests.erase(id);
-
-        if (!pending->completed.exchange(true, std::memory_order_acq_rel)) {
-            try {
-                pending->promise.set_exception(std::make_exception_ptr(std::runtime_error("Send failed")));
-            } catch (...) {
-                LOG_ERROR("Failed to set exception on pending request due to send failure");
-            }
-        }
+        if (!m_pending_requests.count(id)) return future;
     }
-
+    try {
+        if (!m_sender(payload)) error = std::make_exception_ptr(std::runtime_error("Send failed"));
+    } catch (...) {
+        error = std::current_exception();
+    }
+    if (error) {
+        /** remove from pending and fail the promise */
+        bool owned;
+        {
+            std::lock_guard<std::mutex> lock(m_requests_mutex);
+            owned = m_pending_requests.erase(id) != 0;
+        }
+        if (owned) fail_request(pending, error);
+    }
     return future;
 }
 
@@ -341,47 +459,62 @@ void cdp_client::process_message(const std::string& payload)
         return;
     }
 
-    if (message.contains("id") && message["id"].is_number_integer()) {
+    if (message.contains("id") && message["id"].is_number_integer() && message["id"] >= std::numeric_limits<int>::min() && message["id"] <= std::numeric_limits<int>::max()) {
         int id = message["id"].get<int>();
         std::shared_ptr<async_request> pending;
 
+        std::exception_ptr error;
+        cancelled_requests cancelled;
+        std::vector<std::exception_ptr> cancelled_errors;
         {
             std::lock_guard<std::mutex> lock(m_requests_mutex);
             auto it = m_pending_requests.find(id);
             if (it != m_pending_requests.end()) {
                 pending = it->second;
                 m_pending_requests.erase(it);
+                if (message.contains("error")) {
+                    const auto& detail = message["error"];
+                    std::string text = "CDP Error";
+                    std::optional<int> code;
+                    if (detail.contains("message") && detail["message"].is_string()) text = detail["message"].get<std::string>();
+                    if (detail.contains("code") && detail["code"].is_number_integer() && detail["code"] >= std::numeric_limits<int>::min() && detail["code"] <= std::numeric_limits<int>::max()) code = detail["code"].get<int>();
+                    const auto session = pending->child_session_id.empty() ? pending->session_id : pending->child_session_id;
+                    const bool target_gone = text == "No target with given id found";
+                    const bool session_gone = text == "No session with given id" || text == "Session with given id not found.";
+                    if ((target_gone && (!pending->target_id.empty() || !session.empty())) || (session_gone && !session.empty())) {
+                        invalidate_locked(target_gone ? pending->target_id : "", (target_gone && !pending->target_id.empty()) ? "" : session, cancelled);
+                        error = cancellation_locked(*pending, text, code);
+                    } else {
+                        error = std::make_exception_ptr(cdp_protocol_error(text, code, pending->method, pending->target_id, session));
+                    }
+                } else if (pending->method == "Target.attachToTarget" && message.contains("result") && message["result"].contains("sessionId") &&
+                           message["result"]["sessionId"].is_string()) {
+                    const auto session = message["result"]["sessionId"].get<std::string>();
+                    if (!bind_session_locked(session, pending->target_id, pending->session_id)) {
+                        invalidate_locked("", session, cancelled);
+                        pending->child_session_id = session;
+                        error = cancellation_locked(*pending, "CDP attach owner closed");
+                    }
+                }
+                for (const auto& request : cancelled) cancelled_errors.push_back(cancellation_locked(*request, "CDP owner closed"));
             }
         }
-
+        for (size_t i = 0; i < cancelled.size(); ++i) fail_request(cancelled[i], cancelled_errors[i]);
         if (pending) {
-            if (!pending->completed.exchange(true, std::memory_order_acq_rel)) {
-                try {
-                    if (message.contains("error")) {
-                        std::string error_msg = "CDP Error";
-                        if (message["error"].contains("message") && message["error"]["message"].is_string()) {
-                            error_msg = message["error"]["message"].get<std::string>();
-                        }
-                        pending->promise.set_exception(std::make_exception_ptr(std::runtime_error(error_msg)));
-                    } else if (message.contains("result")) {
-                        pending->promise.set_value(message["result"]);
-                    } else {
-                        pending->promise.set_exception(std::make_exception_ptr(std::runtime_error("Invalid CDP response")));
-                    }
-                } catch (...) {
-                    LOG_ERROR("Failed to set value/exception on pending request");
-                }
+            if (error) {
+                fail_request(pending, error);
+            } else if (!pending->completed.exchange(true, std::memory_order_acq_rel)) {
+                if (message.contains("result")) pending->promise.set_value(message["result"]);
+                else pending->promise.set_exception(std::make_exception_ptr(std::runtime_error("Invalid CDP response")));
             }
-        } else {
-            LOG_ERROR("Received CDP response for unknown request ID: " + std::to_string(id));
         }
     } else if (message.contains("method") && message["method"].is_string()) {
         std::string method = message["method"].get<std::string>();
 
         json params = message.contains("params") ? message["params"] : json::object();
-        if (message.contains("sessionId") && message["sessionId"].is_string()) {
-            params["sessionId"] = message["sessionId"].get<std::string>();
-        }
+        const std::string session = message.contains("sessionId") && message["sessionId"].is_string() ? message["sessionId"].get<std::string>() : "";
+        process_lifecycle(method, params, session);
+        if (!session.empty() && !params.contains("sessionId")) params["sessionId"] = session;
 
         std::vector<std::shared_ptr<event_callback>> callbacks;
         {
@@ -396,10 +529,13 @@ void cdp_client::process_message(const std::string& payload)
 
         for (const auto& callback : callbacks) {
             if (m_callback_pool) {
-                m_callback_pool->enqueue([this, callback, params]()
+                m_callback_pool->enqueue([this, callback, params, session, method]()
                 {
                     try {
+                        if (!session.empty() && method.rfind("Target.", 0) != 0 && method != "Runtime.executionContextDestroyed" && !is_session_active(session)) return;
                         (*callback)(params);
+                    } catch (const cdp_cancelled&) {
+                        return;
                     } catch (const std::exception& e) {
                         try {
                             invoke_error_handler("Event callback", e);
@@ -481,10 +617,14 @@ void cdp_client::cleanup_stale_requests()
  */
 void cdp_client::invoke_error_handler(const std::string& context, const std::exception& e)
 {
-    std::lock_guard<std::mutex> lock(m_error_mutex);
-    if (m_error_handler) {
+    error_callback handler;
+    {
+        std::lock_guard<std::mutex> lock(m_error_mutex);
+        handler = m_error_handler;
+    }
+    if (handler) {
         try {
-            m_error_handler(context, e);
+            handler(context, e);
         } catch (...) {
             LOG_ERROR("Error handler threw an exception");
         }
