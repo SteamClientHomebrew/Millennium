@@ -70,6 +70,38 @@ pub enum BundleTarget {
     Webkit,
 }
 
+/// Reads the plugin's `locales` folder, if it has one. Each file is named after the
+/// Steam API language code it holds, e.g. locales/english.json. They are embedded in
+/// the bundle so nothing has to be fetched at runtime.
+fn read_locales(config_dir: &Path) -> String {
+    let mut locales = serde_json::Map::new();
+    let Ok(entries) = std::fs::read_dir(config_dir.join("locales")) else {
+        return "{}".to_string();
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+
+        let Some(language) = path.file_stem().and_then(|s| s.to_str()) else {
+            continue;
+        };
+
+        match std::fs::read_to_string(&path)
+            .map(|text| serde_json::from_str::<serde_json::Value>(&text))
+        {
+            Ok(Ok(value)) if value.is_object() => {
+                locales.insert(language.to_string(), value);
+            }
+            _ => crate::log::warn(&format!("skipping locale file '{}'", path.display())),
+        }
+    }
+
+    serde_json::Value::Object(locales).to_string()
+}
+
 pub fn bundle(
     entry: &str,
     config_dir: &Path,
@@ -81,6 +113,7 @@ pub fn bundle(
     inspect: &crate::config::InspectConfig,
     outro: Option<String>,
     lua_ffi_names: &[String],
+    declared_dependencies: &[String],
 ) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
     let rt = tokio::runtime::Runtime::new()
         .map_err(|e| anyhow::anyhow!("failed to create tokio runtime: {}", e))?;
@@ -95,6 +128,7 @@ pub fn bundle(
         inspect,
         outro,
         lua_ffi_names,
+        declared_dependencies,
     ))
 }
 
@@ -109,6 +143,7 @@ async fn async_bundle(
     inspect: &crate::config::InspectConfig,
     outro: Option<String>,
     lua_ffi_names: &[String],
+    declared_dependencies: &[String],
 ) -> anyhow::Result<(Vec<u8>, Vec<u8>)> {
     let entry_path = if Path::new(entry).is_absolute() {
         entry.to_string()
@@ -217,6 +252,8 @@ async fn async_bundle(
     let transformed = apply_transforms(&raw_js, &ia, rn, Some(&CONSOLE_HOOK), sm.as_ref());
 
     let is_client = matches!(target, BundleTarget::Frontend);
+    let dependencies_json =
+        serde_json::to_string(declared_dependencies).unwrap_or_else(|_| "[]".to_string());
     let (wrapped, iife_line_offset, iife_col_offset) = wrap(
         &transformed,
         plugin_name,
@@ -224,6 +261,8 @@ async fn async_bundle(
         source_map_url,
         inspect,
         lua_ffi_names,
+        &read_locales(config_dir),
+        &dependencies_json,
     );
 
     let final_js = if mode == BuildMode::Release {
@@ -270,4 +309,41 @@ fn shift_sourcemap(sm: &sourcemap::SourceMap, line_offset: u32, col_offset: u32)
     let mut out = Vec::new();
     let _ = shifted.to_writer(&mut out);
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::read_locales;
+
+    #[test]
+    fn reads_locale_files_and_ignores_the_rest() {
+        let dir = std::env::temp_dir().join("starlight_locales_test");
+        let locales = dir.join("locales");
+        std::fs::create_dir_all(&locales).unwrap();
+        std::fs::write(locales.join("english.json"), r#"{"greeting":"Hello"}"#).unwrap();
+        std::fs::write(locales.join("russian.json"), r#"{"greeting":"Привет"}"#).unwrap();
+        std::fs::write(locales.join("notes.txt"), "ignored").unwrap();
+
+        let json = read_locales(&dir);
+
+        assert!(
+            json.contains(r#""english":{"greeting":"Hello"}"#),
+            "got {json}"
+        );
+        assert!(json.contains("russian"), "got {json}");
+        assert!(!json.contains("notes"), "got {json}");
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn plugin_without_a_locales_folder_reads_as_empty() {
+        let dir = std::env::temp_dir().join("starlight_locales_missing");
+        std::fs::remove_dir_all(&dir).ok();
+        std::fs::create_dir_all(&dir).unwrap();
+
+        assert_eq!(read_locales(&dir), "{}");
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
 }

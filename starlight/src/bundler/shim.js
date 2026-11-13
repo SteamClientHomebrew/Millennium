@@ -2,6 +2,8 @@ const MILLENNIUM_IS_CLIENT_MODULE = __IS_CLIENT__;
 const pluginName = __PLUGIN_NAME__;
 (window.PLUGIN_LIST ||= {})[pluginName] ||= {};
 window.MILLENNIUM_SIDEBAR_NAVIGATION_PANELS ||= {};
+(window.MILLENNIUM_PLUGIN_LOCALES ||= {})[pluginName] = __LOCALES__;
+(window.MILLENNIUM_PLUGIN_DEPENDENCIES ||= {})[pluginName] = __DEPENDENCIES__;
 __FFI_STUBS__;
 __FRONTEND_PROXY__;
 var __millennium_plugin_console__ = (function () {
