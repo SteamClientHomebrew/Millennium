@@ -206,7 +206,7 @@ export const MillenniumDesktopSidebar: React.FC = () => {
 	return (
 		<ErrorBoundary>
 			<Styles />
-			<MillenniumDesktopSidebarStyles isDesktopMenuOpen={isOpen || !closed} openAnimStart={openAnimStart} isViewingPlugin={!!focusedItem} />
+			<MillenniumDesktopSidebarStyles isDesktopMenuOpen={isOpen || !closed} openAnimStart={openAnimStart} />
 			<div className="MillenniumDesktopSidebar_Overlay" onClick={handleSidebarDimClick} />
 			<div className="MillenniumDesktopSidebar" ref={ref} data-focused-item-type={focusedItemType !== undefined ? DesktopSideBarFocusedItemType[focusedItemType] : undefined}>
 				<TitleView />
