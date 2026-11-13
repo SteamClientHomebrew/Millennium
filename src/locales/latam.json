@@ -134,7 +134,7 @@
   "headerNetwork": "Red",
   "optionProxyUrl": "URL del proxy",
   "optionProxyUrlDescription": "Enruta las peticiones de red de Millennium a través de un proxy. Soporta HTTP, HTTPS y SOCKS5 (Ejemplo: http\\://host\\:puerto, socks5://host\\:puerto). Deja vacío este campo para usar una conexión directa",
-  "optionProxyUrlPlaceholder": "Ejemplo: [http://127.0.0.1:7890](http://127.0.0.1:7890)",
+  "optionProxyUrlPlaceholder": "p. ej. http://127.0.0.1:7890",
   "optionProxyUsername": "Nombre de usuario del proxy",
   "optionProxyPassword": "Contraseña del proxy",
   "optionSet": "Establecer",
@@ -257,5 +257,14 @@
   "supersededPluginModalTitle": "⚠️ Acción requerida",
   "supersededPluginModalBody": "Los siguientes complementos fueron creados sobre una versión de legado del tiempo de ejecución de Millennium, la cual ha sido removida. Para continuar usando estos complementos, instala el siguiente reemplazo: [Extendium](https://steambrew.app/plugin?id=788ed8554492). Dirígete al [README de Extendium](https://steambrew.app/plugin?id=788ed8554492) para leer las instrucciones de uso.",
   "supersededPluginModalInstall": "Instalar Extendium",
-  "supersededPluginModalDismiss": "Ahora no"
+  "supersededPluginModalDismiss": "Ahora no",
+  "strStartingThemeInstaller": "Iniciando el instalador...",
+  "strDownloadingTheme": "Descargando el tema...",
+  "strSettingUpTheme": "Configurando el tema...",
+  "strInstallingTheme": "Instalando el tema...",
+  "strDownloadingThemeUpdate": "Descargando la actualización del tema...",
+  "strExtractingThemeArchive": "Extrayendo el archivo del tema...",
+  "strCopyingThemeFiles": "Copiando los archivos actualizados del tema...",
+  "strMillenniumUpdateToastTitle": "Actualización de Millennium disponible",
+  "strMillenniumUpdateToastBody": "¡Hay una nueva versión de Millennium disponible! Haz clic aquí para actualizar."
 }
