@@ -29,6 +29,7 @@
  */
 
 #include "millennium/millennium_lifecycle.h"
+#include "millennium/cmdline_api.h"
 #include "millennium/core_ipc.h"
 #include "millennium/plugin_config.h"
 #include "millennium/life_cycle.h"
@@ -711,7 +712,10 @@ void plugin_loader::setup_child_request_handler()
             const std::string src_file = (params.is_object() && v2) ? params.value("file", "") : "";
             const int src_line = (params.is_object() && v2) ? params.value("line", 0) : 0;
 
-            /** only v1 loggers output to Millennium */
+            if (v2 && CommandLineArguments::has_argument("-dev")) {
+                logger.print(std::format(" {} ", plugin_name), message, level == "error" ? COL_RED : level == "warn" ? COL_YELLOW : COL_WHITE);
+            }
+
             if (level == "error")
                 ErrorToLogger(plugin_name, message, v2, timestamp_us, src_file, src_line);
             else if (level == "warn")

@@ -136,6 +136,7 @@ inline bool send_all(socket_fd fd, const void* buf, size_t n)
         int s = ::send(fd, static_cast<const char*>(buf) + total, static_cast<int>(n - total), 0);
 #else
         ssize_t s = ::send(fd, static_cast<const char*>(buf) + total, n - total, MSG_NOSIGNAL);
+        if (s < 0 && errno == EINTR) continue;
 #endif
         if (s <= 0) return false;
         total += static_cast<size_t>(s);

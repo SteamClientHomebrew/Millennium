@@ -153,7 +153,8 @@ jobs:
       issues: write
       pull-requests: write
 
-    runs-on: ubuntu-latest
+    # Keep the release artifacts on the Ubuntu 24.04 glibc baseline.
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
@@ -224,6 +225,9 @@ jobs:
           cp build/libmillennium_x64.so ~/build/usr/lib/millennium/
           cp build/libmillennium_luavm_x64 ~/build/usr/lib/millennium/
           cp build/libmillennium_bootstrap_x64.so ~/build/usr/lib/millennium/
+
+      - name: Check Linux release glibc requirements
+        run: bash scripts/linux/check-release-glibc.sh "$HOME/build/usr/lib/millennium"
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4

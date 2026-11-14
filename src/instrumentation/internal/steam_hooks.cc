@@ -65,6 +65,7 @@ HANDLE g_cdp_child_write = INVALID_HANDLE_VALUE;
 static HANDLE g_lb_child_read = INVALID_HANDLE_VALUE;
 static HANDLE g_lb_child_write = INVALID_HANDLE_VALUE;
 static std::thread g_pipe_drain_thread;
+static std::mutex g_pipe_drain_mutex;
 static std::atomic<bool> g_pipe_drain_stop{ false };
 #elif __linux__
 int g_cdp_pipe_read_fd = -1;
@@ -210,7 +211,7 @@ cleanup:
 #endif /* __linux__ */
 
 #ifdef _WIN32
-void stop_pipe_drain()
+static void stop_pipe_drain_locked()
 {
     g_pipe_drain_stop = true;
     if (g_pipe_drain_thread.joinable()) {
@@ -237,6 +238,12 @@ void stop_pipe_drain()
             g_pipe_drain_thread.join();
         }
     }
+}
+
+void stop_pipe_drain()
+{
+    std::lock_guard<std::mutex> lock(g_pipe_drain_mutex);
+    stop_pipe_drain_locked();
 }
 #endif
 
@@ -305,7 +312,8 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd, bool* matched = null
 
 #ifdef _WIN32
     {
-        stop_pipe_drain();
+        std::lock_guard<std::mutex> drain_lock(g_pipe_drain_mutex);
+        stop_pipe_drain_locked();
         if (g_cdp_pipe_read != INVALID_HANDLE_VALUE) {
             CloseHandle(g_cdp_pipe_read);
             g_cdp_pipe_read = INVALID_HANDLE_VALUE;

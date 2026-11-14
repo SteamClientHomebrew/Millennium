@@ -252,6 +252,7 @@ void rpc_client::run(request_handler handler)
         int ready = plugin_ipc::sys_poll(pfds.data(), static_cast<ULONG>(pfds.size()), -1);
 #else
         int ready = plugin_ipc::sys_poll(pfds.data(), static_cast<nfds_t>(pfds.size()), -1);
+        if (ready < 0 && errno == EINTR) continue;
 #endif
         if (ready < 0) break;
 
