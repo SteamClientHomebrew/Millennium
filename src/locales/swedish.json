@@ -139,9 +139,9 @@
     "optionProxyPassword": "Proxyns Lösenord",
     "optionSet": "Tillämpa",
     "optionRemove": "Ta bort",
-    "optionSetUsername": "Välj användarnamn",
+    "optionSetUsername": "Ange användarnamn",
     "optionChangeUsername": "Byt användarnamn",
-    "optionSetPassword": "Välj lösenord",
+    "optionSetPassword": "Ange lösenord",
     "optionChangePassword": "Byt lösenord",
     "optionInstallPlugin": "Installera ett plugin",
     "optionInstallTheme": "Installera ett tema",
@@ -234,8 +234,8 @@
     "crashModalDisablePlugin": "Stäng av Plugin",
     "logPanelMillenniumLogs": "Millenniumloggar",
     "logPanelUserPlugins": "Användarplugin",
-    "logPanelErrorCount": "{0} Fel",
-    "logPanelWarningCount": "{0} Varningar",
+    "logPanelErrorCount": "{0} fel",
+    "logPanelWarningCount": "{0} varningar",
     "logPanelDecreaseFontSize": "Minska teckenstorleken",
     "logPanelIncreaseFontSize": "Höj teckenstorleken",
     "logPanelCopiedToClipboard": "Kopierat till utklipp",
@@ -256,7 +256,7 @@
     "themeInstallerDescription": "Installera ett tema från ett ID. Dessa ID kan hittas efter att du valt ett tema på",
     "quickCssEditorTitle": "Quick CSS Redigerare",
     "updateCompletePendingRestart": "Omstart väntar",
-    "millenniumUpdateMacOS": "Automatiska Millenniumuppdateringar finns ej ännu till macOS.\n\n Millennium updates are not yet available on macOS.\n\n Bygg om nuvarande branch, ominstallera med `./scripts/install_macos.sh --repair`, starta sedan om Steam för att färdigställa uppdateringen till {0}.",
+    "millenniumUpdateMacOS": "Automatiska Millenniumuppdateringar finns ej ännu till macOS.\n\n Bygg om nuvarande branch, ominstallera med `./scripts/install_macos.sh --repair`, starta sedan om Steam för att färdigställa uppdateringen till {0}.",
     "millenniumUpdateLinux": "För att uppdatera Millennium till {0}, kör följande kommando i din terminal:\n\n`{1}`",
     "legacyPluginModalTitle": "Kompatibilitetsvarning för plugin",
     "legacyPluginModalBody": "OBS! Följande plugins var skapta till en äldre version av Millennium och fungerar inte längre. Goda nyheter — en uppdatering kan redan vara tillgänglig!",
@@ -266,5 +266,5 @@
     "supersededPluginModalTitle": "⚠️ Åtgärd krävs",
     "supersededPluginModalBody": "Följande plugins byggdes på en föråldrad körtidsmiljö till Millennium som har tagits bort. För att fortsätta använda dessa plugins, installera [Extendium](https://steambrew.app/plugin?id=788ed8554492) istället. Se [Extendiums README](https://steambrew.app/plugin?id=788ed8554492) för användarinstruktioner.",
     "supersededPluginModalInstall": "Installera Extendium",
-    "supersededPluginModalDismiss": "Inte Nu"
+    "supersededPluginModalDismiss": "Inte nu"
 }
