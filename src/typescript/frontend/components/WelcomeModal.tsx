@@ -36,36 +36,48 @@ import { JSX, useEffect } from 'react';
 
 export const WelcomeModalComponent = (): JSX.Element | null => {
 	useEffect(() => {
-		if (settingsManager.config.misc.hasShownWelcomeModal) {
-			return;
-		} else {
-			settingsManager.config.misc.hasShownWelcomeModal = true;
+		let cancelled = false;
+
+		/** The config may not have arrived from the backend yet on the first render */
+		settingsManager.ready.then((config) => {
+			if (cancelled || config.misc.hasShownWelcomeModal) {
+				return;
+			}
+
+			config.misc.hasShownWelcomeModal = true;
 			settingsManager.forceSaveConfig();
-		}
-
-		let welcomeModalWindow: ShowModalResult;
-
-		const WelcomeModal = () => {
-			return (
-				<ConfirmModal
-					strTitle={locale.strWelcomeModalTitle}
-					strDescription={<Markdown options={{ overrides: { a: { props: { target: '_blank' } } } }}>{locale.strWelcomeModalDescription}</Markdown>}
-					strOKButtonText={locale.strWelcomeModalOKButton}
-					bAlertDialog={true}
-					bDisableBackgroundDismiss={true}
-					bHideCloseIcon={true}
-					onOK={() => {
-						welcomeModalWindow?.Close();
-					}}
-				/>
-			);
-		};
-
-		welcomeModalWindow = showModal(<WelcomeModal />, pluginSelf.mainWindow, {
-			popupHeight: 475,
-			popupWidth: 625,
+			showWelcomeModal();
 		});
+
+		return () => {
+			cancelled = true;
+		};
 	}, []);
 
 	return null;
+};
+
+const showWelcomeModal = () => {
+	let welcomeModalWindow: ShowModalResult;
+
+	const WelcomeModal = () => {
+		return (
+			<ConfirmModal
+				strTitle={locale.strWelcomeModalTitle}
+				strDescription={<Markdown options={{ overrides: { a: { props: { target: '_blank' } } } }}>{locale.strWelcomeModalDescription}</Markdown>}
+				strOKButtonText={locale.strWelcomeModalOKButton}
+				bAlertDialog={true}
+				bDisableBackgroundDismiss={true}
+				bHideCloseIcon={true}
+				onOK={() => {
+					welcomeModalWindow?.Close();
+				}}
+			/>
+		);
+	};
+
+	welcomeModalWindow = showModal(<WelcomeModal />, pluginSelf.mainWindow, {
+		popupHeight: 475,
+		popupWidth: 625,
+	});
 };

@@ -36,9 +36,16 @@ class SettingsManager {
 	private updateFn: ((recipe: (draft: AppConfig) => void) => void) | null = null;
 	private pendingUpdates: ((draft: AppConfig) => void)[] = [];
 
+	/**
+	 * Resolves once the config has been read from the backend.
+	 * Until then `config` is undefined: code running at startup should await this instead of reading `config` directly.
+	 */
+	public readonly ready: Promise<AppConfig>;
+
 	constructor() {
-		backend.config.millennium.getConfig().then((cfg) => {
-			this.settings = cfg;
+		this.ready = backend.config.millennium.getConfig().then((cfg) => {
+			this.settings ??= cfg;
+			return this.settings;
 		});
 	}
 
