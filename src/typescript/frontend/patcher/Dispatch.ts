@@ -19,8 +19,8 @@ export const DOMModifier = {
 	 * @param document Target document to append StyleSheet to
 	 * @param localPath relative/absolute path to CSS module
 	 */
-	AddStyleSheet: (document: Document, localPath: string) => {
-		if (!settingsManager.config.general.injectCSS) return;
+	AddStyleSheet: async (document: Document, localPath: string) => {
+		if (!(await settingsManager.ready).general.injectCSS) return;
 		if (document.querySelectorAll(`link[href='${localPath}']`).length) return;
 
 		document.head.appendChild(
@@ -36,8 +36,8 @@ export const DOMModifier = {
 	 * @param document Target document to append JavaScript to
 	 * @param localPath relative/absolute path to CSS module
 	 */
-	AddJavaScript: (document: Document, localPath: string) => {
-		if (!settingsManager.config.general.injectJavascript) return;
+	AddJavaScript: async (document: Document, localPath: string) => {
+		if (!(await settingsManager.ready).general.injectJavascript) return;
 		if (document.querySelectorAll(`script[src='${localPath}'][type='module']`).length) return;
 
 		document.head.appendChild(
