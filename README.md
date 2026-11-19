@@ -18,6 +18,7 @@ Millennium has been packaged/ported to the following external repositories. Stea
 
 * NixOS: https://github.com/SteamClientHomebrew/Millennium/discussions/832
 * Arch Linux (AUR): https://github.com/SteamClientHomebrew/Millennium/discussions/833
+* Bazzite / Fedora Atomic: https://github.com/SteamClientHomebrew/Millennium/discussions/983
 
 Submitting an external package can be done through pull requests. 
 
