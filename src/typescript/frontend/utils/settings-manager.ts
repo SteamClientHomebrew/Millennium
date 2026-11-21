@@ -35,11 +35,17 @@ class SettingsManager {
 	private settings!: AppConfig;
 	private updateFn: ((recipe: (draft: AppConfig) => void) => void) | null = null;
 	private pendingUpdates: ((draft: AppConfig) => void)[] = [];
+	private readonly ready: Promise<AppConfig>;
 
 	constructor() {
-		backend.config.millennium.getConfig().then((cfg) => {
+		this.ready = backend.config.millennium.getConfig().then((cfg) => {
 			this.settings = cfg;
+			return cfg;
 		});
+	}
+
+	public whenReady(): Promise<AppConfig> {
+		return this.ready;
 	}
 
 	public getConfig(): AppConfig {
