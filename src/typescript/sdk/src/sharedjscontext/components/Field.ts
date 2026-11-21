@@ -1,6 +1,6 @@
 import { FC, ReactNode, RefAttributes } from 'react';
 
-import { Export, findModuleExport } from '../webpack';
+import { Export, findModuleExport, sourceOf } from '../module-registry';
 import { FooterLegendProps } from './FooterLegend';
 
 export interface FieldProps extends FooterLegendProps {
@@ -25,5 +25,8 @@ export interface FieldProps extends FooterLegendProps {
 }
 
 /** @component React Components */
-export const Field = findModuleExport((e: Export) => (e?.toString()?.includes('().Field') && e?.toString()?.includes('"shift-children-below"')) ||
-    e?.render?.toString()?.includes('"shift-children-below"')) as FC<FieldProps & RefAttributes<HTMLDivElement>>;
+const fieldPropsRegex = /inlineWrap:[\w$]+,childrenContainerWidth:[\w$]+,spacingBetweenLabelAndChild:/;
+
+export const Field = findModuleExport((e: Export) => (sourceOf(e).includes('().Field') && sourceOf(e).includes('"shift-children-below"')) ||
+    sourceOf(e?.render).includes('"shift-children-below"') ||
+    (sourceOf(e).includes('"shift-children-below"') && fieldPropsRegex.test(sourceOf(e)))) as FC<FieldProps & RefAttributes<HTMLDivElement>>;

@@ -10,6 +10,7 @@ export * from './Field';
 export * from './Focusable';
 export * from './FocusRing';
 export * from './FooterLegend';
+export * from './BBCodeParser';
 export * from './Marquee';
 export * from './Menu';
 export * from './Modal';

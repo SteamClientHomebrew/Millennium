@@ -1,7 +1,7 @@
 import { FC, ReactNode } from 'react';
 
 import { findSP } from '../utils';
-import { Export, findModule, findModuleDetailsByExport, findModuleExport } from '../webpack';
+import { Export, findModule, findModuleDetailsByExport, findModuleExport, sourceOf } from '../module-registry';
 
 // All of the popout options + strTitle are related. Proper usage is not yet known...
 export interface ShowModalProps {
@@ -108,14 +108,12 @@ interface SimpleModalProps {
 	children: ReactNode;
 }
 
-const [ModalModule, _ModalPosition] = findModuleDetailsByExport((e: Export) => e?.toString().includes('.ModalPosition'), 5);
-
-const ModalModuleProps = ModalModule ? Object.values(ModalModule) : [];
+const [, _ModalPosition] = findModuleDetailsByExport((e: Export) => sourceOf(e).includes('.ModalPosition'), 5);
 
 /** @component React Components */
-export const SimpleModal = ModalModuleProps.find((prop) => {
-	const string = prop?.toString();
-	return string?.includes('.ShowPortalModal()') && string?.includes('.OnElementReadyCallbacks.Register(');
+export const SimpleModal = findModuleExport((e: Export) => {
+	const string = sourceOf(e);
+	return string.includes('.ShowPortalModal()') && string.includes('.OnElementReadyCallbacks.Register(');
 }) as FC<SimpleModalProps>;
 
 /** @component React Components */

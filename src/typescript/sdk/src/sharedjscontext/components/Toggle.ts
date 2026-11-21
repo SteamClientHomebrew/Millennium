@@ -1,6 +1,6 @@
 import { FC } from 'react';
 
-import { CommonUIModule } from '../webpack';
+import { CommonUIModule, sourceOf } from '../module-registry';
 
 export interface ToggleProps {
 	value: boolean;
@@ -10,4 +10,4 @@ export interface ToggleProps {
 }
 
 /** @component React Components */
-export const Toggle = Object.values(CommonUIModule).find((mod: any) => mod?.render?.toString()?.includes('.ToggleOff)')) as FC<ToggleProps>;
+export const Toggle = Object.values(CommonUIModule).find((mod: any) => sourceOf(mod?.render).includes('.ToggleOff)')) as FC<ToggleProps>;

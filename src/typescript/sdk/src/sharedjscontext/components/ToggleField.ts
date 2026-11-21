@@ -1,6 +1,6 @@
 import { FC } from 'react';
 
-import { CommonUIModule } from '../webpack';
+import { CommonUIModule, sourceOf } from '../module-registry';
 import { ItemProps } from './Item';
 
 export interface ToggleFieldProps extends ItemProps {
@@ -14,5 +14,5 @@ export interface ToggleFieldProps extends ItemProps {
 export const ToggleField = Object.values(CommonUIModule).find(
 	(mod: any) =>
 		// stable || beta as of oct 2 2024
-		mod?.render?.toString?.()?.includes('ToggleField,fallback') || mod?.render?.toString?.()?.includes('ToggleField",'),
+		sourceOf(mod?.render).includes('ToggleField,fallback') || sourceOf(mod?.render).includes('ToggleField",'),
 ) as FC<ToggleFieldProps>;
