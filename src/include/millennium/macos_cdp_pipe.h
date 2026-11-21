@@ -32,6 +32,10 @@ class connection
   public:
     const int read_fd;
     const int write_fd;
+    // Loopback IPC endpoints, if the bootstrap sent them. Not owned: whoever
+    // takes them (register_loopback_conn) closes them and resets these to -1.
+    int loopback_read_fd = -1;
+    int loopback_write_fd = -1;
     std::atomic<bool> stopped{ false };
 
     connection(int read, int write) : read_fd(read), write_fd(write)
@@ -43,6 +47,8 @@ class connection
     {
         close(read_fd);
         close(write_fd);
+        if (loopback_read_fd >= 0) close(loopback_read_fd);
+        if (loopback_write_fd >= 0) close(loopback_write_fd);
     }
 
     template <typename Cancelled> bool send(const std::string& payload, Cancelled cancelled)
@@ -79,7 +85,7 @@ inline std::shared_ptr<connection> receive(int fd)
 {
     char byte = 0;
     iovec iov{ &byte, 1 };
-    alignas(cmsghdr) char control[CMSG_SPACE(2 * sizeof(int))] = {};
+    alignas(cmsghdr) char control[CMSG_SPACE(4 * sizeof(int))] = {};
     msghdr msg{};
     msg.msg_iov = &iov;
     msg.msg_iovlen = 1;
@@ -87,25 +93,38 @@ inline std::shared_ptr<connection> receive(int fd)
     msg.msg_controllen = sizeof(control);
     const auto count = recvmsg(fd, &msg, MSG_DONTWAIT);
     if (count < 0) return {};
-    int endpoints[2] = { -1, -1 };
+    // Two CDP endpoints, optionally followed by two loopback IPC endpoints.
+    int endpoints[4] = { -1, -1, -1, -1 };
+    size_t received = 0;
     auto* rights = CMSG_FIRSTHDR(&msg);
     bool expected_rights = false;
     if (rights && rights->cmsg_level == SOL_SOCKET && rights->cmsg_type == SCM_RIGHTS && rights->cmsg_len >= CMSG_LEN(0)) {
         const size_t bytes = rights->cmsg_len - CMSG_LEN(0);
-        expected_rights = bytes == sizeof(endpoints);
+        received = bytes / sizeof(int);
+        expected_rights = bytes == 2 * sizeof(int) || bytes == 4 * sizeof(int);
         // Close even a partial rights message on rejection.
         memcpy(endpoints, CMSG_DATA(rights), bytes < sizeof(endpoints) ? bytes : sizeof(endpoints));
     }
     bool valid = expected_rights && count == 1 && byte == 1 && !(msg.msg_flags & (MSG_TRUNC | MSG_CTRUNC));
-    for (int endpoint : endpoints) {
-        if (endpoint < 0 || fcntl(endpoint, F_SETFD, FD_CLOEXEC) < 0 || fcntl(endpoint, F_SETFL, O_NONBLOCK) < 0) valid = false;
+    for (size_t i = 0; i < 2; ++i) {
+        if (endpoints[i] < 0 || fcntl(endpoints[i], F_SETFD, FD_CLOEXEC) < 0 || fcntl(endpoints[i], F_SETFL, O_NONBLOCK) < 0) valid = false;
+    }
+    // Loopback IPC endpoints stay blocking: loopback_ipc.cc uses blocking reads and writes.
+    for (size_t i = 2; i < received && i < 4; ++i) {
+        if (endpoints[i] < 0 || fcntl(endpoints[i], F_SETFD, FD_CLOEXEC) < 0) valid = false;
     }
     if (valid) valid = fcntl(endpoints[1], F_SETNOSIGPIPE, 1) == 0;
+    if (valid && received == 4) valid = fcntl(endpoints[3], F_SETNOSIGPIPE, 1) == 0;
     if (!valid) {
         for (int endpoint : endpoints)
             if (endpoint >= 0) close(endpoint);
         return {};
     }
-    return std::make_shared<connection>(endpoints[0], endpoints[1]);
+    auto conn = std::make_shared<connection>(endpoints[0], endpoints[1]);
+    if (received == 4) {
+        conn->loopback_read_fd = endpoints[2];
+        conn->loopback_write_fd = endpoints[3];
+    }
+    return conn;
 }
 } // namespace macos_cdp

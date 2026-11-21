@@ -366,6 +366,7 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> socket
 
 #include <thread>
 #include "millennium/macos_cdp_pipe.h"
+#include "instrumentation/loopback_ipc.h"
 #include "millennium/millennium_lifecycle.h"
 
 namespace
@@ -409,6 +410,14 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> props)
             return conn->send(payload, terminating);
         });
         logger.log("[{}] CDP pipe transport connected.", props->name);
+
+        // The Helper's libmillennium_hhx64 reads the plugin patch list from these.
+        if (conn->loopback_read_fd >= 0 && conn->loopback_write_fd >= 0) {
+            register_loopback_conn(conn->loopback_write_fd, conn->loopback_read_fd);
+            conn->loopback_read_fd = -1;
+            conn->loopback_write_fd = -1;
+            logger.log("[{}] loopback IPC connected.", props->name);
+        }
 
         // Read before on_connect: initialization may synchronously wait for CDP.
         std::thread reader([conn, cdp]()

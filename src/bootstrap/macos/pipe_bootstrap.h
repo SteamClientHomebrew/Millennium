@@ -74,14 +74,18 @@ static int exec(const char* path, char* const argv[], char* const envp[], exec_f
         if (count >= 4094) return next(path, argv, envp);
         args[count] = argv[count];
     }
+    if (count >= 4093) return next(path, argv, envp);
     args[count++] = const_cast<char*>("--remote-debugging-pipe");
+    // fds 5,6: patch-list IPC for libmillennium_hhx64 (loopback/src/ipc.rs).
+    args[count++] = const_cast<char*>("--millennium-loopback-ipc-fds=5,6");
     args[count] = nullptr;
 
-    int fds[4] = { -1, -1, -1, -1 };
-    int saved[2] = { -1, -1 };
-    int flags[2] = { -1, -1 };
+    // fds[0..3]: CDP pipes (child fds 3,4). fds[4..7]: loopback IPC pipes (child fds 5,6).
+    int fds[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+    int saved[4] = { -1, -1, -1, -1 };
+    int flags[4] = { -1, -1, -1, -1 };
     bool ok = true;
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 4; ++i) {
         flags[i] = fcntl(3 + i, F_GETFD);
         if (flags[i] >= 0) {
             saved[i] = fcntl(3 + i, F_DUPFD_CLOEXEC, 10);
@@ -99,18 +103,28 @@ static int exec(const char* path, char* const argv[], char* const envp[], exec_f
     if (ok) {
         fds[2] = private_fd(fds[2]);
         fds[3] = private_fd(fds[3]);
-        ok = fds[2] >= 0 && fds[3] >= 0;
+        ok = fds[2] >= 0 && fds[3] >= 0 && pipe(fds + 4) == 0;
+    }
+    if (ok) {
+        fds[4] = private_fd(fds[4]);
+        fds[5] = private_fd(fds[5]);
+        ok = fds[4] >= 0 && fds[5] >= 0 && pipe(fds + 6) == 0;
+    }
+    if (ok) {
+        fds[6] = private_fd(fds[6]);
+        fds[7] = private_fd(fds[7]);
+        ok = fds[6] >= 0 && fds[7] >= 0;
     }
 
     bool mapped = false;
     if (ok) {
         mapped = true;
-        ok = dup2(fds[0], 3) >= 0 && dup2(fds[3], 4) >= 0;
+        ok = dup2(fds[0], 3) >= 0 && dup2(fds[3], 4) >= 0 && dup2(fds[4], 5) >= 0 && dup2(fds[7], 6) >= 0;
     }
     if (ok) {
         char byte = 1;
         iovec iov{ &byte, 1 };
-        alignas(cmsghdr) char control[CMSG_SPACE(2 * sizeof(int))] = {};
+        alignas(cmsghdr) char control[CMSG_SPACE(4 * sizeof(int))] = {};
         msghdr msg{};
         msg.msg_iov = &iov;
         msg.msg_iovlen = 1;
@@ -119,8 +133,9 @@ static int exec(const char* path, char* const argv[], char* const envp[], exec_f
         auto* rights = CMSG_FIRSTHDR(&msg);
         rights->cmsg_level = SOL_SOCKET;
         rights->cmsg_type = SCM_RIGHTS;
-        rights->cmsg_len = CMSG_LEN(2 * sizeof(int));
-        const int endpoints[2] = { fds[2], fds[1] };
+        rights->cmsg_len = CMSG_LEN(4 * sizeof(int));
+        // CDP read, CDP write, loopback read, loopback write (host side).
+        const int endpoints[4] = { fds[2], fds[1], fds[6], fds[5] };
         memcpy(CMSG_DATA(rights), endpoints, sizeof(endpoints));
         int result;
         do {
@@ -134,7 +149,7 @@ static int exec(const char* path, char* const argv[], char* const envp[], exec_f
     if (ok) result = next(path, args, envp);
     const int error = errno;
     if (mapped) {
-        for (int i = 0; i < 2; ++i) {
+        for (int i = 0; i < 4; ++i) {
             if (saved[i] >= 0) {
                 dup2(saved[i], 3 + i);
                 fcntl(3 + i, F_SETFD, flags[i]);
