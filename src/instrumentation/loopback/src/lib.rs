@@ -1,9 +1,11 @@
 mod css_classes;
 mod engine;
+mod exports;
 mod ipc;
 mod logger;
 mod syntax;
 mod url;
+mod wrappers;
 
 use engine::{apply_patches, PatchSet};
 use std::path::Path;
@@ -128,6 +130,17 @@ fn patch_bytes(url_str: &str, path_str: &str, content: Vec<u8>) -> Vec<u8> {
                     content
                 }
             }
+        }
+    } else {
+        content
+    };
+
+    let content = if url::is_js_url(url_str) {
+        let (rewritten, exported) = exports::patch(name, &content);
+        if exported == 0 {
+            content
+        } else {
+            rewritten
         }
     } else {
         content
