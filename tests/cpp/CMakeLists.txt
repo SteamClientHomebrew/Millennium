@@ -2,8 +2,10 @@ set(TEST_SOURCES
   ffi_recorder_test.cc
   test_encoding.cc
   test_target_url.cc
+  test_theme_class_remapper.cc
   ${CMAKE_SOURCE_DIR}/src/mep/ffi_recorder.cc
   ${CMAKE_SOURCE_DIR}/src/engine/target_url.cc
+  ${CMAKE_SOURCE_DIR}/src/engine/theme_class_remapper.cc
 )
 
 add_executable(millennium_cpp_tests ${TEST_SOURCES})
