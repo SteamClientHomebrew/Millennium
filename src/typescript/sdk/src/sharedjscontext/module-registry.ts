@@ -1,4 +1,5 @@
 import { Logger } from './logger';
+import { CLASS_MAP_EXPORT_PREFIX, INTERNAL_EXPORT_PREFIX, registerExportedInternal } from './internals';
 
 declare global {
 	interface Window {
@@ -17,6 +18,40 @@ type ExportFilterFn = (moduleExport: any, exportName?: any) => boolean;
 type FindFn = (module: any) => any;
 
 export let modules = new Map<ModuleID, Module>();
+
+export const millenniumClassMaps: Record<string, string>[] = [];
+
+export interface VirtualModule {
+	view: Module;
+	values: Module;
+}
+
+let virtualModuleProvider: (() => VirtualModule[]) | undefined;
+
+export function registerVirtualModules(provider: () => VirtualModule[]) {
+	virtualModuleProvider = provider;
+}
+
+function virtualModules(): VirtualModule[] {
+	return virtualModuleProvider?.() ?? [];
+}
+
+const sourceCache = new WeakMap<Function, string>();
+
+export function sourceOf(value: unknown): string {
+	if (typeof value !== 'function') return '';
+
+	let source = sourceCache.get(value);
+	if (source === undefined) {
+		try {
+			source = Function.prototype.toString.call(value).replace(/`([^`\\$]*)`/g, '"$1"');
+		} catch {
+			source = '';
+		}
+		sourceCache.set(value, source);
+	}
+	return source;
+}
 
 export function isCssHash(hash: string): boolean {
 	const len = hash.length;
@@ -90,12 +125,90 @@ function initModuleCache() {
 	}
 }
 
-initModuleCache();
+const CJS_THUNK_PATTERN = /exports\s*:\s*\{\s*\}/;
+
+function isCjsThunk(value: unknown): value is () => Module {
+	if (typeof value !== 'function' || value.length !== 0) return false;
+	const source = Function.prototype.toString.call(value);
+	return source.length < 200 && CJS_THUNK_PATTERN.test(source);
+}
+
+function collectModuleUrls(): string[] {
+	const urls = new Set<string>();
+
+	document.querySelectorAll<HTMLLinkElement>('link[rel="modulepreload"]').forEach((link) => urls.add(link.href));
+	document.querySelectorAll<HTMLScriptElement>('script[type="module"][src]').forEach((script) => urls.add(script.src));
+	performance.getEntriesByType('resource').forEach((entry) => {
+		if (/\.js(\?|$)/.test(entry.name)) urls.add(entry.name);
+	});
+
+	return [...urls].filter((url) => {
+		try {
+			return new URL(url).origin === location.origin;
+		} catch {
+			return false;
+		}
+	});
+}
+
+async function importChunk(url: string): Promise<{ chunkName: string; namespace: Module } | undefined> {
+	const chunkName = new URL(url).pathname.split('/').pop() as string;
+
+	try {
+		return { chunkName, namespace: await import(url) };
+	} catch (e) {
+		logger.debug('Ignoring import error for chunk', chunkName, e);
+		return undefined;
+	}
+}
+
+async function initEsmModuleCache() {
+	const imported = await Promise.all(collectModuleUrls().map(importChunk));
+
+	for (const entry of imported) {
+		if (!entry) continue;
+		const { chunkName, namespace } = entry;
+
+		modules.set(chunkName, namespace);
+
+		for (const exportName of Object.keys(namespace)) {
+			const exported = namespace[exportName];
+			if (!isCjsThunk(exported)) continue;
+
+			try {
+				const resolved = exported();
+				if (resolved) modules.set(`${chunkName}:${exportName}`, resolved);
+			} catch (e) {
+				logger.debug('Ignoring require error for module', chunkName, exportName, e);
+			}
+		}
+	}
+}
+
+function collectMillenniumExports() {
+	for (const namespace of modules.values()) {
+		for (const key of Object.keys(namespace)) {
+			if (key.startsWith(INTERNAL_EXPORT_PREFIX)) registerExportedInternal(key.slice(INTERNAL_EXPORT_PREFIX.length), namespace[key]);
+			else if (key.startsWith(CLASS_MAP_EXPORT_PREFIX)) millenniumClassMaps.push(namespace[key]);
+		}
+	}
+}
+
+if (window.webpackChunksteamui) {
+	initModuleCache();
+} else {
+	await initEsmModuleCache();
+	collectMillenniumExports();
+}
 
 export const findModule = (filter: FilterFn) => {
 	for (const m of modules.values()) {
 		if (m.default && filter(m.default)) return resolveModule(m.default);
 		if (filter(m)) return resolveModule(m);
+	}
+
+	for (const m of virtualModules()) {
+		if (filter(m.view)) return m.values;
 	}
 };
 
@@ -147,6 +260,11 @@ export const findModuleChild = (filter: FindFn) => {
 			}
 		}
 	}
+
+	for (const m of virtualModules()) {
+		const filterRes = filter(m.view);
+		if (filterRes) return filterRes;
+	}
 };
 
 /**
@@ -158,6 +276,10 @@ export const findAllModules = (filter: FilterFn) => {
 	for (const m of modules.values()) {
 		if (m.default && filter(m.default)) out.push(resolveModule(m.default));
 		if (filter(m)) out.push(resolveModule(m));
+	}
+
+	for (const m of virtualModules()) {
+		if (filter(m.view)) out.push(m.values);
 	}
 
 	return out;

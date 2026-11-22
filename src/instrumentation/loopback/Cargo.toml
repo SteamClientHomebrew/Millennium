@@ -15,12 +15,16 @@ serde_json  = "1"
 rmp-serde   = "1"
 libc        = "0.2"
 oxc_allocator   = "0.135.0"
+oxc_ast         = "0.135.0"
 oxc_diagnostics = "0.135.0"
 oxc_parser      = "0.135.0"
 oxc_span        = "0.135.0"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0"
+
+[profile.dev.package."*"]
+opt-level = 3
 
 [profile.release]
 opt-level     = "z"

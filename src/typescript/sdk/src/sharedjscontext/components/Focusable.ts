@@ -1,6 +1,6 @@
 import { HTMLAttributes, ReactNode, RefAttributes, FC } from 'react';
 
-import { Export, findModuleExport } from '../webpack';
+import { Export, findModuleExport } from '../module-registry';
 import { FooterLegendProps } from './FooterLegend';
 import { createPropListRegex } from '../utils';
 

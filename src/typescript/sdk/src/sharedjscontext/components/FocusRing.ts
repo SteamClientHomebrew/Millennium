@@ -1,6 +1,6 @@
 import { ElementType, FC, ReactNode } from 'react';
 
-import { Export, findModuleExport } from '../webpack';
+import { Export, findModuleExport } from '../module-registry';
 
 export interface FocusRingProps {
 	className?: string;

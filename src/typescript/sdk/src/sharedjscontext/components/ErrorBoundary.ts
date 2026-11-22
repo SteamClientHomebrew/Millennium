@@ -1,5 +1,5 @@
 import { FC, PropsWithChildren } from 'react';
-import { findModuleExport } from '../webpack';
+import { findModuleExport } from '../module-registry';
 
 /** @component React Components */
 export const ErrorBoundary = findModuleExport(

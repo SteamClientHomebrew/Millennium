@@ -52,7 +52,7 @@ class Bootstrap {
 	async injectLegacyReactGlobals() {
 		if (window.SP_REACT) return; /** we're already setup */
 
-		const webpack = await import('./sharedjscontext/webpack');
+		const webpack = await import('./sharedjscontext/module-registry');
 
 		window.SP_REACT = webpack.findModule((m) => m.Component && m.PureComponent && m.useLayoutEffect);
 		window.SP_REACTDOM =
@@ -85,8 +85,10 @@ class Bootstrap {
 			// TODO: Remove the second variant, removed in the 2026-07-24 beta
 			// @ts-expect-error Part of the builtin Steam Client API.
 			if (!(window.App?.BFinishedInitBeforeLogin?.() ?? window.App?.BFinishedInitStageOne?.())) return;
-			clearInterval(interval);
-			await this.injectLegacyReactGlobals();
+            clearInterval(interval);
+			this.logger.log('Finished stage one of Steam startup.');
+            await this.injectLegacyReactGlobals();
+			this.logger.log('Finished injecting React globals');
 			resolve();
 		};
 

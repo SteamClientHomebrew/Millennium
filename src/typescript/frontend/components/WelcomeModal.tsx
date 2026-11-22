@@ -36,35 +36,43 @@ import { JSX, useEffect } from 'react';
 
 export const WelcomeModalComponent = (): JSX.Element | null => {
 	useEffect(() => {
-		if (settingsManager.config.misc.hasShownWelcomeModal) {
-			return;
-		} else {
+		let cancelled = false;
+
+		settingsManager.whenReady().then(() => {
+			if (cancelled || settingsManager.config.misc.hasShownWelcomeModal) {
+				return;
+			}
+
 			settingsManager.config.misc.hasShownWelcomeModal = true;
 			settingsManager.forceSaveConfig();
-		}
 
-		let welcomeModalWindow: ShowModalResult;
+			let welcomeModalWindow: ShowModalResult;
 
-		const WelcomeModal = () => {
-			return (
-				<ConfirmModal
-					strTitle={locale.strWelcomeModalTitle}
-					strDescription={<Markdown options={{ overrides: { a: { props: { target: '_blank' } } } }}>{locale.strWelcomeModalDescription}</Markdown>}
-					strOKButtonText={locale.strWelcomeModalOKButton}
-					bAlertDialog={true}
-					bDisableBackgroundDismiss={true}
-					bHideCloseIcon={true}
-					onOK={() => {
-						welcomeModalWindow?.Close();
-					}}
-				/>
-			);
-		};
+			const WelcomeModal = () => {
+				return (
+					<ConfirmModal
+						strTitle={locale.strWelcomeModalTitle}
+						strDescription={<Markdown options={{ overrides: { a: { props: { target: '_blank' } } } }}>{locale.strWelcomeModalDescription}</Markdown>}
+						strOKButtonText={locale.strWelcomeModalOKButton}
+						bAlertDialog={true}
+						bDisableBackgroundDismiss={true}
+						bHideCloseIcon={true}
+						onOK={() => {
+							welcomeModalWindow?.Close();
+						}}
+					/>
+				);
+			};
 
-		welcomeModalWindow = showModal(<WelcomeModal />, pluginSelf.mainWindow, {
-			popupHeight: 475,
-			popupWidth: 625,
+			welcomeModalWindow = showModal(<WelcomeModal />, pluginSelf.mainWindow, {
+				popupHeight: 475,
+				popupWidth: 625,
+			});
 		});
+
+		return () => {
+			cancelled = true;
+		};
 	}, []);
 
 	return null;

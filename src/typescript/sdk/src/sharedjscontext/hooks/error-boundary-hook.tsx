@@ -2,7 +2,7 @@ import { ErrorBoundary } from '../components';
 import MillenniumErrorBoundary from '../components/MillenniumErrorBoundary';
 import { Logger } from '../logger';
 import { callOriginal, Patch, replacePatch } from '../utils';
-import { findModuleExport } from '../webpack';
+import { findModuleExport } from '../module-registry';
 import { getLikelyErrorSourceFromValveError } from './error-from-source';
 
 declare global {
@@ -24,7 +24,7 @@ class ErrorBoundaryHook extends Logger {
 		window.__ERRORBOUNDARY_HOOK_INSTANCE = this;
 
 		// valve writes only the sanest of code
-		const exp = /^\(\)=>\([\w$]+\|\|(?:[\w$]+\(|\([\w$]+=)new [\w$]+\),[\w$]+\)$/;
+		const exp = /^\(\)=>\([\w$]+\|\|(?:[\w$]+\(|\([\w$]+=)new [\w$]+\),[\w$]+\)$|^\(\)=>\([\w$]+\|\|=new [\w$]+,[\w$]+\)$/;
 		const initErrorReportingStore = findModuleExport((e) => typeof e == 'function' && e?.toString && exp.test(e.toString()));
 
 		if (!initErrorReportingStore) {

@@ -6,13 +6,29 @@ import { MillenniumRouterState, MillenniumRouterStateContextProvider, RoutePatch
 import { Logger } from '../../logger';
 import { EUIMode } from '../../globals/steam-client/shared';
 import { afterPatch, findInReactTree, findInTree, getReactRoot, injectFCTrampoline, Patch, sleep, wrapReactType } from '../../utils';
-import { findModuleByExport } from '../../webpack';
+import { findModuleByExport } from '../../module-registry';
+import { nativeInternal } from '../../internals';
 import { ErrorBoundary } from '../../components';
 
 declare global {
 	interface Window {
 		__ROUTER_HOOK_INSTANCE: any;
+		MILLENNIUM_STEAM_FORCE_RERENDER?: () => void;
+		__millennium_registry?: {
+			available?: Record<string, boolean>;
+			register: (name: string, wrapper?: (original: (...args: any[]) => any, ...args: any[]) => any) => void;
+		};
 	}
+}
+
+const DESKTOP_ROUTER_WRAPPER = 'DesktopRouter';
+
+function RouterSetupEmitter({ onRendered }: { onRendered: () => void }) {
+	useEffect(() => {
+		const timer = setTimeout(onRendered, 250);
+		return () => clearTimeout(timer);
+	}, []);
+	return null;
 }
 
 const isPatched = Symbol('is patched');
@@ -46,8 +62,11 @@ class RouterHook extends Logger {
 		window.__ROUTER_HOOK_INSTANCE?.deinit?.();
 		window.__ROUTER_HOOK_INSTANCE = this;
 
-		const reactRouterStackModule = findModuleByExport((e) => e == 'router-backstack', 20);
-		if (reactRouterStackModule) {
+		const nativeRoute = nativeInternal('Route');
+		const reactRouterStackModule = nativeRoute ? undefined : findModuleByExport((e) => e == 'router-backstack', 20);
+		if (nativeRoute) {
+			this.Route = nativeRoute;
+		} else if (reactRouterStackModule) {
 			this.Route =
 				Object.values(reactRouterStackModule).find((e) => typeof e == 'function' && /routePath:[\w$]+\.match\?\.path./.test(e.toString())) ||
 				Object.values(reactRouterStackModule).find((e) => typeof e == 'function' && /routePath:null===\(.=.\.match\)/.test(e.toString()));
@@ -117,7 +136,21 @@ class RouterHook extends Logger {
 		}
 	}
 
+	private desktopRouterWrapper_ = (original: (...args: any[]) => any, ...args: any[]) => this.buildDesktopRouterElement(original(...args));
+
+	private registerDesktopRouterWrapper(): boolean {
+		const registry = window.__millennium_registry;
+		if (!registry?.register || !registry.available?.[DESKTOP_ROUTER_WRAPPER]) return false;
+
+		this.debug('Registering the desktop router wrapper');
+		registry.register(DESKTOP_ROUTER_WRAPPER, this.desktopRouterWrapper_);
+		window.MILLENNIUM_STEAM_FORCE_RERENDER = () => registry.register(DESKTOP_ROUTER_WRAPPER, this.desktopRouterWrapper_);
+		return true;
+	}
+
 	private async patchDesktopRouter() {
+		if (this.registerDesktopRouterWrapper()) return;
+
 		const root = getReactRoot(document.getElementById('root') as any);
 		const findRouterNode = () =>
 			findInReactTree(root, (node) => {
@@ -146,7 +179,6 @@ class RouterHook extends Logger {
 				walkable: ['return'],
 			});
 
-			// @ts-ignore
 			window.MILLENNIUM_STEAM_FORCE_RERENDER = () => errorBoundaryNode?.stateNode?._millenniumForceRerender?.();
 			errorBoundaryNode?.stateNode?._millenniumForceRerender?.();
 		}
@@ -183,34 +215,31 @@ class RouterHook extends Logger {
 		}
 	}
 
-	public handleDesktopRouterRender(_: any, ret: any) {
+	private buildDesktopRouterElement(ret: any) {
 		const MillenniumDesktopRouterWrapper = this.MillenniumDesktopRouterWrapper;
 		const MillenniumGlobalComponentsWrapper = this.MillenniumGlobalComponentsWrapper;
 		this.debug('desktop router render', ret);
+
+		const element = (
+			<>
+				<MillenniumRouterStateContextProvider millenniumRouterState={this.routerState}>
+					<MillenniumDesktopRouterWrapper>{ret}</MillenniumDesktopRouterWrapper>
+				</MillenniumRouterStateContextProvider>
+				<MillenniumGlobalComponentsStateContextProvider millenniumGlobalComponentsState={this.globalComponentsState}>
+					<MillenniumGlobalComponentsWrapper uiMode={EUIMode.Desktop} />
+				</MillenniumGlobalComponentsStateContextProvider>
+				<RouterSetupEmitter onRendered={this.emitRouterSetup.bind(this)} />
+			</>
+		);
+		(element as any)._millennium = true;
+		return element;
+	}
+
+	public handleDesktopRouterRender(_: any, ret: any) {
 		if (ret._millennium) {
 			return ret;
 		}
-
-		const component = () => {
-			useEffect(() => {
-				this.debug('Desktop router rendered, emitting setup');
-				setTimeout(this.emitRouterSetup.bind(this), 250);
-			}, []);
-
-			return (
-				<>
-					<MillenniumRouterStateContextProvider millenniumRouterState={this.routerState}>
-						<MillenniumDesktopRouterWrapper>{ret}</MillenniumDesktopRouterWrapper>
-					</MillenniumRouterStateContextProvider>
-					<MillenniumGlobalComponentsStateContextProvider millenniumGlobalComponentsState={this.globalComponentsState}>
-						<MillenniumGlobalComponentsWrapper uiMode={EUIMode.Desktop} />
-					</MillenniumGlobalComponentsStateContextProvider>
-				</>
-			);
-		};
-
-		(component() as any)._millennium = true;
-		return component();
+		return this.buildDesktopRouterElement(ret);
 	}
 
 	public handleGamepadRouterRender(_: any, ret: any) {
@@ -386,6 +415,7 @@ class RouterHook extends Logger {
 
 	deinit() {
 		this.modeChangeRegistration?.unregister();
+		window.__millennium_registry?.register(DESKTOP_ROUTER_WRAPPER, undefined);
 		this.gamepadRouterPatch?.unpatch();
 		this.desktopRouterPatch?.unpatch();
 	}

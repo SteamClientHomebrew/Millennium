@@ -1,7 +1,7 @@
 import { FC, ReactNode, createElement, useEffect, useState } from 'react';
 
 import { fakeRenderComponent, findInReactTree, sleep } from '../utils';
-import { Export, findModuleByExport } from '../webpack';
+import { Export, findModuleByExport } from '../module-registry';
 import { FooterLegendProps } from './FooterLegend';
 import { SteamSpinner } from './SteamSpinner';
 

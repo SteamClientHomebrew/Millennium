@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include "millennium/theme_class_remapper.h"
 #include "millennium/fwd_decl.h"
 #include "millennium/cdp_api.h"
 #include "millennium/plugin_manager.h"
@@ -150,6 +151,8 @@ class network_hook_ctl
     mutable std::shared_mutex m_virtual_res_mtx;
     std::unordered_map<std::string, std::function<std::string()>> m_virtual_resources;
 
+    std::unique_ptr<theme_class_remapper> m_class_remapper;
+
     std::atomic<bool> m_shutdown{ false };
     mutable std::shared_mutex m_hook_list_mtx;
     std::unique_ptr<thread_pool> m_thread_pool;
@@ -172,4 +175,5 @@ class network_hook_ctl
     std::filesystem::path path_from_url(const std::string& requestUrl);
     processed_hooks apply_user_webkit_hooks(const target_url& target) const;
     std::string inject_into_document_head(const std::string& original, const std::string& content) const;
+    bool should_remap_theme_classes(const nlohmann::basic_json<>& message, const std::filesystem::path& local_file_path) const;
 };

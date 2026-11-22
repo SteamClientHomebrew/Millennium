@@ -1,6 +1,7 @@
 import { ReactNode, FC } from 'react';
 
-import { Export, findModuleExport } from '../webpack';
+import { Export, findModuleExport, sourceOf } from '../module-registry';
+import { nativeInternal } from '../internals';
 import { createPropListRegex } from '../utils';
 
 export interface SidebarNavigationPage {
@@ -26,5 +27,7 @@ export interface SidebarNavigationProps {
 }
 
 const sidebarNavigationRegex = createPropListRegex(['pages', 'fnSetNavigateToPage', 'disableRouteReporting']);
+const sidebarNavigationStylesheetRegex = createPropListRegex(['pages', 'stylesheet']);
 /** @component React Components */
-export const SidebarNavigation = findModuleExport((e: Export) => e?.toString && sidebarNavigationRegex.test(e.toString())) as FC<SidebarNavigationProps>;
+export const SidebarNavigation = (nativeInternal('SidebarNavigation') ??
+	findModuleExport((e: Export) => sidebarNavigationRegex.test(sourceOf(e)) || sidebarNavigationStylesheetRegex.test(sourceOf(e)))) as FC<SidebarNavigationProps>;

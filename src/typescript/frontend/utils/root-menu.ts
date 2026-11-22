@@ -29,9 +29,28 @@
  */
 
 import { afterPatch, findInReactTree, getReactRoot } from '@steambrew/sdk';
-import { RenderSettingsModal } from '../settings';
+import { RenderSettingsModal, addRootMenuItems } from '../settings';
+
+const ROOT_MENU_WRAPPER = 'RootMenuContent';
+
+let wrapperRegistered = false;
+
+export function RegisterRootMenuWrapper(): boolean {
+	const registry = (window as any).__millennium_registry;
+	if (!registry?.register || !registry.available?.[ROOT_MENU_WRAPPER]) return false;
+
+	registry.register(ROOT_MENU_WRAPPER, (original: (...args: any[]) => any, ...args: any[]) => {
+		const ret = original(...args);
+		addRootMenuItems(ret);
+		return ret;
+	});
+	wrapperRegistered = true;
+	return true;
+}
 
 export function PatchRootMenu() {
+	if (wrapperRegistered) return;
+
 	const steamRootMenu = findInReactTree(getReactRoot(document.getElementById('root') as any), (m) => {
 		return m?.pendingProps?.title === 'Steam' && m?.pendingProps?.menuContent;
 	});

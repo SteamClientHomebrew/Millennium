@@ -32,6 +32,7 @@ import React from 'react';
 import { EUIMode, Millennium, pluginSelf, routerHook } from '@steambrew/sdk';
 import { WelcomeModalComponent } from './components/WelcomeModal';
 import { onWindowCreatedCallback, patchMissedDocuments, signalConfigReady } from './patcher';
+import { RegisterRootMenuWrapper } from './utils/root-menu';
 import { DispatchSystemColors } from './patcher/SystemColors';
 import { ParseLocalTheme } from './patcher/ThemeParser';
 import { DispatchGlobalColors } from './patcher/v1/GlobalColors';
@@ -173,6 +174,7 @@ const GlobalMillenniumQuickCssEditor: React.FC = () => {
 
 // Entry point on the front end of your plugin
 export default async function PluginMain() {
+	RegisterRootMenuWrapper();
 	Millennium.AddWindowCreateHook?.(onWindowCreatedCallback);
 	routerHook.addRoute('/millennium/settings', MillenniumSettings, { exact: false });
 

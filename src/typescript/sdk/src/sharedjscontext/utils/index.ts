@@ -1,6 +1,7 @@
 export * from './patcher';
 export * from './react/react';
 export * from './react/fc';
+export * from './react/intercept';
 export * from './react/treepatcher';
 export * from './static-classes';
 

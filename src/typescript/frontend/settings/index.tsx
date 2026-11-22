@@ -210,7 +210,10 @@ export function MillenniumSettings() {
 	);
 }
 
-function RenderSettingsModal(_: any, retObj: any) {
+function addRootMenuItems(retObj: any) {
+	const menuItems = retObj?.props?.menuItems;
+	if (!Array.isArray(menuItems) || menuItems.some((item) => item?.millenniumInjected)) return;
+
 	const items = [
 		{
 			name: locale.strMillennium,
@@ -218,6 +221,7 @@ function RenderSettingsModal(_: any, retObj: any) {
 				Navigation.Navigate('/millennium/settings');
 			},
 			visible: true,
+			millenniumInjected: true,
 		},
 		{
 			name: locale.strMillenniumLibraryManager,
@@ -225,12 +229,17 @@ function RenderSettingsModal(_: any, retObj: any) {
 				useQuickAccessStore.getState().openQuickAccess();
 			},
 			visible: true,
+			millenniumInjected: true,
 		},
 		'separator',
 	];
 
-	retObj?.props?.menuItems?.splice?.(retObj?.props?.menuItems?.length - 1, 0, ...items);
+	menuItems.splice(menuItems.length - 1, 0, ...items);
+}
+
+function RenderSettingsModal(_: any, retObj: any) {
+	addRootMenuItems(retObj);
 	return retObj?.type?.(retObj.props);
 }
 
-export { RenderSettingsModal };
+export { RenderSettingsModal, addRootMenuItems };

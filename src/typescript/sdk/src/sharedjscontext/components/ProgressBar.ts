@@ -1,8 +1,9 @@
 import { ReactNode, FC } from 'react';
 
-import { Export, findModuleExport } from '../webpack';
+import { Export, findModuleExport, sourceOf } from '../module-registry';
 import { ItemProps } from './Item';
 import { createPropListRegex } from '../utils';
+import { nativeInternal } from '../internals';
 
 export interface ProgressBarItemProps extends ItemProps {
 	indeterminate?: boolean;
@@ -20,16 +21,17 @@ export interface ProgressBarProps {
 
 export interface ProgressBarWithInfoProps extends ProgressBarItemProps {
 	sTimeRemaining?: ReactNode;
+	rtEstimatedCompletionTime?: number;
 	sOperationText?: ReactNode;
 }
 
 /** @component React Components */
-export const ProgressBar = findModuleExport((e: Export) =>
-  /\.ProgressBar,[\w$]+=="standard/.test(e?.toString() ?? '')
-) as FC<ProgressBarProps>;
+export const ProgressBar = (nativeInternal('ProgressBar') ??
+  findModuleExport((e: Export) => /\.ProgressBar,[\w$]+=="standard/.test(sourceOf(e)))) as FC<ProgressBarProps>;
 /** @component React Components */
-export const ProgressBarWithInfo = findModuleExport((e: Export) => e?.toString()?.includes('.ProgressBarFieldStatus') && e?.toString()?.includes('.OperationText')) as FC<ProgressBarWithInfoProps>;
+export const ProgressBarWithInfo = (nativeInternal('ProgressBarItem') ??
+  findModuleExport((e: Export) => sourceOf(e).includes('.ProgressBarFieldStatus') && sourceOf(e).includes('.OperationText'))) as FC<ProgressBarWithInfoProps>;
 
 const progressBarItemRegex = createPropListRegex(['indeterminate', 'nTransitionSec', 'nProgress']);
 /** @component React Components */
-export const ProgressBarItem = findModuleExport((e: Export) => e?.toString && progressBarItemRegex.test(e.toString())) as FC<ProgressBarItemProps>;
+export const ProgressBarItem = (nativeInternal('ProgressBarItem') ?? findModuleExport((e: Export) => progressBarItemRegex.test(sourceOf(e)))) as FC<ProgressBarItemProps>;

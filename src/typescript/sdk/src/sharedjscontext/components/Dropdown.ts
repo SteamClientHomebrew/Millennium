@@ -1,6 +1,6 @@
 import { ReactNode, FC } from 'react';
 
-import { CommonUIModule } from '../webpack';
+import { CommonUIModule, sourceOf } from '../module-registry';
 import { ItemProps } from './Item';
 import { createPropListRegex } from '../utils';
 
@@ -45,4 +45,4 @@ export const Dropdown = Object.values(CommonUIModule).find((mod: any) => mod?.pr
 export interface DropdownItemProps extends DropdownProps, ItemProps {}
 
 const dropdownItemRegex = createPropListRegex(['dropDownControlRef', 'description'], false);
-export const DropdownItem = Object.values(CommonUIModule).find((mod: any) => mod?.toString && dropdownItemRegex.test(mod.toString())) as FC<DropdownItemProps>;
+export const DropdownItem = Object.values(CommonUIModule).find((mod: any) => dropdownItemRegex.test(sourceOf(mod))) as FC<DropdownItemProps>;
