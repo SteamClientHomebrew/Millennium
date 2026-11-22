@@ -45,13 +45,19 @@ Base your locale on the existing [english](./src/locales/english.json) locale, a
 Name the file **lang.json** where *lang* is the **"API language code"** from the [supported language list](https://partner.steamgames.com/doc/store/localization/languages) 
 and append the target file to the **localizationFiles** [here](./src/typescript/frontend/utils/localization-manager.ts). 
 
+### Updating an existing locale
+
+Compare the locale with [english.json](./src/locales/english.json) and translate any missing entries. Keep the same keys, preserve placeholders such as `{0}` and `{1}`, and retain links and commands in the translated text. Existing locales are already registered in `localizationFiles`.
+
 ### Locales are community managed
 
 SteamClientHomebrew only maintains the english locales. If any changes are made to the english locales that wreck another language, contributors are responsible for updating them.
 
 ### Translation coverage
 
-Translation coverage by language, relative to English.
+Translation coverage by language, relative to English. Coverage counts non-empty entries for keys in the English locale; missing entries fall back to English.
+
+All 21 community-managed [locales](./src/locales) currently cover all 268 strings in the English locale.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/i18n-coverage-dark.svg">
