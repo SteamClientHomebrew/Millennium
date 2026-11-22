@@ -151,17 +151,23 @@ function collectModuleUrls(): string[] {
 	});
 }
 
-async function initEsmModuleCache() {
-	for (const url of collectModuleUrls()) {
-		const chunkName = new URL(url).pathname.split('/').pop() as string;
+async function importChunk(url: string): Promise<{ chunkName: string; namespace: Module } | undefined> {
+	const chunkName = new URL(url).pathname.split('/').pop() as string;
 
-		let namespace: Module;
-		try {
-			namespace = await import(url);
-		} catch (e) {
-			logger.debug('Ignoring import error for chunk', chunkName, e);
-			continue;
-		}
+	try {
+		return { chunkName, namespace: await import(url) };
+	} catch (e) {
+		logger.debug('Ignoring import error for chunk', chunkName, e);
+		return undefined;
+	}
+}
+
+async function initEsmModuleCache() {
+	const imported = await Promise.all(collectModuleUrls().map(importChunk));
+
+	for (const entry of imported) {
+		if (!entry) continue;
+		const { chunkName, namespace } = entry;
 
 		modules.set(chunkName, namespace);
 
