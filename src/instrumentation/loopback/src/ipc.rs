@@ -18,7 +18,7 @@ pub struct PatchDef {
 
 static WRITE_CH: OnceLock<Mutex<File>> = OnceLock::new();
 
-fn parse_args() -> Option<(File, File)> {
+pub fn channels_from_args() -> Option<(File, File)> {
     #[cfg(not(windows))]
     {
         for arg in std::env::args() {
@@ -103,15 +103,10 @@ fn parse_patch_list(patches_val: &Value) -> Vec<PatchDef> {
     defs
 }
 
-pub fn init<F: Fn(Vec<PatchDef>) + Send + 'static>(on_patch_list: F) {
-    let (mut read_file, write_file) = match parse_args() {
-        Some(pair) => pair,
-        None => {
-            log::warn!("no --millennium-loopback-ipc-fds/handles arg; patch engine disabled");
-            return;
-        }
-    };
-
+pub fn init<F: Fn(Vec<PatchDef>) + Send + 'static>(
+    (mut read_file, write_file): (File, File),
+    on_patch_list: F,
+) {
     WRITE_CH.set(Mutex::new(write_file)).ok();
 
     std::thread::spawn(move || loop {
