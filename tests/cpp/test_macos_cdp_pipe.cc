@@ -2,7 +2,9 @@
 #include "bootstrap/macos/pipe_bootstrap.h"
 #include "millennium/macos_cdp_pipe.h"
 #include <chrono>
+#include <cstdio>
 #include <future>
+#include <sys/stat.h>
 #include <sys/wait.h>
 
 namespace
@@ -115,8 +117,9 @@ TEST_CASE("macOS Helper launch hands off fresh descriptors and restores failed e
         if (child == 0) {
             alarm(5);
             int original = open("/dev/null", O_RDWR);
-            if (original < 0 || dup2(original, 3) < 0 || dup2(original, 4) < 0) _exit(1);
-            if (original > 4) close(original);
+            for (int fd = 3; fd <= 6; ++fd)
+                if (dup2(original, fd) < 0) _exit(1);
+            if (original > 6) close(original);
             fcntl(3, F_SETFD, FD_CLOEXEC);
             char name[] = "Steam Helper";
             char* argv[] = { name, nullptr };
@@ -124,8 +127,15 @@ TEST_CASE("macOS Helper launch hands off fresh descriptors and restores failed e
             {
                 if (!args[1] || strcmp(args[1], "--remote-debugging-pipe") != 0) _exit(2);
                 if (fcntl(3, F_GETFD) != 0 || fcntl(4, F_GETFD) != 0) _exit(3);
+                struct stat info{};
+                for (int fd : { 5, 6 })
+                    if (fstat(fd, &info) < 0 || !S_ISCHR(info.st_mode)) _exit(7);
+                int patch_in, patch_out;
+                if (!args[2] || std::sscanf(args[2], "--millennium-loopback-ipc-fds=%d,%d", &patch_in, &patch_out) != 2) _exit(8);
+                if (fcntl(patch_in, F_GETFD) != 0 || fcntl(patch_out, F_GETFD) != 0) _exit(9);
                 char byte;
                 if (read(3, &byte, 1) != 1 || write(4, &byte, 1) != 1) _exit(4);
+                if (read(patch_in, &byte, 1) != 1 || write(patch_out, &byte, 1) != 1) _exit(10);
                 errno = ENOENT;
                 return -1;
             });
@@ -147,6 +157,11 @@ TEST_CASE("macOS Helper launch hands off fresh descriptors and restores failed e
         char byte;
         REQUIRE(read(conn->read_fd, &byte, 1) == 1);
         REQUIRE(byte == 'x');
+        REQUIRE(write(conn->loopback_write_fd, "p", 1) == 1);
+        pollfd patch_response{ conn->loopback_read_fd, POLLIN, 0 };
+        REQUIRE(poll(&patch_response, 1, 3000) == 1);
+        REQUIRE(read(conn->loopback_read_fd, &byte, 1) == 1);
+        REQUIRE(byte == 'p');
         int status;
         REQUIRE(waitpid(child, &status, 0) == child);
         REQUIRE(WIFEXITED(status));
