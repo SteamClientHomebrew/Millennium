@@ -21,6 +21,7 @@ export interface ProgressBarProps {
 
 export interface ProgressBarWithInfoProps extends ProgressBarItemProps {
 	sTimeRemaining?: ReactNode;
+	rtEstimatedCompletionTime?: number;
 	sOperationText?: ReactNode;
 }
 
@@ -28,8 +29,8 @@ export interface ProgressBarWithInfoProps extends ProgressBarItemProps {
 export const ProgressBar = (nativeInternal('ProgressBar') ??
   findModuleExport((e: Export) => /\.ProgressBar,[\w$]+=="standard/.test(sourceOf(e)))) as FC<ProgressBarProps>;
 /** @component React Components */
-export const ProgressBarWithInfo = (findModuleExport((e: Export) => sourceOf(e).includes('.ProgressBarFieldStatus') && sourceOf(e).includes('.OperationText')) ??
-  nativeInternal('ProgressBarItem')) as FC<ProgressBarWithInfoProps>;
+export const ProgressBarWithInfo = (nativeInternal('ProgressBarItem') ??
+  findModuleExport((e: Export) => sourceOf(e).includes('.ProgressBarFieldStatus') && sourceOf(e).includes('.OperationText'))) as FC<ProgressBarWithInfoProps>;
 
 const progressBarItemRegex = createPropListRegex(['indeterminate', 'nTransitionSec', 'nProgress']);
 /** @component React Components */
