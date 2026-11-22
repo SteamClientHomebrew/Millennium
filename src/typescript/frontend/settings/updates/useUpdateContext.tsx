@@ -142,7 +142,7 @@ export const fetchAvailableUpdates = async (force: boolean = false): Promise<boo
 			const updates = await backend.updater.getUpdates(force);
 			pluginSelf.updates = { themes: updates.themes, plugins: mergePluginUpdateLists(updates.plugins, updates.starPlugins) };
 			pluginSelf.hasCheckedForUpdates = true;
-			if (isFirstCheck && settingsManager.config.general.shouldShowThemePluginUpdateNotifications) {
+			if (isFirstCheck && (await settingsManager.ready).general.shouldShowThemePluginUpdateNotifications) {
 				sleep(5000).then(notificationService.notifyLibraryUpdates);
 			}
 		}

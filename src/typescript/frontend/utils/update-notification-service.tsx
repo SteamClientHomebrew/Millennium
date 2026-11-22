@@ -65,7 +65,7 @@ export const notificationService = {
 	async showNotifications() {
 		await sleep(3000);
 		if (!pluginSelf?.millenniumUpdates?.hasUpdate) return;
-		if (settingsManager.config.general.onMillenniumUpdate === OnMillenniumUpdate.NOTIFY) {
+		if ((await settingsManager.ready).general.onMillenniumUpdate === OnMillenniumUpdate.NOTIFY) {
 			notificationService.notifyMillenniumUpdates();
 		}
 	},
