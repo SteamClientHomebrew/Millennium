@@ -4,7 +4,7 @@ _pkgname='millennium'
 _Pkgname='Millennium'
 pkgbase="${_pkgname}"
 pkgname=("${_pkgname}" "${_pkgname}-x86")
-pkgver=3.6.3
+pkgver=3.7.0_beta.1
 pkgrel=1
 pkgdesc="${_Pkgname} is an open-source low-code modding framework to create, manage and use themes/plugins for the desktop Steam Client without any low-level internal interaction or overhead."
 arch=('x86_64')
@@ -36,7 +36,7 @@ makedepends=(
 )
 provides=("${_pkgname}=${pkgver}")
 install=millennium.install
-source=("git+$url.git#commit=ac5e1ad646b1d1dd76a04aecf32d9e5e41779201")
+source=("git+$url.git#commit=9f5f34085fb4c1dc390f174edd88baa9e4454335")
 sha256sums=('SKIP')
 
 build() {
