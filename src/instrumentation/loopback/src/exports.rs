@@ -115,11 +115,12 @@ struct Analysis {
     react: Option<String>,
 }
 
-fn analyse(text: &str) -> Option<Analysis> {
+fn analyse(text: &str) -> Result<Analysis, String> {
     let allocator = Allocator::default();
     let parsed = Parser::new(&allocator, text, SourceType::mjs()).parse();
     if parsed.panicked || !parsed.errors.is_empty() {
-        return None;
+        let first = parsed.errors.first().map(|error| error.to_string()).unwrap_or_else(|| "parser panicked".to_string());
+        return Err(format!("{} error(s), first: {}", parsed.errors.len(), first));
     }
 
     let mut constants: HashMap<&str, &str> = HashMap::new();
@@ -219,7 +220,7 @@ fn analyse(text: &str) -> Option<Analysis> {
     } else {
         (Vec::new(), None)
     };
-    Some(Analysis { found, class_maps, extra, wrappers, react })
+    Ok(Analysis { found, class_maps, extra, wrappers, react })
 }
 
 pub fn patch(name: &str, content: &[u8]) -> (Vec<u8>, usize) {
@@ -229,8 +230,12 @@ pub fn patch(name: &str, content: &[u8]) -> (Vec<u8>, usize) {
     if !has_candidate(text) {
         return (content.to_vec(), 0);
     }
-    let Some(Analysis { found, class_maps, extra, wrappers: wrap_targets, react }) = analyse(text) else {
-        return (content.to_vec(), 0);
+    let Analysis { found, class_maps, extra, wrappers: wrap_targets, react } = match analyse(text) {
+        Ok(analysis) => analysis,
+        Err(reason) => {
+            log::warn!("{}: not exporting internals or wrapping components, the file does not parse ({})", name, reason);
+            return (content.to_vec(), 0);
+        }
     };
     let wrap_source = match (&react, wrap_targets.is_empty()) {
         (Some(alias), false) => Some(wrappers::apply(text, &wrap_targets, alias)),
@@ -356,6 +361,15 @@ mod tests {
         assert_eq!(count, 1);
         assert!(out.contains("zXn as __millennium_internal_BBCodeParser"));
         assert!(crate::syntax::check(&out).is_empty());
+    }
+
+    #[test]
+    fn leaves_a_candidate_that_does_not_parse_untouched() {
+        let source = "function bL(e){let{nProgress:t,nTransitionSec:n=1,margin:r=`none`}=e;return t}}}";
+        let (out, count) = patched(source);
+        assert_eq!(count, 0);
+        assert_eq!(out, source);
+        assert!(analyse(source).is_err());
     }
 
     #[test]
