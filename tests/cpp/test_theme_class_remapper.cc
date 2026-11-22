@@ -147,16 +147,31 @@ TEST_CASE("reports an active status with the match ratio", "[theme_class_remappe
     CHECK(remapper.status().find("2/2") != std::string::npos);
 }
 
-TEST_CASE("stays inactive when the mapped classes are not in this steam ui", "[theme_class_remapper]")
+TEST_CASE("stays active on a newer build and reports that the table is out of date", "[theme_class_remapper]")
 {
     auto remapper = make({ "somethingelse" });
+    CHECK(remapper.active());
+    CHECK(remapper.status().starts_with("active"));
+    CHECK(remapper.status().find("out of date") != std::string::npos);
+}
+
+TEST_CASE("keeps remapping the classes that survive on a newer build", "[theme_class_remapper]")
+{
+    auto remapper = make({ "somethingelse", "cGtmpwuGgRg-" });
+    REQUIRE(remapper.active());
+    CHECK(remapper.rewrite("." + k_stable_a + "{a:b}") != "." + k_stable_a + "{a:b}");
+}
+
+TEST_CASE("stays inactive when the steam ui has no module build classes", "[theme_class_remapper]")
+{
+    auto remapper = make({});
     CHECK_FALSE(remapper.active());
     CHECK(remapper.status().starts_with("inactive"));
 }
 
 TEST_CASE("rewrite returns the input unchanged when inactive", "[theme_class_remapper]")
 {
-    auto remapper = make({ "somethingelse" });
+    auto remapper = make({});
     const std::string css = "." + k_stable_a + "{a:b}";
     CHECK(remapper.rewrite(css) == css);
 }

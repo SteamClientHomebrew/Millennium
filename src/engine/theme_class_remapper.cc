@@ -10,7 +10,7 @@
 
 namespace
 {
-constexpr double k_min_table_presence = 0.5;
+constexpr double k_outdated_table_presence = 0.5;
 constexpr size_t k_stable_hash_min_length = 21;
 constexpr size_t k_stable_hash_max_length = 23;
 
@@ -195,6 +195,10 @@ void theme_class_remapper::initialise() const
     }
 
     m_live = m_live_class_loader();
+    if (m_live.empty()) {
+        m_status = "inactive, this Steam UI does not use the module build";
+        return;
+    }
 
     std::unordered_set<std::string> targets;
     for (const auto& [stable_class, beta_class] : m_table.map) targets.insert(beta_class);
@@ -207,13 +211,9 @@ void theme_class_remapper::initialise() const
     for (const auto& target : targets) present += m_live.contains(target) ? 1 : 0;
     const double ratio = static_cast<double>(present) / static_cast<double>(targets.size());
 
-    if (ratio < k_min_table_presence) {
-        m_status = std::format("inactive, only {}/{} mapped classes exist in this Steam UI", present, targets.size());
-        return;
-    }
-
     m_active = true;
-    m_status = std::format("active for table build {} ({}/{} mapped classes present)", m_table.build, present, targets.size());
+    m_status = std::format("active for table build {} ({}/{} mapped classes present{})", m_table.build, present, targets.size(),
+                           ratio < k_outdated_table_presence ? ", the table is out of date for this Steam UI" : "");
 }
 
 const std::string& theme_class_remapper::status() const
