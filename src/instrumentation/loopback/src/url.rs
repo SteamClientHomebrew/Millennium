@@ -75,8 +75,14 @@ fn steam_install_path() -> PathBuf {
 
 #[cfg(target_os = "macos")]
 fn steam_install_path() -> PathBuf {
+    if let Some(dir) = std::env::var_os("MILLENNIUM_STEAM_EXECUTABLE")
+        .and_then(|exe| Path::new(&exe).parent().map(Path::to_owned))
+    {
+        return dir;
+    }
     let home = std::env::var("HOME").unwrap_or_else(|_| "/Users".into());
-    PathBuf::from(home).join("Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS")
+    PathBuf::from(home)
+        .join("Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS")
 }
 
 pub fn local_path_from_lb_url(url: &str) -> Option<PathBuf> {
@@ -114,14 +120,18 @@ mod tests {
     #[test]
     fn rejects_parent_directory_traversal() {
         assert!(local_path_from_lb_url("https://steamloopback.host/../../etc/passwd").is_none());
-        assert!(local_path_from_lb_url("https://steamloopback.host/css/../../../etc/passwd").is_none());
+        assert!(
+            local_path_from_lb_url("https://steamloopback.host/css/../../../etc/passwd").is_none()
+        );
     }
 
     #[cfg(windows)]
     #[test]
     fn rejects_windows_absolute_paths() {
         assert!(local_path_from_lb_url("https://steamloopback.host/C:/Windows/win.ini").is_none());
-        assert!(local_path_from_lb_url("https://steamloopback.host/\\\\server\\share\\file").is_none());
+        assert!(
+            local_path_from_lb_url("https://steamloopback.host/\\\\server\\share\\file").is_none()
+        );
     }
 
     #[test]
