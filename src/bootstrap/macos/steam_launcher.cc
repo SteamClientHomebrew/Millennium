@@ -1,10 +1,7 @@
 #ifdef __APPLE__
-#include <algorithm>
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <errno.h>
-#include <filesystem>
-#include <fstream>
 #include <libgen.h>
 #include <limits.h>
 #include <mach-o/dyld.h>
@@ -23,14 +20,9 @@ constexpr const char* kDebugPortEnv = "MILLENNIUM_DEBUG_PORT";
 constexpr const char* kRuntimePathEnv = "MILLENNIUM_RUNTIME_PATH";
 constexpr const char* kHookHelperPathEnv = "MILLENNIUM_HOOK_HELPER_PATH";
 constexpr const char* kChildHookPathEnv = "MILLENNIUM_CHILD_HOOK_PATH";
-constexpr const char* kAssetsRootEnv = "MILLENNIUM_ASSETS_ROOT";
 constexpr const char* kSteamExecutableEnv = "MILLENNIUM_STEAM_EXECUTABLE";
 constexpr const char* kCefRemoteDebuggingMarker = ".cef-enable-remote-debugging";
 constexpr const char* kDefaultSteamExecutableSuffix = "/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/steam_osx";
-constexpr const char* kBootstrapDirectoryName = "millennium";
-constexpr const char* kBootstrapLoaderDirectoryName = "loader";
-constexpr const char* kBootstrapChunksDirectoryName = "chunks";
-constexpr const char* kBootstrapFrontendModuleName = "millennium-frontend.js";
 } // namespace
 
 static bool get_executable_path(char* output, size_t output_size)
@@ -46,17 +38,6 @@ static bool get_executable_path(char* output, size_t output_size)
     }
 
     strncpy(output, resolved, output_size - 1);
-    output[output_size - 1] = '\0';
-    return true;
-}
-
-static bool get_executable_path_raw(char* output, size_t output_size)
-{
-    uint32_t size = static_cast<uint32_t>(output_size);
-    if (_NSGetExecutablePath(output, &size) != 0) {
-        return false;
-    }
-
     output[output_size - 1] = '\0';
     return true;
 }
@@ -231,211 +212,6 @@ static void remove_cef_remote_debugging_marker(const char* steam_executable_path
     unlink(marker_path.c_str());
 }
 
-static bool ensure_directory_exists(const std::filesystem::path& path)
-{
-    std::error_code error;
-    if (std::filesystem::exists(path, error)) {
-        return !error;
-    }
-
-    std::filesystem::create_directories(path, error);
-    return !error;
-}
-
-static bool read_text_file(const std::filesystem::path& path, std::string* output)
-{
-    if (!output) {
-        return false;
-    }
-
-    std::ifstream input(path, std::ios::binary);
-    if (!input.is_open()) {
-        return false;
-    }
-
-    output->assign(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
-    return true;
-}
-
-static bool write_text_file(const std::filesystem::path& path, const std::string& content)
-{
-    std::ofstream output(path, std::ios::binary | std::ios::trunc);
-    if (!output.is_open()) {
-        return false;
-    }
-
-    output.write(content.data(), static_cast<std::streamsize>(content.size()));
-    return static_cast<bool>(output);
-}
-
-static bool sync_text_file(const std::filesystem::path& source, const std::filesystem::path& target)
-{
-    std::string source_content;
-    if (!read_text_file(source, &source_content)) {
-        return false;
-    }
-
-    std::string existing_content;
-    if (read_text_file(target, &existing_content) && existing_content == source_content) {
-        return true;
-    }
-
-    return write_text_file(target, source_content);
-}
-
-static bool resolve_bootstrap_asset_sources(const char* wrapper_directory, std::filesystem::path* loader_source_dir, std::filesystem::path* frontend_source)
-{
-    if (!wrapper_directory || !loader_source_dir || !frontend_source) {
-        return false;
-    }
-
-    auto has_valid_layout = [](const std::filesystem::path& candidate_root, std::filesystem::path* resolved_loader_dir, std::filesystem::path* resolved_frontend) -> bool
-    {
-        const std::filesystem::path loader_dir = candidate_root / "loader";
-        const std::filesystem::path loader_entry = loader_dir / "millennium.js";
-        const std::filesystem::path chunks_dir = loader_dir / "chunks";
-        const std::filesystem::path frontend_module = candidate_root / kBootstrapFrontendModuleName;
-        const std::filesystem::path frontend_binary = candidate_root / "frontend.bin";
-
-        std::error_code error;
-        const bool has_loader_entry = std::filesystem::is_regular_file(loader_entry, error) && !error;
-        error.clear();
-        const bool has_chunks_dir = std::filesystem::is_directory(chunks_dir, error) && !error;
-        error.clear();
-        const bool has_frontend_module = std::filesystem::is_regular_file(frontend_module, error) && !error;
-        error.clear();
-        const bool has_frontend_binary = std::filesystem::is_regular_file(frontend_binary, error) && !error;
-
-        if (!has_loader_entry || !has_chunks_dir || (!has_frontend_module && !has_frontend_binary)) {
-            return false;
-        }
-
-        *resolved_loader_dir = loader_dir;
-        *resolved_frontend = has_frontend_module ? frontend_module : frontend_binary;
-        return true;
-    };
-
-    std::vector<std::filesystem::path> candidates;
-    const char* configured_assets_root = getenv(kAssetsRootEnv);
-    if (configured_assets_root && configured_assets_root[0] != '\0') {
-        candidates.emplace_back(configured_assets_root);
-    }
-
-    candidates.emplace_back(std::filesystem::path(wrapper_directory) / ".." / "Resources" / "millennium-assets");
-
-    for (const std::filesystem::path& candidate : candidates) {
-        std::error_code canonical_error;
-        const std::filesystem::path resolved_candidate = std::filesystem::weakly_canonical(candidate, canonical_error);
-        if (has_valid_layout(canonical_error ? candidate : resolved_candidate, loader_source_dir, frontend_source)) {
-            return true;
-        }
-    }
-
-#ifdef MILLENNIUM_ROOT
-    /* Dev builds bake MILLENNIUM_ROOT to the repo root and read assets straight from the source tree. */
-    const std::filesystem::path repo_root(MILLENNIUM_ROOT);
-    const std::filesystem::path dev_loader_dir = repo_root / "src" / "typescript" / "sdk" / "build";
-    const std::filesystem::path dev_frontend = repo_root / "src" / "typescript" / ".frontend.bin";
-
-    std::error_code dev_error;
-    const bool has_loader_entry = std::filesystem::is_regular_file(dev_loader_dir / "millennium.js", dev_error) && !dev_error;
-    dev_error.clear();
-    const bool has_chunks = std::filesystem::is_directory(dev_loader_dir / "chunks", dev_error) && !dev_error;
-    dev_error.clear();
-    const bool has_frontend = std::filesystem::is_regular_file(dev_frontend, dev_error) && !dev_error;
-
-    if (has_loader_entry && has_chunks && has_frontend) {
-        *loader_source_dir = dev_loader_dir;
-        *frontend_source = dev_frontend;
-        return true;
-    }
-#endif
-
-    return false;
-}
-
-static bool prepare_macos_bootstrap_assets(const char* steam_executable_path)
-{
-    const char* separator = strrchr(steam_executable_path, '/');
-    if (!separator) {
-        return false;
-    }
-
-    const std::filesystem::path steam_root(std::string(steam_executable_path, static_cast<size_t>(separator - steam_executable_path)));
-    const std::filesystem::path steamui_root = steam_root / "steamui";
-    const std::filesystem::path bootstrap_root = steamui_root / kBootstrapDirectoryName;
-    const std::filesystem::path loader_target_dir = bootstrap_root / kBootstrapLoaderDirectoryName;
-    const std::filesystem::path chunks_target_dir = loader_target_dir / kBootstrapChunksDirectoryName;
-
-    if (!ensure_directory_exists(chunks_target_dir)) {
-        return false;
-    }
-
-    char executable_path[PATH_MAX];
-    if (!get_executable_path_raw(executable_path, sizeof(executable_path))) {
-        return false;
-    }
-
-    char wrapper_directory_buffer[PATH_MAX];
-    strncpy(wrapper_directory_buffer, executable_path, sizeof(wrapper_directory_buffer) - 1);
-    wrapper_directory_buffer[sizeof(wrapper_directory_buffer) - 1] = '\0';
-
-    const char* wrapper_directory = dirname(wrapper_directory_buffer);
-
-    std::filesystem::path loader_source_dir;
-    std::filesystem::path frontend_source;
-    if (!resolve_bootstrap_asset_sources(wrapper_directory, &loader_source_dir, &frontend_source)) {
-        return false;
-    }
-
-    if (!sync_text_file(loader_source_dir / "millennium.js", loader_target_dir / "millennium.js")) {
-        return false;
-    }
-
-    const std::filesystem::path loader_chunks_dir = loader_source_dir / "chunks";
-    std::error_code directory_error;
-    if (!std::filesystem::exists(loader_chunks_dir, directory_error) || directory_error) {
-        return false;
-    }
-
-    std::vector<std::filesystem::path> chunk_files;
-    for (std::filesystem::directory_iterator it(loader_chunks_dir, directory_error), end; !directory_error && it != end; it.increment(directory_error)) {
-        const std::filesystem::directory_entry& entry = *it;
-        if (!entry.is_regular_file(directory_error) || directory_error) {
-            continue;
-        }
-
-        const std::filesystem::path chunk_path = entry.path();
-        const std::string chunk_name = chunk_path.filename().string();
-        if (chunk_name.rfind("chunk-", 0) != 0 || chunk_path.extension() != ".js") {
-            continue;
-        }
-
-        chunk_files.push_back(chunk_path);
-    }
-
-    if (directory_error || chunk_files.empty()) {
-        return false;
-    }
-
-    std::sort(chunk_files.begin(), chunk_files.end(), [](const std::filesystem::path& lhs, const std::filesystem::path& rhs)
-    {
-        return lhs.filename().string() < rhs.filename().string();
-    });
-
-    for (const std::filesystem::path& chunk_path : chunk_files) {
-        if (!sync_text_file(chunk_path, chunks_target_dir / chunk_path.filename())) {
-            return false;
-        }
-    }
-
-    if (!sync_text_file(frontend_source, bootstrap_root / kBootstrapFrontendModuleName)) {
-        return false;
-    }
-
-    return true;
-}
-
 static std::vector<char*> build_launch_arguments(const char* target_steam_path, int argc, char** argv, std::vector<std::string>& owned_arguments)
 {
     owned_arguments.clear();
@@ -555,12 +331,6 @@ int main(int argc, char** argv)
 
     if (getenv(kDebugPortEnv) && !ensure_cef_remote_debugging_marker(target_steam_path)) {
         fprintf(stderr, "[Millennium] Failed to create %s beside the Steam runtime.\n", kCefRemoteDebuggingMarker);
-        return 1;
-    }
-
-    if (!prepare_macos_bootstrap_assets(target_steam_path)) {
-        remove_cef_remote_debugging_marker(target_steam_path);
-        fprintf(stderr, "[Millennium] Failed to prepare macOS bootstrap assets.\n");
         return 1;
     }
 

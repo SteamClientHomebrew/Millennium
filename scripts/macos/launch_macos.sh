@@ -141,114 +141,6 @@ find_artifact_by_names() {
     return 1
 }
 
-resolve_bootstrap_asset_paths() {
-    local frontend_candidates=(
-        "${REPO_ROOT}/src/typescript/.frontend.bin"
-    )
-    local loader_candidates=(
-        "${REPO_ROOT}/src/typescript/sdk/build/millennium.js"
-    )
-
-    local frontend_asset=""
-    local loader_entry=""
-    local candidate=""
-
-    for candidate in "${frontend_candidates[@]}"; do
-        if [ -r "${candidate}" ]; then
-            frontend_asset="${candidate}"
-            break
-        fi
-    done
-
-    for candidate in "${loader_candidates[@]}"; do
-        if [ -r "${candidate}" ]; then
-            loader_entry="${candidate}"
-            break
-        fi
-    done
-
-    if [ -z "${frontend_asset}" ]; then
-        fail "Missing macOS bootstrap asset: expected frontend bundle in one of: ${frontend_candidates[*]}"
-    fi
-
-    if [ -z "${loader_entry}" ]; then
-        fail "Missing macOS bootstrap asset: expected loader entry in one of: ${loader_candidates[*]}"
-    fi
-
-    printf "%s\n%s\n" "${frontend_asset}" "${loader_entry}"
-}
-
-ensure_bootstrap_assets() {
-    local resolved_assets=""
-    resolved_assets="$(resolve_bootstrap_asset_paths)"
-
-    local frontend_asset
-    frontend_asset="$(printf "%s\n" "${resolved_assets}" | sed -n '1p')"
-    local loader_entry
-    loader_entry="$(printf "%s\n" "${resolved_assets}" | sed -n '2p')"
-    local chunks_dir
-    chunks_dir="$(dirname "${loader_entry}")/chunks"
-
-    local missing_assets=0
-    local required_chunks=()
-    local chunk_name=""
-    local has_chunk_marker=0
-
-    if [ ! -d "${chunks_dir}" ]; then
-        printf "Missing macOS bootstrap asset: %s\n" "${chunks_dir}" >&2
-        missing_assets=1
-    fi
-
-    while IFS= read -r chunk_name; do
-        [ -n "${chunk_name}" ] || continue
-        required_chunks+=("${chunk_name}")
-    done < <(
-        grep -oE "chunks/chunk-[A-Za-z0-9._-]+\\.js" "${loader_entry}" \
-            | sed 's#^chunks/##' \
-            | sort -u \
-            || true
-    )
-
-    if [ "${#required_chunks[@]}" -eq 0 ]; then
-        for chunk_path in "${chunks_dir}"/chunk-*.js; do
-            [ -e "${chunk_path}" ] || continue
-            required_chunks+=("$(basename "${chunk_path}")")
-        done
-    fi
-
-    for chunk_name in "${required_chunks[@]}"; do
-        has_chunk_marker=1
-        if [ ! -r "${chunks_dir}/${chunk_name}" ]; then
-            printf "Missing macOS bootstrap asset: %s/%s\n" "${chunks_dir}" "${chunk_name}" >&2
-            missing_assets=1
-        fi
-    done
-
-    if [ "${has_chunk_marker}" -eq 0 ]; then
-        printf "Missing macOS bootstrap asset: no chunk-*.js files in %s\n" "${chunks_dir}" >&2
-        missing_assets=1
-    fi
-
-    if [ "${missing_assets}" -eq 0 ]; then
-        return 0
-    fi
-
-    cat >&2 <<EOF
-Build the missing bootstrap assets before launching Steam.
-
-Current branch layout:
-  (cd src/typescript/ttc && bun run build)
-  (cd src/typescript/sdk/packages/loader && bun run build)
-  (cd src/typescript/frontend && bun run build)
-  # or run all together:
-  (cd src/typescript && bun run build)
-
-Expected frontend artifact:
-  ${frontend_asset}
-EOF
-    exit 1
-}
-
 while [ $# -gt 0 ]; do
     case "$1" in
         --build-dir)
@@ -308,7 +200,6 @@ done
 
 [ -x "${STEAM_EXECUTABLE}" ] || fail "Steam executable not found: ${STEAM_EXECUTABLE}"
 
-ensure_bootstrap_assets
 ensure_steam_not_running
 
 declare -a wrapper_search_dirs

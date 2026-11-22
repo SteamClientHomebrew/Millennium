@@ -29,7 +29,6 @@ readonly WRAPPER_RUNTIME_ARTIFACTS=(
     "libmillennium_child_hook.dylib"
     "libmillennium_luavm_x86"
 )
-readonly WRAPPER_ASSET_RELATIVE_DIR="millennium-assets"
 readonly APP_INFO_TEMPLATE="${REPO_ROOT}/src/bootstrap/macos/Info.plist.xml"
 readonly APP_ICON_SOURCE="${REPO_ROOT}/src/bootstrap/macos/AppIcon.icns"
 readonly DEFAULT_APP_BUNDLE_GLOBAL="/Applications/${WRAPPER_APP_NAME}"
@@ -209,40 +208,6 @@ resolve_install_version() {
     printf "%s\n" "${version}"
 }
 
-copy_wrapper_assets_into_runtime() {
-    local runtime_dir="$1"
-    local asset_root="${runtime_dir}/${WRAPPER_ASSET_RELATIVE_DIR}"
-    local loader_target_dir="${asset_root}/loader"
-    local chunks_target_dir="${loader_target_dir}/chunks"
-
-    local loader_build_dir="${REPO_ROOT}/src/typescript/sdk/build"
-    local loader_entry="${loader_build_dir}/millennium.js"
-    local chunks_source_dir="${loader_build_dir}/chunks"
-    local frontend_source="${REPO_ROOT}/src/typescript/.frontend.bin"
-
-    [ -f "${loader_entry}" ] || fail "Missing loader entry asset: ${loader_entry}"
-    [ -d "${chunks_source_dir}" ] || fail "Missing loader chunks directory: ${chunks_source_dir}"
-    [ -f "${frontend_source}" ] || fail "Missing frontend asset: ${frontend_source}"
-
-    ensure_directory "${loader_target_dir}"
-    ensure_directory "${chunks_target_dir}"
-
-    install_data_file "${loader_entry}" "${loader_target_dir}/millennium.js"
-    install_data_file "${frontend_source}" "${asset_root}/millennium-frontend.js"
-
-    local found_chunk=0
-    local chunk_file=""
-    for chunk_file in "${chunks_source_dir}"/chunk-*.js; do
-        [ -e "${chunk_file}" ] || continue
-        found_chunk=1
-        install_data_file "${chunk_file}" "${chunks_target_dir}/$(basename "${chunk_file}")"
-    done
-
-    if [ "${found_chunk}" -eq 0 ]; then
-        fail "No chunk-*.js files found in ${chunks_source_dir}"
-    fi
-}
-
 resolve_wrapper_artifact() {
     local artifact_name="$1"
     local source_path=""
@@ -273,8 +238,6 @@ install_wrapper_runtime_payload() {
         runtime_artifact=$(resolve_wrapper_artifact "${artifact}")
         install_file "${runtime_artifact}" "${runtime_dir}/${artifact}"
     done
-
-    copy_wrapper_assets_into_runtime "${runtime_dir}"
 }
 
 install_wrapper_app_bundle() {
@@ -299,8 +262,6 @@ install_wrapper_app_bundle() {
     for artifact in "${WRAPPER_RUNTIME_ARTIFACTS[@]}"; do
         install_symlink "${runtime_dir}/${artifact}" "${app_macos_dir}/${artifact}"
     done
-
-    install_symlink "${runtime_dir}/${WRAPPER_ASSET_RELATIVE_DIR}" "${app_resources_dir}/${WRAPPER_ASSET_RELATIVE_DIR}"
 }
 
 install_or_repair_wrapper_app() {
