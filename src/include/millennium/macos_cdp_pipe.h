@@ -32,8 +32,7 @@ class connection
   public:
     const int read_fd;
     const int write_fd;
-    // Loopback IPC endpoints, if the bootstrap sent them. Not owned: whoever
-    // takes them (register_loopback_conn) closes them and resets these to -1.
+    // Owned here until handed to the patch worker.
     int loopback_read_fd = -1;
     int loopback_write_fd = -1;
     std::atomic<bool> stopped{ false };
@@ -106,12 +105,8 @@ inline std::shared_ptr<connection> receive(int fd)
         memcpy(endpoints, CMSG_DATA(rights), bytes < sizeof(endpoints) ? bytes : sizeof(endpoints));
     }
     bool valid = expected_rights && count == 1 && byte == 1 && !(msg.msg_flags & (MSG_TRUNC | MSG_CTRUNC));
-    for (size_t i = 0; i < 2; ++i) {
-        if (endpoints[i] < 0 || fcntl(endpoints[i], F_SETFD, FD_CLOEXEC) < 0 || fcntl(endpoints[i], F_SETFL, O_NONBLOCK) < 0) valid = false;
-    }
-    // Loopback IPC endpoints stay blocking: loopback_ipc.cc uses blocking reads and writes.
-    for (size_t i = 2; i < received && i < 4; ++i) {
-        if (endpoints[i] < 0 || fcntl(endpoints[i], F_SETFD, FD_CLOEXEC) < 0) valid = false;
+    for (size_t i = 0; valid && i < received; ++i) {
+        valid = fcntl(endpoints[i], F_SETFD, FD_CLOEXEC) == 0 && fcntl(endpoints[i], F_SETFL, O_NONBLOCK) == 0;
     }
     if (valid) valid = fcntl(endpoints[1], F_SETNOSIGPIPE, 1) == 0;
     if (valid && received == 4) valid = fcntl(endpoints[3], F_SETNOSIGPIPE, 1) == 0;

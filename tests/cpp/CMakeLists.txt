@@ -40,6 +40,7 @@ if(APPLE AND MILLENNIUM_BUILD_MAIN)
   # Each connector test owns the process-wide broker and termination state.
   foreach(test_name IN ITEMS
       "macOS connector exits without a Helper"
+      "macOS CDP can connect and stop with a full patch pipe"
       "macOS failed handoff preserves the current Helper connection")
     add_test(NAME "${test_name}" COMMAND millennium_macos_connector_tests "${test_name}")
     set_tests_properties("${test_name}" PROPERTIES TIMEOUT 15)

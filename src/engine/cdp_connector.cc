@@ -365,6 +365,7 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> socket
 #elif __APPLE__
 
 #include <thread>
+#include <utility>
 #include "millennium/macos_cdp_pipe.h"
 #include "instrumentation/loopback_ipc.h"
 #include "millennium/millennium_lifecycle.h"
@@ -411,12 +412,19 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> props)
         });
         logger.log("[{}] CDP pipe transport connected.", props->name);
 
-        // The Helper's libmillennium_hhx64 reads the plugin patch list from these.
-        if (conn->loopback_read_fd >= 0 && conn->loopback_write_fd >= 0) {
-            register_loopback_conn(conn->loopback_write_fd, conn->loopback_read_fd);
-            conn->loopback_read_fd = -1;
-            conn->loopback_write_fd = -1;
-            logger.log("[{}] loopback IPC connected.", props->name);
+        std::thread patch_worker;
+        int patch_stop[2];
+        if (conn->loopback_read_fd >= 0) {
+            const int read_fd = std::exchange(conn->loopback_read_fd, -1);
+            const int write_fd = std::exchange(conn->loopback_write_fd, -1);
+            if (pipe(patch_stop) == 0) {
+                for (int fd : patch_stop) fcntl(fd, F_SETFD, FD_CLOEXEC);
+                patch_worker = std::thread(serve_loopback_conn, write_fd, read_fd, patch_stop[0]);
+            } else {
+                logger.warn("Could not open the loopback stop pipe: {}", strerror(errno));
+                close(write_fd);
+                close(read_fd);
+            }
         }
 
         // Read before on_connect: initialization may synchronously wait for CDP.
@@ -458,6 +466,12 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> props)
             conn->stopped.store(true);
         }
         reader.join();
+        if (patch_worker.joinable()) {
+            // Wake either patch pipe even if the Helper is still alive.
+            while (write(patch_stop[1], "", 1) < 0 && errno == EINTR) {}
+            patch_worker.join();
+            for (int fd : patch_stop) close(fd);
+        }
         logger.log("[{}] CDP pipe disconnected; waiting for a new Helper.", props->name);
     }
 }

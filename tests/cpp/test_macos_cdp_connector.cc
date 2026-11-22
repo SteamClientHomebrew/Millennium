@@ -1,8 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
+#include "instrumentation/patch_registry.h"
 #include "millennium/cdp_connector.h"
 #include "millennium/millennium_lifecycle.h"
 #include <atomic>
 #include <cstring>
+#include <fcntl.h>
 #include <future>
 #include <poll.h>
 #include <sys/socket.h>
@@ -76,26 +78,36 @@ struct helper_pipe
             if (fd >= 0) close(fd);
     }
 
-    void handoff(int broker)
+    void handoff(int broker, helper_pipe* patches = nullptr)
     {
         char byte = 1;
         iovec iov{ &byte, 1 };
-        alignas(cmsghdr) char control[CMSG_SPACE(2 * sizeof(int))]{};
+        const size_t nbytes = (patches ? 4 : 2) * sizeof(int);
+        alignas(cmsghdr) char control[CMSG_SPACE(4 * sizeof(int))]{};
         msghdr msg{};
         msg.msg_iov = &iov;
         msg.msg_iovlen = 1;
         msg.msg_control = control;
-        msg.msg_controllen = sizeof(control);
+        msg.msg_controllen = CMSG_SPACE(nbytes);
         auto* rights = CMSG_FIRSTHDR(&msg);
         rights->cmsg_level = SOL_SOCKET;
         rights->cmsg_type = SCM_RIGHTS;
-        rights->cmsg_len = CMSG_LEN(2 * sizeof(int));
-        const int endpoints[]{ output[0], input[1] };
-        memcpy(CMSG_DATA(rights), endpoints, sizeof(endpoints));
+        rights->cmsg_len = CMSG_LEN(nbytes);
+        int endpoints[]{ output[0], input[1], -1, -1 };
+        if (patches) {
+            endpoints[2] = patches->output[0];
+            endpoints[3] = patches->input[1];
+        }
+        memcpy(CMSG_DATA(rights), endpoints, nbytes);
         REQUIRE(sendmsg(broker, &msg, 0) == 1);
         close(output[0]);
         close(input[1]);
         output[0] = input[1] = -1;
+        if (patches) {
+            close(patches->output[0]);
+            close(patches->input[1]);
+            patches->output[0] = patches->input[1] = -1;
+        }
     }
 
     json read_message()
@@ -147,6 +159,27 @@ TEST_CASE("macOS connector exits without a Helper", "[macos][cdp]")
     millennium_lifecycle::get().terminate.notify();
     REQUIRE(session.stopped.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
     session.worker.join();
+}
+
+TEST_CASE("macOS CDP can connect and stop with a full patch pipe", "[macos][cdp]")
+{
+    connector_session session;
+    helper_pipe browser, patches;
+    patch_registry_set("test", { { "test", "sp.js", "original", { { "original", std::string(128 * 1024, 'x') } } } });
+    browser.handoff(session.broker[1], &patches);
+    session.start();
+
+    pollfd pending{ patches.input[0], POLLIN, 0 };
+    REQUIRE(poll(&pending, 1, 2000) == 1);
+    REQUIRE(browser.read_message().at("method") == "test.connected");
+    millennium_lifecycle::get().terminate.notify();
+    REQUIRE(session.stopped.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+
+    REQUIRE(fcntl(patches.output[1], F_SETNOSIGPIPE, 1) == 0);
+    const auto written = write(patches.output[1], "x", 1);
+    const int error = errno;
+    REQUIRE(written == -1);
+    REQUIRE(error == EPIPE);
 }
 
 TEST_CASE("macOS failed handoff preserves the current Helper connection", "[macos][cdp]")

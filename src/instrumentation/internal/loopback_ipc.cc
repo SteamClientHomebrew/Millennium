@@ -44,6 +44,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #elif defined(__APPLE__)
+#include <poll.h>
 #include <unistd.h>
 #include <libkern/OSByteOrder.h>
 #define htole32(x) OSSwapHostToLittleInt32(x)
@@ -59,7 +60,32 @@ using namespace mep;
 #ifdef _WIN32
 using fd_t = HANDLE;
 static const fd_t INVALID_FD = INVALID_HANDLE_VALUE;
+#else
+using fd_t = int;
+static const fd_t INVALID_FD = -1;
+#endif
 
+struct LoopbackConn
+{
+    std::atomic<bool> alive{ true };
+    std::mutex write_mu;
+    fd_t write_fd = INVALID_FD;
+    fd_t read_fd = INVALID_FD;
+#ifdef __APPLE__
+    int stop_fd;
+    bool wait_for_io(int fd, short events) const
+    {
+        pollfd fds[] = { { fd, events, 0 }, { stop_fd, POLLIN, 0 } };
+        int result;
+        do {
+            result = poll(fds, 2, -1);
+        } while (result < 0 && errno == EINTR);
+        return result > 0 && !fds[1].revents;
+    }
+#endif
+};
+
+#ifdef _WIN32
 static inline uint32_t to_le32(uint32_t x)
 {
     return x;
@@ -69,15 +95,15 @@ static inline uint32_t from_le32(uint32_t x)
     return x;
 }
 
-static bool write_all(fd_t fd, const void* buf, size_t n)
+static bool write_all(const LoopbackConn& conn, const void* buf, size_t n)
 {
     DWORD written;
-    return WriteFile(fd, buf, static_cast<DWORD>(n), &written, nullptr) && written == static_cast<DWORD>(n);
+    return WriteFile(conn.write_fd, buf, static_cast<DWORD>(n), &written, nullptr) && written == static_cast<DWORD>(n);
 }
-static bool read_all(fd_t fd, void* buf, size_t n)
+static bool read_all(const LoopbackConn& conn, void* buf, size_t n)
 {
     DWORD got;
-    return ReadFile(fd, buf, static_cast<DWORD>(n), &got, nullptr) && got == static_cast<DWORD>(n);
+    return ReadFile(conn.read_fd, buf, static_cast<DWORD>(n), &got, nullptr) && got == static_cast<DWORD>(n);
 }
 static void close_fd(fd_t fd)
 {
@@ -85,9 +111,6 @@ static void close_fd(fd_t fd)
 }
 
 #else
-using fd_t = int;
-static const fd_t INVALID_FD = -1;
-
 static inline uint32_t to_le32(uint32_t x)
 {
     return htole32(x);
@@ -97,22 +120,34 @@ static inline uint32_t from_le32(uint32_t x)
     return le32toh(x);
 }
 
-static bool write_all(fd_t fd, const void* buf, size_t n)
+static bool write_all(const LoopbackConn& conn, const void* buf, size_t n)
 {
     const char* p = static_cast<const char*>(buf);
     while (n > 0) {
-        ssize_t w = ::write(fd, p, n);
+#ifdef __APPLE__
+        if (!conn.wait_for_io(conn.write_fd, POLLOUT)) return false;
+#endif
+        ssize_t w = ::write(conn.write_fd, p, n);
+#ifdef __APPLE__
+        if (w < 0 && (errno == EINTR || errno == EAGAIN)) continue;
+#endif
         if (w <= 0) return false;
         p += w;
         n -= static_cast<size_t>(w);
     }
     return true;
 }
-static bool read_all(fd_t fd, void* buf, size_t n)
+static bool read_all(const LoopbackConn& conn, void* buf, size_t n)
 {
     char* p = static_cast<char*>(buf);
     while (n > 0) {
-        ssize_t r = ::read(fd, p, n);
+#ifdef __APPLE__
+        if (!conn.wait_for_io(conn.read_fd, POLLIN)) return false;
+#endif
+        ssize_t r = ::read(conn.read_fd, p, n);
+#ifdef __APPLE__
+        if (r < 0 && (errno == EINTR || errno == EAGAIN)) continue;
+#endif
         if (r <= 0) return false;
         p += r;
         n -= static_cast<size_t>(r);
@@ -125,20 +160,20 @@ static void close_fd(fd_t fd)
 }
 #endif
 
-static bool write_frame(fd_t fd, const std::vector<uint8_t>& payload)
+static bool write_frame(const LoopbackConn& conn, const std::vector<uint8_t>& payload)
 {
     uint32_t len_le = to_le32(static_cast<uint32_t>(payload.size()));
-    return write_all(fd, &len_le, sizeof(len_le)) && write_all(fd, payload.data(), payload.size());
+    return write_all(conn, &len_le, sizeof(len_le)) && write_all(conn, payload.data(), payload.size());
 }
 
-static bool read_frame(fd_t fd, std::vector<uint8_t>& out)
+static bool read_frame(const LoopbackConn& conn, std::vector<uint8_t>& out)
 {
     uint32_t len_le = 0;
-    if (!read_all(fd, &len_le, sizeof(len_le))) return false;
+    if (!read_all(conn, &len_le, sizeof(len_le))) return false;
     const uint32_t len = from_le32(len_le);
     if (len == 0 || len > 8u * 1024u * 1024u) return false;
     out.resize(len);
-    return read_all(fd, out.data(), len);
+    return read_all(conn, out.data(), len);
 }
 
 static std::vector<uint8_t> build_patch_list_payload()
@@ -149,36 +184,22 @@ static std::vector<uint8_t> build_patch_list_payload()
     });
 }
 
-struct LoopbackConn
-{
-    std::atomic<bool> alive{ true };
-    std::mutex write_mu;
-    fd_t write_fd = INVALID_FD;
-    fd_t read_fd = INVALID_FD;
-    int notifier_id = -1;
-};
-
-static bool conn_write_frame(LoopbackConn& conn, const std::vector<uint8_t>& payload)
+static void send_patch_list(LoopbackConn& conn)
 {
     std::lock_guard<std::mutex> lock(conn.write_mu);
-    if (conn.write_fd == INVALID_FD) return false;
-    return write_frame(conn.write_fd, payload);
-}
-
-static void conn_close_write(LoopbackConn& conn)
-{
-    std::lock_guard<std::mutex> lock(conn.write_mu);
-    if (conn.write_fd != INVALID_FD) {
+    if (!conn.alive.load()) return;
+    if (!write_frame(conn, build_patch_list_payload())) {
+        conn.alive.store(false);
         close_fd(conn.write_fd);
         conn.write_fd = INVALID_FD;
     }
 }
 
-static void reader_loop(std::shared_ptr<LoopbackConn> conn)
+static void reader_loop(std::shared_ptr<LoopbackConn> conn, int notifier_id)
 {
     std::vector<uint8_t> buf;
     while (conn->alive.load()) {
-        if (!read_frame(conn->read_fd, buf)) break;
+        if (!read_frame(*conn, buf)) break;
 
         json msg;
         try {
@@ -223,42 +244,34 @@ static void reader_loop(std::shared_ptr<LoopbackConn> conn)
 
     conn->alive.store(false);
 
-    if (conn->notifier_id >= 0) {
-        patch_update_notifier::instance().remove_listener(conn->notifier_id);
-        conn->notifier_id = -1;
-    }
-
-    conn_close_write(*conn);
+    patch_update_notifier::instance().remove_listener(notifier_id);
+    if (conn->write_fd != INVALID_FD) close_fd(conn->write_fd);
     close_fd(conn->read_fd);
-    conn->read_fd = INVALID_FD;
 }
 
+#ifdef __APPLE__
+void serve_loopback_conn(int write_fd, int read_fd, int stop_fd)
+#else
 void register_loopback_conn(fd_t write_fd, fd_t read_fd)
+#endif
 {
     auto conn = std::make_shared<LoopbackConn>();
     conn->write_fd = write_fd;
     conn->read_fd = read_fd;
+#ifdef __APPLE__
+    conn->stop_fd = stop_fd;
+#endif
 
-    auto payload = build_patch_list_payload();
-    if (!conn_write_frame(*conn, payload)) {
-        logger.warn("loopback IPC: initial patch list write failed, dropping connection");
-        close_fd(write_fd);
-        close_fd(read_fd);
-        return;
-    }
-
-    conn->notifier_id = patch_update_notifier::instance().add_listener([conn]()
+    // Plugin backends can publish an update while the first snapshot is still being written.
+    const int notifier_id = patch_update_notifier::instance().add_listener([conn]()
     {
-        if (!conn->alive.load()) return;
-        auto p = build_patch_list_payload();
-        if (!conn_write_frame(*conn, p)) {
-            conn->alive.store(false);
-            conn_close_write(*conn);
-        }
+        send_patch_list(*conn);
     });
+    send_patch_list(*conn);
 
-    std::thread([conn = std::move(conn)]() mutable
-    {
-        reader_loop(std::move(conn));
-    }).detach();
+#ifdef __APPLE__
+    reader_loop(std::move(conn), notifier_id);
+#else
+    std::thread(reader_loop, std::move(conn), notifier_id).detach();
+#endif
 }
