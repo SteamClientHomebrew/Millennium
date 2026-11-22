@@ -23,7 +23,7 @@ class theme_class_remapper
     bool active() const;
     const std::string& status() const;
     std::string rewrite(std::string_view css, stats* out = nullptr) const;
-    std::string rewrite_script(std::string_view script, stats* out = nullptr) const;
+    std::string rewrite_script(std::string_view script, stats* out = nullptr, bool expand_names = true) const;
 
     static std::unordered_set<std::string> scan_class_tokens(std::string_view css);
     static std::unordered_set<std::string> scan_directory(const std::filesystem::path& directory);
@@ -59,4 +59,5 @@ class theme_class_remapper
     std::string expand_name(const std::string& token) const;
     std::string expand_multi(const std::string& token) const;
     std::string rewrite_selector(std::string_view selector, stats& counters) const;
+    std::string rewrite_animation_names(std::string_view text, stats& counters) const;
 };
