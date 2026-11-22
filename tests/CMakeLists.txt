@@ -19,6 +19,11 @@ add_subdirectory(cpp)
 
 if(MILLENNIUM_BUILD_MAIN)
     add_subdirectory(lua)
+    if(APPLE)
+        add_test(NAME macos_runtime_update
+            COMMAND /bin/bash "${CMAKE_CURRENT_SOURCE_DIR}/macos/runtime_update.sh"
+                    "${MILLENNIUM_BASE}/scripts/macos/install_macos.sh" "$<TARGET_FILE_DIR:Millennium>")
+    endif()
 endif()
 
 if(MILLENNIUM_BUILD_TESTS)
@@ -38,6 +43,9 @@ if(MILLENNIUM_RUN_TESTS_ON_BUILD)
     endif()
     if(MILLENNIUM_BUILD_MAIN)
         list(APPEND _run_tests_deps millennium_lua_tests Millennium)
+        if(APPLE)
+            list(APPEND _run_tests_deps macos_runtime)
+        endif()
     endif()
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND (MILLENNIUM_LINUX_X64 OR MILLENNIUM_NIX_64BIT))
         list(APPEND _run_tests_deps millennium_rt3_test_proxy millennium_rt3_test_client millennium_pvs64_test)

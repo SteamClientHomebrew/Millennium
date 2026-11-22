@@ -102,6 +102,10 @@ if(MILLENNIUM_BUILD_MAIN)
     if(MILLENNIUM_NIX_64BIT)
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/bootstrap/linux)
     endif()
+
+    if(APPLE)
+        add_custom_target(macos_runtime DEPENDS Millennium hhx64 macos-child-hook macos-bootstrap SteamWrapper ${MILLENNIUM_RTB_NAME})
+    endif()
 endif()
 
 if(MILLENNIUM_BUILD_TESTS)

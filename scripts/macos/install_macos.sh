@@ -5,17 +5,16 @@ set -euo pipefail
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 readonly PROXY_SOURCE="${REPO_ROOT}/src/bootstrap/macos/tier0_proxy.cc"
 readonly DEFAULT_STEAM_DIR="${HOME}/Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS"
-readonly DEFAULT_WRAPPER_BUILD_DIR="${REPO_ROOT}/build/osx-debug/src/bootstrap/macos"
 readonly DEFAULT_RUNTIME_SEARCH_DIRS=(
-    "${REPO_ROOT}/build/osx-debug/src"
-    "${REPO_ROOT}/build/osx-release/src"
-    "${REPO_ROOT}/build/src"
+    "${REPO_ROOT}/build/osx-debug"
+    "${REPO_ROOT}/build/osx-release"
     "${REPO_ROOT}/build"
 )
+readonly LUA_HOST_NAME="libmillennium_luavm_x86"
 readonly REQUIRED_RUNTIME_ARTIFACTS=(
     "libmillennium.dylib"
     "libmillennium_hhx64.dylib"
-    "libmillennium_luavm_x86"
+    "${LUA_HOST_NAME}"
 )
 readonly OPTIONAL_RUNTIME_ARTIFACTS=(
     "libmillennium_child_hook.dylib"
@@ -23,12 +22,8 @@ readonly OPTIONAL_RUNTIME_ARTIFACTS=(
 readonly WRAPPER_APP_NAME="Steam Millennium.app"
 readonly WRAPPER_EXECUTABLE_NAME="steam_osx"
 readonly WRAPPER_BOOTSTRAP_ARTIFACT="libmillennium_bootstrap.dylib"
-readonly WRAPPER_RUNTIME_ARTIFACTS=(
-    "libmillennium.dylib"
-    "libmillennium_hhx64.dylib"
-    "libmillennium_child_hook.dylib"
-    "libmillennium_luavm_x86"
-)
+# The wrapper app links every file, so the child hook is required there.
+readonly RUNTIME_FILES=("${REQUIRED_RUNTIME_ARTIFACTS[@]}" "${OPTIONAL_RUNTIME_ARTIFACTS[@]}" "${WRAPPER_EXECUTABLE_NAME}" "${WRAPPER_BOOTSTRAP_ARTIFACT}")
 readonly APP_INFO_TEMPLATE="${REPO_ROOT}/src/bootstrap/macos/Info.plist.xml"
 readonly APP_ICON_SOURCE="${REPO_ROOT}/src/bootstrap/macos/AppIcon.icns"
 readonly DEFAULT_APP_BUNDLE_GLOBAL="/Applications/${WRAPPER_APP_NAME}"
@@ -45,9 +40,7 @@ readonly STEAM_CFG_MANAGED_MARKER="# Added by Millennium install_macos.sh"
 readonly STEAM_CFG_INHIBIT_ALL_LINE="BootStrapperInhibitAll=enable"
 
 MODE="install"
-LEGACY_BUILD_DIR=""
-RUNTIME_BUILD_DIR=""
-WRAPPER_BUILD_DIR="${DEFAULT_WRAPPER_BUILD_DIR}"
+BUILD_DIR=""
 STEAM_DIR="${DEFAULT_STEAM_DIR}"
 APP_BUNDLE_PATH=""
 RUNTIME_INSTALL_ROOT="${DEFAULT_RUNTIME_INSTALL_ROOT}"
@@ -66,7 +59,7 @@ fail() {
 
 usage() {
     cat <<EOF
-Usage: $(basename "$0") [--build-dir <dir>] [--runtime-build-dir <dir>] [--wrapper-build-dir <dir>] [--steam-dir <dir>] [--app-bundle <path>] [--runtime-install-root <path>] [--dry-run] [--repair] [--status] [--uninstall] [--wrapper-app] [--tier0-legacy] [--steam-cfg-inhibit-all] [--skip-steam-cfg-inhibit-all] [--restore-steam-cfg]
+Usage: $(basename "$0") [--build-dir <dir>] [--steam-dir <dir>] [--app-bundle <path>] [--runtime-install-root <path>] [--dry-run] [--update-runtime] [--repair] [--status] [--uninstall] [--wrapper-app] [--tier0-legacy] [--steam-cfg-inhibit-all] [--skip-steam-cfg-inhibit-all] [--restore-steam-cfg]
 
 Default mode installs a wrapper app (${WRAPPER_APP_NAME}) without modifying Steam tracked files:
 1. Installs launcher/runtime artifacts into ${DEFAULT_RUNTIME_INSTALL_ROOT}
@@ -75,6 +68,7 @@ Default mode installs a wrapper app (${WRAPPER_APP_NAME}) without modifying Stea
 
 Modes:
   (default)   install           Install/update wrapper app + runtime payload
+  --update-runtime              Install a new runtime release; the wrapper app uses it on next launch
   --repair                      Re-install wrapper app/runtime payload
   --status                      Print current install state
   --uninstall                   Remove wrapper app/runtime payload
@@ -193,50 +187,42 @@ remove_path_recursive() {
     rm -rf "${target_path}"
 }
 
-resolve_install_version() {
-    local version
-    version=$(git -C "${REPO_ROOT}" describe --tags --always --dirty 2>/dev/null || true)
-    if [ -z "${version}" ]; then
-        version=$(git -C "${REPO_ROOT}" rev-parse --short HEAD 2>/dev/null || true)
-    fi
-    if [ -z "${version}" ]; then
-        version=$(date +%Y%m%d%H%M%S)
-    fi
-
-    version="${version//\//-}"
-    version="${version// /-}"
-    printf "%s\n" "${version}"
-}
-
-resolve_wrapper_artifact() {
-    local artifact_name="$1"
-    local source_path=""
-    source_path=$(find_artifact_optional "${artifact_name}" "${WRAPPER_BUILD_DIR}" "${RUNTIME_SEARCH_DIRS[@]}")
-    if [ -z "${source_path}" ]; then
-        fail "Missing build artifact '${artifact_name}'."
-    fi
-    printf "%s\n" "${source_path}"
-}
-
-install_wrapper_runtime_payload() {
-    local runtime_dir="$1"
-
+# Releases are named by content, so files a running Steam has loaded are never overwritten.
+install_runtime() {
     build_runtime_search_dirs
-    ensure_directory "${runtime_dir}"
+    local build="" dir file
+    for dir in "${RUNTIME_SEARCH_DIRS[@]}"; do
+        if [ -f "${dir}/libmillennium.dylib" ]; then
+            build="${dir}"
+            break
+        fi
+    done
+    [ -n "${build}" ] || fail "No libmillennium.dylib in ${RUNTIME_SEARCH_DIRS[*]}."
+    for file in "${RUNTIME_FILES[@]}"; do
+        [ -f "${build}/${file}" ] || fail "Missing build artifact '${build}/${file}'."
+    done
 
-    local wrapper_executable=""
-    wrapper_executable=$(resolve_wrapper_artifact "${WRAPPER_EXECUTABLE_NAME}")
-    install_file "${wrapper_executable}" "${runtime_dir}/${WRAPPER_EXECUTABLE_NAME}"
+    local name current="${RUNTIME_INSTALL_ROOT}/current"
+    name="release-$(cd "${build}" && cat "${RUNTIME_FILES[@]}" | shasum -a 256 | cut -c1-12)"
+    if [ "$(readlink "${current}")" = "${name}" ]; then
+        log "Runtime already current: ${current} -> ${name}"
+        return
+    fi
 
-    local bootstrap_artifact=""
-    bootstrap_artifact=$(resolve_wrapper_artifact "${WRAPPER_BOOTSTRAP_ARTIFACT}")
-    install_file "${bootstrap_artifact}" "${runtime_dir}/${WRAPPER_BOOTSTRAP_ARTIFACT}"
+    ensure_directory "${RUNTIME_INSTALL_ROOT}/${name}"
+    for file in "${RUNTIME_FILES[@]}"; do
+        install_file "${build}/${file}" "${RUNTIME_INSTALL_ROOT}/${name}/${file}"
+    done
+    # ln -sfn unlinks current first; renaming a new link over it never leaves current missing.
+    install_symlink "${name}" "${RUNTIME_INSTALL_ROOT}/.current"
+    run_cmd /bin/mv -fh "${RUNTIME_INSTALL_ROOT}/.current" "${current}"
+    log "Installed runtime: ${RUNTIME_INSTALL_ROOT}/${name}"
 
-    local artifact=""
-    for artifact in "${WRAPPER_RUNTIME_ARTIFACTS[@]}"; do
-        local runtime_artifact=""
-        runtime_artifact=$(resolve_wrapper_artifact "${artifact}")
-        install_file "${runtime_artifact}" "${runtime_dir}/${artifact}"
+    # A running Steam keeps its dylibs mapped after their directory is unlinked, so dropping
+    # every release but the new current reclaims space without disturbing the live process.
+    for dir in "${RUNTIME_INSTALL_ROOT}"/release-*; do
+        [ -d "${dir}" ] && [ "${dir##*/}" != "${name}" ] || continue
+        remove_path_recursive "${dir}"
     done
 }
 
@@ -255,11 +241,8 @@ install_wrapper_app_bundle() {
     install_data_file "${APP_INFO_TEMPLATE}" "${app_contents_dir}/Info.plist"
     install_data_file "${APP_ICON_SOURCE}" "${app_resources_dir}/AppIcon.icns"
 
-    install_symlink "${runtime_dir}/${WRAPPER_EXECUTABLE_NAME}" "${app_macos_dir}/${WRAPPER_EXECUTABLE_NAME}"
-    install_symlink "${runtime_dir}/${WRAPPER_BOOTSTRAP_ARTIFACT}" "${app_macos_dir}/${WRAPPER_BOOTSTRAP_ARTIFACT}"
-
     local artifact=""
-    for artifact in "${WRAPPER_RUNTIME_ARTIFACTS[@]}"; do
+    for artifact in "${RUNTIME_FILES[@]}"; do
         install_symlink "${runtime_dir}/${artifact}" "${app_macos_dir}/${artifact}"
     done
 }
@@ -272,47 +255,36 @@ install_or_repair_wrapper_app() {
         log "No write access to /Applications, falling back to ${APP_BUNDLE_PATH}."
     fi
 
-    local version=""
-    version=$(resolve_install_version)
-    local runtime_dir="${RUNTIME_INSTALL_ROOT}/${version}"
-    local runtime_current="${RUNTIME_INSTALL_ROOT}/current"
-
-    install_wrapper_runtime_payload "${runtime_dir}"
-    install_symlink "${runtime_dir}" "${runtime_current}"
-    install_wrapper_app_bundle "${runtime_current}"
+    install_runtime
+    install_wrapper_app_bundle "${RUNTIME_INSTALL_ROOT}/current"
 
     log "Installed wrapper app: ${APP_BUNDLE_PATH}"
     log "Launch Steam via: open '${APP_BUNDLE_PATH}'"
     log "If Steam is already running, fully quit Steam first, then relaunch via the wrapper app."
 }
 
-status_wrapper_app() {
+status_runtime_install() {
     local app_contents_dir="${APP_BUNDLE_PATH}/Contents"
     local app_macos_dir="${app_contents_dir}/MacOS"
     local runtime_current="${RUNTIME_INSTALL_ROOT}/current"
 
-    log "Install variant: wrapper-app"
-    log "App bundle: ${APP_BUNDLE_PATH}"
-    if [ -d "${APP_BUNDLE_PATH}" ]; then
-        log "app bundle status: present"
-    else
-        log "app bundle status: missing"
-    fi
-
     if [ -L "${runtime_current}" ] || [ -d "${runtime_current}" ]; then
         log "runtime current: $(readlink "${runtime_current}" 2>/dev/null || echo "${runtime_current}")"
+        if [ -x "${runtime_current}/${LUA_HOST_NAME}" ]; then
+            "${runtime_current}/${LUA_HOST_NAME}" --version
+        fi
     else
         log "runtime current: missing"
     fi
 
-    if [ -e "${app_macos_dir}/${WRAPPER_EXECUTABLE_NAME}" ]; then
-        log "${WRAPPER_EXECUTABLE_NAME}: present"
-    else
-        log "${WRAPPER_EXECUTABLE_NAME}: missing"
+    if [ ! -d "${APP_BUNDLE_PATH}" ]; then
+        log "Wrapper app: not installed at ${APP_BUNDLE_PATH}"
+        return
     fi
+    log "Wrapper app: ${APP_BUNDLE_PATH}"
 
     local artifact=""
-    for artifact in "${WRAPPER_RUNTIME_ARTIFACTS[@]}" "${WRAPPER_BOOTSTRAP_ARTIFACT}"; do
+    for artifact in "${RUNTIME_FILES[@]}"; do
         if [ -e "${app_macos_dir}/${artifact}" ]; then
             log "${artifact}: present"
         else
@@ -472,18 +444,11 @@ restore_steam_cfg_state() {
 }
 
 build_runtime_search_dirs() {
-    RUNTIME_SEARCH_DIRS=()
-    if [ -n "${LEGACY_BUILD_DIR}" ]; then
-        RUNTIME_SEARCH_DIRS=("${LEGACY_BUILD_DIR}")
-        return 0
+    if [ -n "${BUILD_DIR}" ]; then
+        RUNTIME_SEARCH_DIRS=("${BUILD_DIR}")
+    else
+        RUNTIME_SEARCH_DIRS=("${DEFAULT_RUNTIME_SEARCH_DIRS[@]}")
     fi
-
-    if [ -n "${RUNTIME_BUILD_DIR}" ]; then
-        RUNTIME_SEARCH_DIRS=("${RUNTIME_BUILD_DIR}")
-        return 0
-    fi
-
-    RUNTIME_SEARCH_DIRS=("${DEFAULT_RUNTIME_SEARCH_DIRS[@]}")
 }
 
 sync_runtime_artifacts() {
@@ -513,7 +478,7 @@ sync_runtime_artifacts() {
 
     for artifact in "${OPTIONAL_RUNTIME_ARTIFACTS[@]}"; do
         local source_path=""
-        source_path=$(find_artifact_optional "${artifact}" "${WRAPPER_BUILD_DIR}" "${RUNTIME_SEARCH_DIRS[@]}")
+        source_path=$(find_artifact_optional "${artifact}" "${RUNTIME_SEARCH_DIRS[@]}")
 
         if [ -n "${source_path}" ]; then
             install_file "${source_path}" "${STEAM_DIR}/${artifact}"
@@ -716,19 +681,13 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --build-dir)
             [ $# -ge 2 ] || fail "Missing value for --build-dir"
-            LEGACY_BUILD_DIR="$2"
-            RUNTIME_BUILD_DIR="$2"
-            WRAPPER_BUILD_DIR="$2"
+            BUILD_DIR="$2"
             shift 2
             ;;
-        --runtime-build-dir)
-            [ $# -ge 2 ] || fail "Missing value for --runtime-build-dir"
-            RUNTIME_BUILD_DIR="$2"
-            shift 2
-            ;;
-        --wrapper-build-dir)
-            [ $# -ge 2 ] || fail "Missing value for --wrapper-build-dir"
-            WRAPPER_BUILD_DIR="$2"
+        --runtime-build-dir|--wrapper-build-dir)
+            # Kept as aliases of --build-dir; every build output now lands in one directory.
+            [ $# -ge 2 ] || fail "Missing value for $1"
+            BUILD_DIR="$2"
             shift 2
             ;;
         --app-bundle)
@@ -739,6 +698,7 @@ while [ $# -gt 0 ]; do
         --runtime-install-root)
             [ $# -ge 2 ] || fail "Missing value for --runtime-install-root"
             RUNTIME_INSTALL_ROOT="$2"
+            [[ "${RUNTIME_INSTALL_ROOT}" = /* ]] || RUNTIME_INSTALL_ROOT="${PWD}/${RUNTIME_INSTALL_ROOT}"
             shift 2
             ;;
         --steam-dir)
@@ -752,6 +712,10 @@ while [ $# -gt 0 ]; do
             ;;
         --wrapper-app)
             INSTALL_VARIANT="wrapper-app"
+            shift
+            ;;
+        --update-runtime)
+            MODE="update-runtime"
             shift
             ;;
         --repair)
@@ -804,6 +768,9 @@ if [ "${INSTALL_VARIANT}" = "wrapper-app" ]; then
     fi
 
     case "${MODE}" in
+        update-runtime)
+            install_runtime
+            ;;
         install|repair)
             install_or_repair_wrapper_app
             ;;
@@ -811,7 +778,7 @@ if [ "${INSTALL_VARIANT}" = "wrapper-app" ]; then
             uninstall_wrapper_app
             ;;
         status)
-            status_wrapper_app
+            status_runtime_install
             ;;
         restore-steam-cfg)
             fail "--restore-steam-cfg is only valid with --tier0-legacy."
