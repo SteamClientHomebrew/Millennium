@@ -110,6 +110,35 @@ TEST_CASE("leaves keyframes and font faces alone", "[theme_class_remapper]")
     CHECK(remapper.rewrite(css) == css);
 }
 
+TEST_CASE("remaps a stable keyframes name in animation declarations", "[theme_class_remapper]")
+{
+    auto remapper = make(beta_live());
+    theme_class_remapper::stats counters;
+    const auto out = remapper.rewrite(".x { animation: " + k_stable_a + " 0.75s ease-in !important; animation-name: " + k_stable_b + "; color: red }", &counters);
+    CHECK(out == ".x { animation: cGtmpwuGgRg- 0.75s ease-in !important; animation-name: _9wgVBRkm6zw-; color: red }");
+    CHECK(counters.remapped == 2);
+}
+
+TEST_CASE("remaps the name of a keyframes rule but not its steps", "[theme_class_remapper]")
+{
+    auto remapper = make(beta_live());
+    CHECK(remapper.rewrite("@keyframes " + k_stable_a + " { from { opacity: 0 } to { opacity: 1 } }") == "@keyframes cGtmpwuGgRg- { from { opacity: 0 } to { opacity: 1 } }");
+    CHECK(remapper.rewrite("@-webkit-keyframes " + k_stable_a + "{from{opacity:0}}") == "@-webkit-keyframes cGtmpwuGgRg-{from{opacity:0}}");
+}
+
+TEST_CASE("only animation properties have their values remapped", "[theme_class_remapper]")
+{
+    auto remapper = make(beta_live());
+    const std::string css = ".x { content: \"" + k_stable_a + "\"; font-family: " + k_stable_a + "; --name: " + k_stable_a + " }";
+    CHECK(remapper.rewrite(css) == css);
+}
+
+TEST_CASE("remaps an animation declaration without a trailing semicolon", "[theme_class_remapper]")
+{
+    auto remapper = make(beta_live());
+    CHECK(remapper.rewrite(".x{animation:" + k_stable_a + " 1s}") == ".x{animation:cGtmpwuGgRg- 1s}");
+}
+
 TEST_CASE("rewrites nested style rules inside a declaration block", "[theme_class_remapper]")
 {
     auto remapper = make(beta_live());
@@ -227,6 +256,14 @@ TEST_CASE("rewrite_script expands readable names inside selector strings", "[the
     const auto out = remapper.rewrite_script("el.querySelector('.Solo .DialogButton'); a.querySelector(\".Title\");", &counters);
     CHECK(out == "el.querySelector('.SSSSSSSSSSS- :is(.DialogButton,.DDDDDDDDDDD-)'); a.querySelector(\":is(.AAAAAAAAAAA-,.BBBBBBBBBBB-)\");");
     CHECK(counters.expanded == 3);
+}
+
+TEST_CASE("rewrite_script can leave readable names alone while still remapping hashes", "[theme_class_remapper]")
+{
+    auto remapper = make(beta_live());
+    const std::string source = "includes(\"().Title\");q(\"." + k_stable_a + "\");q(\".Title\")";
+    CHECK(remapper.rewrite_script(source, nullptr, false) == "includes(\"().Title\");q(\".cGtmpwuGgRg-\");q(\".Title\")");
+    CHECK(remapper.rewrite_script(source) == "includes(\"():is(.AAAAAAAAAAA-,.BBBBBBBBBBB-)\");q(\".cGtmpwuGgRg-\");q(\":is(.AAAAAAAAAAA-,.BBBBBBBBBBB-)\")");
 }
 
 TEST_CASE("rewrite_script expands names chained after a class", "[theme_class_remapper]")

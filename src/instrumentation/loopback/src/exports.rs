@@ -10,6 +10,7 @@ use crate::wrappers;
 
 const INTERNAL_PREFIX: &str = "__millennium_internal_";
 const CLASS_MAP_PREFIX: &str = "__millennium_classmap_";
+const COMPAT_PREFIX: &str = "__millennium_compat_";
 const MIN_CLASS_MAP_PROPERTIES: usize = 3;
 const MIN_HASH_CONSTANTS: usize = 20;
 
@@ -56,11 +57,19 @@ const INTERNALS: &[InternalDef] = &[
         pattern: r"^class [\w$]+ extends [\w$]+\.Component\{parser;constructor\([\w$]+\)\{super\([\w$]+\),this\.parser=new [\w$]+\([\w$]+\.BBCodeDictionary,[\w$]+\.ElementAccumulator,",
     },
     InternalDef {
+        name: LIBRARY_CONTEXT_MENU,
+        needle: "{navigator:",
+        pattern: r"^function [\w$]+\([\w$]+\)\{let [\w$]+=[\w$]+\(\),[\w$]+=[\w$]+\(\);return\(0,[\w$]+\.jsx\)\([\w$]+,\{navigator:[\w$]+,instance:[\w$]+,\.\.\.[\w$]+\}\)\}$",
+    },
+    InternalDef {
         name: "PanelSection",
         needle: ".spinner&&(0,",
         pattern: r"^function [\w$]+\([\w$]+\)\{let\{title:[\w$]+,children:[\w$]+\}=[\w$]+;return\(0,[\w$]+\.jsxs\)\(`div`,\{className:[\w$]+,children:\[[\w$]+&&\(0,[\w$]+\.jsxs\)\(`div`,\{className:`[\w$-]+`,children:\[\(0,[\w$]+\.jsx\)\(`div`,\{className:`[\w$-]+`,children:[\w$]+\}\),[\w$]+\.spinner&&",
     },
 ];
+
+const LIBRARY_CONTEXT_MENU: &str = "LibraryContextMenu";
+const LIBRARY_CONTEXT_MENU_MARKER: &str = "function __millennium_library_context_menu_marker(){return\"().LibraryContextMenu\"}";
 
 const PANEL_SECTION: &str = "PanelSection";
 const PANEL_SECTION_ROW: &str = "PanelSectionRow";
@@ -266,9 +275,17 @@ pub fn patch(name: &str, content: &[u8]) -> (Vec<u8>, usize) {
         class_maps.len()
     );
 
+    let exports_library_context_menu = found.iter().any(|f| INTERNALS[f.internal].name == LIBRARY_CONTEXT_MENU);
+    if exports_library_context_menu {
+        specifiers.push(format!("__millennium_library_context_menu_marker as {}{}", COMPAT_PREFIX, LIBRARY_CONTEXT_MENU));
+    }
+
     let base = wrap_source.as_deref().unwrap_or(text);
-    let mut out = Vec::with_capacity(base.len() + 64 + count * 48);
+    let mut out = Vec::with_capacity(base.len() + 160 + count * 48);
     out.extend_from_slice(base.as_bytes());
+    if exports_library_context_menu {
+        out.extend_from_slice(format!("\n{}\n", LIBRARY_CONTEXT_MENU_MARKER).as_bytes());
+    }
     if !specifiers.is_empty() {
         out.extend_from_slice(format!("\nexport{{{}}};\n", specifiers.join(",")).as_bytes());
     }
@@ -291,6 +308,25 @@ mod tests {
         assert_eq!(count, 1);
         assert!(out.ends_with("export{bL as __millennium_internal_ProgressBar};\n"));
         assert!(crate::syntax::check(&out).is_empty());
+    }
+
+    #[test]
+    fn exports_the_library_context_menu_wrapper_with_a_marker_for_older_plugins() {
+        let source = "function kG(e){let t=yA(),n=HN();return(0,Y.jsx)(AG,{navigator:t,instance:n,...e})}var AG=class extends q.Component{};";
+        let (out, count) = patched(source);
+        assert_eq!(count, 1);
+        assert!(out.contains("kG as __millennium_internal_LibraryContextMenu"));
+        assert!(out.contains("__millennium_library_context_menu_marker as __millennium_compat_LibraryContextMenu"));
+        assert!(out.contains("().LibraryContextMenu"));
+        assert!(crate::syntax::check(&out).is_empty());
+    }
+
+    #[test]
+    fn leaves_other_navigator_wrappers_alone() {
+        let source = "function kG(e){let t=yA();return(0,Y.jsx)(AG,{navigator:t,...e})}";
+        let (out, count) = patched(source);
+        assert_eq!(count, 0);
+        assert_eq!(out, source);
     }
 
     #[test]

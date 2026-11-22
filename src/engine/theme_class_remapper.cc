@@ -99,6 +99,16 @@ std::string at_rule_name(std::string_view prelude)
     return name;
 }
 
+bool is_animation_property(std::string_view property)
+{
+    return property == "animation" || property == "animation-name" || property == "-webkit-animation" || property == "-webkit-animation-name";
+}
+
+bool is_keyframes_at_rule(std::string_view name)
+{
+    return name.size() >= 9 && name.substr(name.size() - 9) == "keyframes";
+}
+
 bool is_custom_property_opening(std::string_view prelude)
 {
     prelude = trim(prelude);
@@ -273,6 +283,40 @@ std::string theme_class_remapper::expand_name(const std::string& token) const
     return joined;
 }
 
+std::string theme_class_remapper::rewrite_animation_names(std::string_view text, stats& counters) const
+{
+    std::string out;
+    out.reserve(text.size());
+    size_t i = 0;
+
+    while (i < text.size()) {
+        if (!is_class_char(text[i])) {
+            out.push_back(text[i++]);
+            continue;
+        }
+
+        size_t j = i;
+        while (j < text.size() && is_class_char(text[j])) j++;
+        const std::string token(text.substr(i, j - i));
+        i = j;
+
+        if (!is_stable_hash_shape(token)) {
+            out.append(token);
+            continue;
+        }
+
+        const auto mapped = m_table.map.find(token);
+        if (mapped == m_table.map.end()) {
+            out.append(token);
+            counters.unmapped++;
+            continue;
+        }
+        out.append(mapped->second);
+        counters.remapped++;
+    }
+    return out;
+}
+
 std::string theme_class_remapper::rewrite_selector(std::string_view selector, stats& counters) const
 {
     std::string out;
@@ -343,7 +387,7 @@ std::string theme_class_remapper::rewrite_selector(std::string_view selector, st
     return out;
 }
 
-std::string theme_class_remapper::rewrite_script(std::string_view script, stats* out_stats) const
+std::string theme_class_remapper::rewrite_script(std::string_view script, stats* out_stats, bool expand_names) const
 {
     stats counters;
     if (!active()) {
@@ -470,7 +514,7 @@ std::string theme_class_remapper::rewrite_script(std::string_view script, stats*
                 out.append(token);
                 counters.unmapped++;
             }
-        } else if (selector_position) {
+        } else if (selector_position && expand_names) {
             const std::string expanded = expand_name(std::string(token));
             if (expanded.empty()) {
                 out.append(token);
@@ -505,6 +549,21 @@ std::string theme_class_remapper::rewrite(std::string_view css, stats* out_stats
     size_t prelude_start = 0;
     size_t i = 0;
 
+    const auto rewrite_declaration = [&](size_t begin, size_t end)
+    {
+        const std::string_view declaration = css.substr(begin, end - begin);
+        const size_t colon = declaration.find(':');
+        if (colon == std::string_view::npos) return;
+
+        std::string property(trim(declaration.substr(0, colon)));
+        std::transform(property.begin(), property.end(), property.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        if (!is_animation_property(property)) return;
+
+        out.append(css.substr(flushed, begin + colon + 1 - flushed));
+        out.append(rewrite_animation_names(declaration.substr(colon + 1), counters));
+        flushed = end;
+    };
+
     while (i < css.size()) {
         const char c = css[i];
 
@@ -514,6 +573,7 @@ std::string theme_class_remapper::rewrite(std::string_view css, stats* out_stats
         if (starts_with_url(css, i)) { i = skip_url(css, i); continue; }
 
         if (c == ';') {
+            if (stack.back() == block_kind::declarations) rewrite_declaration(prelude_start, i);
             prelude_start = i + 1;
             i++;
             continue;
@@ -532,7 +592,12 @@ std::string theme_class_remapper::rewrite(std::string_view css, stats* out_stats
                 const std::string at_rule = at_rule_name(prelude);
                 if (!at_rule.empty()) {
                     const bool container = std::find(k_rule_container_at_rules.begin(), k_rule_container_at_rules.end(), at_rule) != k_rule_container_at_rules.end();
-                    if (!container) next = block_kind::opaque;
+                    if (is_keyframes_at_rule(at_rule)) {
+                        out.append(css.substr(flushed, prelude_start - flushed));
+                        out.append(rewrite_animation_names(prelude, counters));
+                        flushed = i;
+                        next = block_kind::opaque;
+                    } else if (!container) next = block_kind::opaque;
                     else next = context == block_kind::declarations ? block_kind::declarations : block_kind::rules;
                 } else {
                     out.append(css.substr(flushed, prelude_start - flushed));
@@ -549,6 +614,7 @@ std::string theme_class_remapper::rewrite(std::string_view css, stats* out_stats
         }
 
         if (c == '}') {
+            if (stack.back() == block_kind::declarations) rewrite_declaration(prelude_start, i);
             if (stack.size() > 1) stack.pop_back();
             prelude_start = i + 1;
             i++;

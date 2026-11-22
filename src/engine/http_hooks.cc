@@ -202,7 +202,8 @@ void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message
             }
             if (fileType == mime::file_type::JS && !text.empty() && this->should_remap_theme_classes(message, localFilePath)) {
                 theme_class_remapper::stats counters;
-                text = m_class_remapper->rewrite_script(text, &counters);
+                const bool is_plugin_frontend = localFilePath.generic_string().ends_with("/.millennium/Dist/index.js");
+                text = m_class_remapper->rewrite_script(text, &counters, !is_plugin_frontend);
                 if (counters.remapped || counters.unmapped) {
                     logger.log("theme class remapper: {} remapped, {} unmapped in {}", counters.remapped, counters.unmapped, localFilePath.filename().string());
                 }
@@ -435,7 +436,9 @@ bool network_hook_ctl::should_remap_theme_classes(const nlohmann::basic_json<>& 
     if (!m_class_remapper->active()) return false;
 
     const std::string relative = local_file_path.lexically_relative(platform::get_millennium_path() / "themes").generic_string();
-    if (relative.empty() || relative.starts_with("..")) return false;
+    const bool in_themes = !relative.empty() && !relative.starts_with("..");
+    const bool is_plugin_frontend = local_file_path.generic_string().ends_with("/.millennium/Dist/index.js");
+    if (!in_themes && !is_plugin_frontend) return false;
 
     const auto& request = message["request"];
     if (request.contains("headers") && request["headers"].is_object()) {
