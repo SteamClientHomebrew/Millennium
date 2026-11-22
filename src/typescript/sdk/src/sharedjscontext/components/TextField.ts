@@ -1,6 +1,6 @@
 import { ChangeEventHandler, HTMLAttributes, ReactNode, FC } from 'react';
 
-import { CommonUIModule, Module } from '../webpack';
+import { CommonUIModule, Module } from '../module-registry';
 
 export interface TextFieldProps extends HTMLAttributes<HTMLInputElement> {
 	label?: ReactNode;

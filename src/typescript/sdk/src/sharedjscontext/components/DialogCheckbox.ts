@@ -1,6 +1,6 @@
 import { FC, ReactNode } from 'react';
 
-import { findModuleExport } from '../webpack';
+import { findModuleExport, sourceOf } from '../module-registry';
 import { DialogCommonProps } from './Dialog';
 import { FooterLegendProps } from './FooterLegend';
 
@@ -26,5 +26,5 @@ export const DialogCheckbox = findModuleExport(
 		'SetChecked' in e?.prototype &&
 		'Toggle' in e?.prototype &&
 		// beta || stable as of oct 2 2024
-		(e?.prototype?.render?.toString?.().includes('="DialogCheckbox"') || (e.contextType && e.prototype?.render?.toString?.().includes('fallback:'))),
+		(sourceOf(e?.prototype?.render).includes('="DialogCheckbox"') || (e.contextType && sourceOf(e.prototype?.render).includes('fallback:'))),
 ) as FC<DialogCheckboxProps>;

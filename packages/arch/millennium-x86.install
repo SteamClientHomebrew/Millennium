@@ -1,0 +1,39 @@
+#!/bin/bash
+
+for_each_steam_user() {
+    local callback="$1"
+    getent passwd | while IFS=: read -r user _ uid _ _ home _; do
+        [ "$uid" -ge 1000 ] || continue
+        [ -d "$home/.local/share/Steam" ] || continue
+        "$callback" "$home" "$user"
+    done
+}
+
+link_millennium_x86() {
+    local home="$1"
+    local user="$2"
+    local steam="$home/.local/share/Steam"
+
+    [ -d "$steam/ubuntu12_32" ] || return 0
+    runuser -u "$user" -- ln -sf /usr/lib/millennium/libmillennium_bootstrap_x86.so "$steam/ubuntu12_32/libXtst.so.6"
+}
+
+unlink_millennium_x86() {
+    local home="$1"
+    local user="$2"
+    local steam="$home/.local/share/Steam"
+
+    runuser -u "$user" -- rm -f "$steam/ubuntu12_32/libXtst.so.6"
+}
+
+post_install() {
+    for_each_steam_user link_millennium_x86
+}
+
+post_upgrade() {
+    post_install
+}
+
+post_remove() {
+    for_each_steam_user unlink_millennium_x86
+}

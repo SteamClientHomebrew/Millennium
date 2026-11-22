@@ -29,10 +29,8 @@
  */
 
 import { ConfirmModal, ConfirmModalProps, pluginSelf, showModal } from '@steambrew/sdk';
-import { PluginComponent } from '../types';
 import { Logger } from './Logger';
 import { SteamLocale } from './localization-manager';
-import { backend } from './ffi';
 
 export namespace Utils {
 	export function BrowseLocalFolder(path: string) {
@@ -42,27 +40,6 @@ export namespace Utils {
 	export function OpenUrl(url: string) {
 		Logger.Log('Opening URL:', url);
 		SteamClient.System.OpenInSystemBrowser(url);
-	}
-
-	export async function GetPluginAssetUrl(): Promise<string> {
-		const plugins: Array<PluginComponent> = await backend.plugins.getPlugins();
-		const injectedScript = Array.from(document.scripts).find((script) => script.id === 'millennium-injected');
-
-		if (!injectedScript || !injectedScript.src) {
-			return String();
-		}
-
-		const url = new URL(injectedScript.src);
-		const corePlugin = plugins.find((plugin) => plugin?.data?.name === 'core');
-		if (!corePlugin) return String();
-		const pluginPath = corePlugin.path.replace(/\\/g, '/');
-
-		const encoded = pluginPath
-			.split('/')
-			.map((part) => encodeURIComponent(part))
-			.join('/');
-
-		return `https://${url.hostname}:${url.port}/${encoded}/.millennium/Dist`;
 	}
 
 	export const PromptReload = (callback: (hasClickedOk: boolean) => void, customTitle?: string, customDesc?: string, customOK?: string) => {

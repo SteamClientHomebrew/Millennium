@@ -92,6 +92,7 @@ set_target_properties(hhx64 PROPERTIES
 if(UNIX AND NOT APPLE)
     set_target_properties(hhx64 PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
     set_target_properties(hhx64 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    millennium_configure_linux_host_rpath(hhx64)
 elseif(WIN32)
     target_link_libraries(hhx64 version)
 

@@ -1,6 +1,6 @@
 import { FC, ReactNode } from 'react';
 
-import { Export, findModuleByExport, findModuleDetailsByExport, findModuleExport } from '../webpack';
+import { Export, findModuleByExport, findModuleDetailsByExport, findModuleExport, sourceOf } from '../module-registry';
 import { FooterLegendProps } from './FooterLegend';
 
 interface PopupCreationOptions {
@@ -117,7 +117,7 @@ export interface ContextMenuInstance {
 }
 
 export const showContextMenu: (children: ReactNode, parent?: EventTarget, options?: ContextMenuPositionOptions) => ContextMenuInstance = findModuleExport(
-	(e: Export) => typeof e === 'function' && e.toString().includes('GetContextMenuManagerFromWindow(') && e.toString().includes('.CreateContextMenuInstance('),
+	(e: Export) => typeof e === 'function' && sourceOf(e).includes('GetContextMenuManagerFromWindow(') && sourceOf(e).includes('.CreateContextMenuInstance('),
 );
 
 export interface MenuProps extends FooterLegendProps {
@@ -127,12 +127,12 @@ export interface MenuProps extends FooterLegendProps {
 	children?: ReactNode;
 }
 
-const MenuModule = findModuleDetailsByExport((e: Export) => e?.render?.toString()?.includes('bPlayAudio:') || (e?.prototype?.OnOKButton && e?.prototype?.OnMouseEnter));
+const MenuModule = findModuleDetailsByExport((e: Export) => sourceOf(e?.render).includes('bPlayAudio:') || (e?.prototype?.OnOKButton && e?.prototype?.OnMouseEnter));
 
 /** @component React Components */
 export const Menu: FC<MenuProps> =
 	findModuleExport((e: Export) => e?.prototype?.HideIfSubmenu && e?.prototype?.HideMenu) || // Legacy Menu
-	(Object.values(MenuModule?.[0] ?? {}).find((e) => e?.toString()?.includes?.(`useId`) && e?.toString()?.includes?.(`labelId`)) as FC<MenuProps>); // New Menu 6/15/2025
+	(Object.values(MenuModule?.[0] ?? {}).find((e) => sourceOf(e).includes(`useId`) && sourceOf(e).includes(`labelId`)) as FC<MenuProps>); // New Menu 6/15/2025
 
 export interface MenuGroupProps {
 	label: string;
@@ -141,11 +141,11 @@ export interface MenuGroupProps {
 }
 
 const MenuGoupModule = findModuleByExport(
-	(e) => e?.prototype?.Focus && e?.prototype?.OnOKButton && e?.prototype?.render?.toString().includes?.(`"emphasis"==this.props.tone`),
+	(e) => e?.prototype?.Focus && e?.prototype?.OnOKButton && sourceOf(e?.prototype?.render).includes(`this.props.tone=="emphasis"`),
 );
 /** @component React Components */
 export const MenuGroup: FC<MenuGroupProps> =
-	MenuGoupModule && Object.values(MenuGoupModule).find((e: Export) => typeof e == 'function' && e?.toString?.()?.includes('bInGamepadUI:'));
+	MenuGoupModule && Object.values(MenuGoupModule).find((e: Export) => typeof e == 'function' && sourceOf(e).includes('bInGamepadUI:'));
 export interface MenuItemProps extends FooterLegendProps {
 	bInteractableItem?: boolean;
 	onClick?(evt: Event): void;
@@ -163,4 +163,4 @@ export interface MenuItemProps extends FooterLegendProps {
 export const MenuItem: FC<MenuItemProps> = MenuModule?.[1];
 
 /** @component React Components */
-export const MenuSeparator: FC = findModuleExport((e: Export) => typeof e === 'function' && /className:.+?\.ContextMenuSeparator/.test(e.toString()));
+export const MenuSeparator: FC = findModuleExport((e: Export) => typeof e === 'function' && /className:.+?\.ContextMenuSeparator/.test(sourceOf(e)));

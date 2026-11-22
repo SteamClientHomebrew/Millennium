@@ -1,6 +1,6 @@
 import { FC, ReactNode } from 'react';
 
-import { Export, findModuleExport } from '../webpack';
+import { Export, findModuleExport, sourceOf } from '../module-registry';
 
 export interface ControlsListProps {
 	alignItems?: 'left' | 'right' | 'center';
@@ -9,5 +9,5 @@ export interface ControlsListProps {
 }
 /** @component React Components */
 export const ControlsList: FC<ControlsListProps> = findModuleExport(
-	(e: Export) => e?.toString && e.toString().includes('().ControlsListChild') && e.toString().includes('().ControlsListOuterPanel'),
+	(e: Export) => sourceOf(e).includes('().ControlsListChild') && sourceOf(e).includes('().ControlsListOuterPanel'),
 );

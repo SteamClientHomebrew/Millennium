@@ -29,21 +29,10 @@
  */
 
 import React, { ReactNode } from 'react';
-import { findModuleDetailsByExport, findModuleExport, ModalPosition } from '@steambrew/sdk';
-import { FC } from 'react';
+import { findModuleDetailsByExport, ModalPosition } from '@steambrew/sdk';
 import { fieldClasses } from '../utils/classes';
 
-interface BBCodeParserProps {
-	bShowShortSpeakerInfo?: boolean;
-	event?: any;
-	languageOverride?: any;
-	showErrorInfo?: boolean;
-	text?: string;
-}
-
-export const BBCodeParser: FC<BBCodeParserProps> = findModuleExport(
-	(m) => typeof m === 'function' && m?.toString?.().includes('ElementAccumulator') && m?.toString?.().includes('parser.ParseBBCode'),
-) as FC<BBCodeParserProps>;
+export { BBCodeParser } from '@steambrew/sdk';
 
 interface SettingsDialogSubHeaderProps extends React.HTMLProps<HTMLDivElement> {
 	children: ReactNode;
@@ -64,7 +53,6 @@ export const DesktopTooltip = findModuleDetailsByExport(
 export const createWindowContext = findModuleDetailsByExport(
 	(m) =>
 		m?.toString?.()?.includes('current?.params.bNoInitialShow') &&
-		m?.toString?.()?.includes('current?.params.bNoFocusOnShow') &&
 		m?.toString?.()?.includes('current.m_callbacks'),
 )?.[1];
 

@@ -5,6 +5,26 @@ set(MILLENNIUM_BASE            ${CMAKE_SOURCE_DIR})
 project(MillenniumBuildSlave)
 add_compile_definitions(MILLENNIUM_$<IF:$<CONFIG:Debug>,DEBUG,RELEASE> MILLENNIUM_64BIT)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(_linux_x64_default ON)
+else()
+    set(_linux_x64_default OFF)
+endif()
+option(MILLENNIUM_NIX_64BIT           "Build only the 64-bit Nix targets (hhx64 + bootstrap64 + pvs64)" OFF)
+option(MILLENNIUM_LINUX_X64           "Build the 64-bit Linux client tree (SteamRT3): main lib, lua host, x64 proxy" ${_linux_x64_default})
+
+if(MILLENNIUM_NIX_64BIT)
+    set(MILLENNIUM_LINUX_X64 OFF)
+    message(STATUS "[MLNM] MILLENNIUM_NIX_64BIT=ON builds only the 64-bit helpers; MILLENNIUM_LINUX_X64 is disabled")
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND MILLENNIUM_LINUX_X64 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(FATAL_ERROR
+        "MILLENNIUM_LINUX_X64 is enabled, but the compiler targets a 32-bit ABI (CMAKE_SIZEOF_VOID_P=4). "
+        "This usually means an existing build directory was configured for the 32-bit client or a cached -m32 flag. "
+        "Configure a fresh build directory, or build the 32-bit tree with -DMILLENNIUM_LINUX_X64=OFF.")
+endif()
+
 if(WIN32)
     # Windows build names
     set(MILLENNIUM_OUTPUT_NAME                     "millennium.dll"                )
@@ -18,18 +38,27 @@ elseif(APPLE)
     set(MILLENNIUM_CHILD_HOOK_OUTPUT_NAME          "libmillennium_child_hook.dylib")
 else()
     # Linux build names
-    set(MILLENNIUM_OUTPUT_NAME                     "libmillennium_x86.so"          )
+    if(MILLENNIUM_LINUX_X64)
+        set(MILLENNIUM_OUTPUT_NAME                 "libmillennium_x64.so"          )
+        set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME      "libmillennium_bootstrap_x64.so")
+    else()
+        set(MILLENNIUM_OUTPUT_NAME                 "libmillennium_x86.so"          )
+        set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME      "libmillennium_bootstrap_x86.so")
+    endif()
     set(MILLENNIUM_HOOK_HELPER_OUTPUT_NAME         "libmillennium_hhx64.so"        )
-    set(MILLENNIUM_BOOTLOADER_OUTPUT_NAME          "libmillennium_bootstrap_x86.so")
 endif()
 
 # Millennium lua host that runs the backend in a sandbox.
 if(WIN32)
     set(MILLENNIUM_RTB_NAME "millennium.luavm64")
     set(MILLENNIUM_CRASH_HANDLER_NAME "millennium.crashhandler64")
+elseif(MILLENNIUM_LINUX_X64)
+    set(MILLENNIUM_RTB_NAME "libmillennium_luavm_x64")
 else()
     set(MILLENNIUM_RTB_NAME "libmillennium_luavm_x86")
 endif()
+
+add_compile_definitions(__MILLENNIUM_RTB_NAME__="${MILLENNIUM_RTB_NAME}")
 
 add_compile_definitions(__MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}")
 add_compile_definitions(__MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}")
@@ -42,6 +71,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 include(FetchContent)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    include("${MILLENNIUM_BASE}/scripts/cmake/linux_runtime_paths.cmake")
+endif()
 set(snare_SOURCE_DIR "${CMAKE_SOURCE_DIR}/thirdparty")
 
 option(MILLENNIUM_BUILD_MAIN          "Build main Millennium library and tools"            ON)
@@ -53,14 +85,17 @@ else()
     set(_build_to_steam_default OFF)
 endif()
 option(MILLENNIUM_BUILD_TO_STEAM_PATH "Build Millennium to Steam path" ${_build_to_steam_default})
-option(MILLENNIUM_NIX_64BIT           "Build only the 64-bit Nix targets (hhx64 + bootstrap64 + pvs64)" OFF)
+
+if(MILLENNIUM_LINUX_X64)
+    add_compile_definitions(MILLENNIUM_LINUX_X64)
+endif()
 
 if(MILLENNIUM_BUILD_MAIN)
     if(NOT MILLENNIUM_NIX_64BIT)
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
     endif()
 
-    if(NOT DISTRO_NIX OR MILLENNIUM_NIX_64BIT)
+    if(NOT DISTRO_NIX OR MILLENNIUM_NIX_64BIT OR MILLENNIUM_LINUX_X64)
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/instrumentation/loopback)
     endif()
 

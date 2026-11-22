@@ -1,6 +1,6 @@
 import { ButtonHTMLAttributes, FC, HTMLAttributes } from 'react';
 
-import { CommonUIModule, Module } from '../webpack';
+import { CommonUIModule, Module, sourceOf } from '../module-registry';
 import { FooterLegendProps } from './FooterLegend';
 
 export type DialogCommonProps = HTMLAttributes<HTMLDivElement>;
@@ -37,7 +37,7 @@ const CommonDialogDivs = Object.values(CommonUIModule).filter(
 	/* mar 19 2026 accept both jsx and createElement divs */
 	(m: any) =>
 		typeof m === 'object' &&
-		/(jsx\)|createElement)\("div",(\{\.\.\.|\bObject\.assign\(\{},)/.test(m?.render?.toString()),
+		/(jsx\)|createElement)\("div",(\{\.\.\.|\bObject\.assign\(\{},)/.test(sourceOf(m?.render)),
 );
 
 const MappedDialogDivs = new Map(
@@ -56,9 +56,9 @@ const MappedDialogDivs = new Map(
 /** @component React Components */
 export const DialogHeader = (MappedDialogDivs.get('DialogHeader') ||
 	Object.values(CommonUIModule).find((component: Module) => {
-		const str = component?.render?.toString?.();
+		const str = sourceOf(component?.render);
 
-		return str?.includes('role:"heading"') && str.includes(')("DialogHeader",');
+		return str.includes('role:"heading"') && str.includes('("DialogHeader",');
 	})) as FC<DialogCommonProps>;
 /** @component React Components */
 export const DialogSubHeader = MappedDialogDivs.get('DialogSubHeader') as FC<DialogCommonProps>;
@@ -77,12 +77,12 @@ export const DialogControlsSectionHeader = MappedDialogDivs.get('DialogControlsS
 
 /** @component React Components */
 export const DialogButtonPrimary = Object.values(CommonUIModule).find((mod: any) =>
-	mod?.render?.toString()?.includes('"DialogButton","_DialogLayout","Primary"'),
+	sourceOf(mod?.render).includes('"DialogButton","_DialogLayout","Primary"'),
 ) as FC<DialogButtonProps>;
 
 /** @component React Components */
 export const DialogButtonSecondary = Object.values(CommonUIModule).find((mod: any) =>
-	mod?.render?.toString()?.includes('"DialogButton","_DialogLayout","Secondary"'),
+	sourceOf(mod?.render).includes('"DialogButton","_DialogLayout","Secondary"'),
 ) as FC<DialogButtonProps>;
 
 /** @component React Components */

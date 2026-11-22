@@ -78,6 +78,8 @@ if(WIN32 AND (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "
 else()
   set(_virtfs_outputs "${_virtfs_h}")
 endif()
+file(GLOB _class_map_files CONFIGURE_DEPENDS "${MILLENNIUM_BASE}/src/class_maps/*.json")
+
 add_custom_command(
     OUTPUT  ${_virtfs_outputs}
     COMMAND ${CMAKE_COMMAND}
@@ -87,6 +89,8 @@ add_custom_command(
     DEPENDS
         "${TS_STAMPS}/sdk.stamp"
         "${TS_STAMPS}/core.stamp"
+        ${_class_map_files}
+        "${MILLENNIUM_BASE}/scripts/cmake/generate_virtfs.cmake"
     COMMENT "Generating virtfs.h"
     VERBATIM
 )

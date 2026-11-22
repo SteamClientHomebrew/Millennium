@@ -193,7 +193,7 @@ pub fn query(path: &Path, q: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn parse_header(data: &[u8]) -> anyhow::Result<(StarHeader, Vec<SectionEntry>, usize)> {
+pub(crate) fn parse_header(data: &[u8]) -> anyhow::Result<(StarHeader, Vec<SectionEntry>, usize)> {
     anyhow::ensure!(data.len() >= 4, "file too short");
 
     let plg_start = if &data[0..4] == MAGIC.as_slice() {

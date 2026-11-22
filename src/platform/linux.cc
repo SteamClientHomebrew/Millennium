@@ -66,7 +66,11 @@ bool platform::should_setup_environment()
 
     path[len] = '\0';
 
+#if defined(MILLENNIUM_LINUX_X64)
+    std::string steam_path = std::format("{}/.steam/steam/steamrt64/steam", std::getenv("HOME"));
+#else
     std::string steam_path = std::format("{}/.steam/steam/ubuntu12_32/steam", std::getenv("HOME"));
+#endif
     if (!is_same_path(path, steam_path.c_str())) {
         logger.warn("[Millennium] Process is not running under Steam: {}", path);
         return false;

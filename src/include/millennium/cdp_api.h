@@ -42,6 +42,27 @@
 #include <deque>
 #include <string>
 #include <memory>
+#include <unordered_set>
+#include <optional>
+#include <stdexcept>
+
+class cdp_protocol_error : public std::runtime_error
+{
+  public:
+    cdp_protocol_error(const std::string& message, std::optional<int> code, std::string method, std::string target_id, std::string session_id)
+        : std::runtime_error(message), code(code), method(std::move(method)), target_id(std::move(target_id)), session_id(std::move(session_id)) {}
+
+    const std::optional<int> code;
+    const std::string method;
+    const std::string target_id;
+    const std::string session_id;
+};
+
+class cdp_cancelled : public cdp_protocol_error
+{
+  public:
+    using cdp_protocol_error::cdp_protocol_error;
+};
 
 /**
  * thread-safe chrome devtools protocol client wrapper.
@@ -109,28 +130,16 @@ class cdp_client : public std::enable_shared_from_this<cdp_client>
     void shutdown();
 
     /** set the session id for the shared js context (used by send()) */
-    void set_shared_js_session_id(const std::string& sessionId)
-    {
-        {
-            std::lock_guard<std::mutex> lock(m_session_mutex);
-            m_shared_js_session_id = sessionId;
-        }
-        m_session_cv.notify_all();
-    }
+    void set_shared_js_session_id(const std::string& sessionId);
 
     /** get the session id for the shared js context */
-    std::string get_shared_js_session_id() const
-    {
-        std::lock_guard<std::mutex> lock(m_session_mutex);
-        return m_shared_js_session_id;
-    }
+    std::string get_shared_js_session_id() const;
 
     /** block until SharedJSContext session ID is set or the client shuts down */
-    void wait_for_shared_js_session()
-    {
-        std::unique_lock<std::mutex> lock(m_session_mutex);
-        m_session_cv.wait(lock, [this] { return !m_shared_js_session_id.empty() || m_shutdown.load(std::memory_order_acquire); });
-    }
+    void wait_for_shared_js_session();
+
+    bool is_session_active(const std::string& session_id) const;
+    bool is_target_active(const std::string& target_id) const;
 
     /** check if the client is still running */
     bool is_active() const
@@ -140,7 +149,6 @@ class cdp_client : public std::enable_shared_from_this<cdp_client>
 
   private:
     /** session id for the main js context we're talking to */
-    mutable std::mutex m_session_mutex;
     std::condition_variable m_session_cv;
     std::string m_shared_js_session_id;
 
@@ -148,6 +156,10 @@ class cdp_client : public std::enable_shared_from_this<cdp_client>
     struct async_request
     {
         std::promise<json> promise;
+        std::string method;
+        std::string target_id;
+        std::string session_id;
+        std::string child_session_id;
         std::chrono::steady_clock::time_point timestamp;
         std::chrono::milliseconds timeout;
         std::atomic<bool> completed{ false }; // prevents double-completing promises
@@ -158,8 +170,24 @@ class cdp_client : public std::enable_shared_from_this<cdp_client>
     std::atomic<bool> m_shutdown{ false };
 
     /** pending requests waiting for responses */
-    std::mutex m_requests_mutex;
+    mutable std::mutex m_requests_mutex;
     std::unordered_map<int, std::shared_ptr<async_request>> m_pending_requests;
+
+    struct session_owner
+    {
+        std::string target_id;
+        std::string parent_session_id;
+    };
+    std::unordered_map<std::string, session_owner> m_sessions;
+    std::unordered_set<std::string> m_closed_targets;
+    std::unordered_set<std::string> m_closed_sessions;
+    using cancelled_requests = std::vector<std::shared_ptr<async_request>>;
+    bool owner_closed_locked(const async_request& request) const;
+    bool bind_session_locked(const std::string& session, const std::string& target, const std::string& parent);
+    void invalidate_locked(const std::string& target, const std::string& session, cancelled_requests& cancelled);
+    std::exception_ptr cancellation_locked(const async_request& request, const std::string& reason, std::optional<int> code = std::nullopt) const;
+    static void fail_request(const std::shared_ptr<async_request>& request, std::exception_ptr error);
+    void process_lifecycle(const std::string& method, const json& params, const std::string& parent);
 
     /** event subscriptions (e.g., "Page.frameNavigated"). multiple listeners per event */
     struct event_listener

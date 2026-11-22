@@ -627,19 +627,7 @@ void register_mep_handlers(router& router, std::shared_ptr<plugin_loader> loader
         auto name = require_string(req, "name");
         if (!name) return response_t::err(req.id, "missing required param: name");
 
-        plugin_logger* backend_logger = nullptr;
-        for (auto* l : get_plugin_logger_mgr()) {
-            if (l->get_plugin_name(false) == *name) {
-                backend_logger = l;
-                break;
-            }
-        }
-
-        /* make a new logger for the plugin so we can immediately connect to it */
-        if (!backend_logger) {
-            backend_logger = new plugin_logger(name.value());
-            get_plugin_logger_mgr().push_back(backend_logger);
-        }
+        plugin_logger* backend_logger = &get_or_create_plugin_logger(*name);
 
         auto& capture = console_capture::instance();
 

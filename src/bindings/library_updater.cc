@@ -104,19 +104,22 @@ std::optional<json> head::library_updater::fetch_updates_from_network()
 {
     try {
         auto plugins = plugin_updater->get_updater_request_body();
+        auto starPlugins = plugin_updater->get_star_updater_request_body();
         auto themes = theme_updater->get_request_body();
         bool has_theme_post_body = themes.contains("post_body") && themes["post_body"].is_array() && !themes["post_body"].empty();
 
         json request_body;
 
         if (!plugins.empty()) request_body["plugins"] = plugins;
+        if (!starPlugins.empty()) request_body["starPlugins"] = starPlugins;
         if (has_theme_post_body) request_body["themes"] = themes["post_body"];
 
         if (request_body.empty()) {
             logger.log("No themes or plugins to update!");
             json result = {
-                { "themes",  {} },
-                { "plugins", {} }
+                { "themes",      {} },
+                { "plugins",     {} },
+                { "starPlugins", {} }
             };
             std::lock_guard<std::mutex> lock(m_updates_mutex);
             cached_updates = result;
@@ -151,8 +154,9 @@ std::optional<json> head::library_updater::fetch_updates_from_network()
         logger.warn("An error occurred while checking for updates: {}", e.what());
         /* Do not cache — allow the next call to retry after a transient failure. */
         return json{
-            { "themes",  { { "error", e.what() } } },
-            { "plugins", json::array()              }
+            { "themes",      { { "error", e.what() } } },
+            { "plugins",     json::array()              },
+            { "starPlugins", json::array()              }
         };
     }
 }

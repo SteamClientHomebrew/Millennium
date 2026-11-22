@@ -116,6 +116,7 @@ dependencies = [
  "libc",
  "log",
  "oxc_allocator",
+ "oxc_ast",
  "oxc_diagnostics",
  "oxc_parser",
  "oxc_span",

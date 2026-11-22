@@ -35,7 +35,56 @@
 #include <fcntl.h>
 #include <iostream>
 #include <filesystem>
+#include <memory>
 #include <sstream>
+
+namespace
+{
+struct plugin_logger_registry
+{
+    std::mutex mutex;
+    std::vector<std::unique_ptr<plugin_logger>> loggers;
+};
+
+plugin_logger_registry& logger_registry()
+{
+    // Plugin on_unload messages can still arrive during bootstrap cleanup.
+    static auto* registry = new plugin_logger_registry();
+    return *registry;
+}
+
+std::tm local_time(std::time_t time)
+{
+    std::tm result{};
+#ifdef _WIN32
+    localtime_s(&result, &time);
+#else
+    localtime_r(&time, &result);
+#endif
+    return result;
+}
+} // namespace
+
+std::vector<plugin_logger*> get_plugin_logger_mgr()
+{
+    auto& registry = logger_registry();
+    std::lock_guard<std::mutex> lock(registry.mutex);
+    std::vector<plugin_logger*> snapshot;
+    snapshot.reserve(registry.loggers.size());
+    for (const auto& logger : registry.loggers) snapshot.push_back(logger.get());
+    return snapshot;
+}
+
+plugin_logger& get_or_create_plugin_logger(const std::string& pluginName)
+{
+    auto& registry = logger_registry();
+    std::lock_guard<std::mutex> lock(registry.mutex);
+    for (const auto& logger : registry.loggers) {
+        if (logger->get_plugin_name(false) == pluginName) return *logger;
+    }
+    registry.loggers.push_back(std::make_unique<plugin_logger>(pluginName));
+    return *registry.loggers.back();
+}
 
 #ifdef _WIN32
 #include "millennium/cmdline_api.h"
@@ -62,12 +111,13 @@ std::string logger_base::get_local_time(bool withHours)
     std::stringstream bufferStream;
     auto now = std::chrono::system_clock::now();
     auto time = std::chrono::system_clock::to_time_t(now);
+    const auto localTime = local_time(time);
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
     if (withHours) {
-        bufferStream << std::put_time(std::localtime(&time), "%H:%M:%S");
+        bufferStream << std::put_time(&localTime, "%H:%M:%S");
     } else {
-        bufferStream << std::put_time(std::localtime(&time), "%M:%S");
+        bufferStream << std::put_time(&localTime, "%M:%S");
     }
     bufferStream << std::format(".{:03}", ms.count());
     return std::format("[{}]", bufferStream.str());
@@ -77,7 +127,7 @@ std::string logger_base::get_local_date_str()
 {
     auto now = std::chrono::system_clock::now();
     std::time_t timeNow = std::chrono::system_clock::to_time_t(now);
-    std::tm localeTime = *std::localtime(&timeNow);
+    const auto localeTime = local_time(timeNow);
 
     int year = localeTime.tm_year + 1900;
     int month = localeTime.tm_mon + 1;
@@ -137,59 +187,68 @@ static uint64_t now_us()
 
 void plugin_logger::log(const std::string& message, bool onlyBuffer, uint64_t timestamp_us, std::string src_file, int src_line)
 {
-    std::string formatted = std::format("{} ", get_plugin_name());
-
-    if (!onlyBuffer) {
-        std::cout << std::format("{} \033[1m\033[34m{}\033[0m\033[0m", get_local_time(), formatted) << message << "\n";
-        file << formatted << message << "\n";
-        file.flush();
-    }
-
     const log_entry entry{ message, log_level::info, timestamp_us ? timestamp_us : now_us(), std::move(src_file), src_line };
-    logBuffer.push_back(entry);
+    {
+        std::lock_guard<std::mutex> lock(log_mutex);
+        const std::string formatted = std::format("{} ", get_plugin_name());
+        if (!onlyBuffer) {
+            std::cout << std::format("{} \033[1m\033[34m{}\033[0m\033[0m", get_local_time(), formatted) << message << "\n";
+            file << formatted << message << "\n";
+            file.flush();
+        }
+        logBuffer.push_back(entry);
+    }
+    // Listeners may collect logs or log again; never call them with log_mutex held.
     notify_listeners(entry);
 }
 
 void plugin_logger::warn(const std::string& message, bool onlyBuffer, uint64_t timestamp_us, std::string src_file, int src_line)
 {
-    const std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
-    if (!onlyBuffer) {
-        std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
-        file << formatted;
-        file.flush();
-    }
-
     const log_entry entry{ message, log_level::warn, timestamp_us ? timestamp_us : now_us(), std::move(src_file), src_line };
-    logBuffer.push_back(entry);
+    {
+        std::lock_guard<std::mutex> lock(log_mutex);
+        const std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
+        if (!onlyBuffer) {
+            std::cout << COL_YELLOW << formatted << COL_RESET << '\n';
+            file << formatted;
+            file.flush();
+        }
+        logBuffer.push_back(entry);
+    }
     notify_listeners(entry);
 }
 
 void plugin_logger::error(const std::string& message, bool onlyBuffer, uint64_t timestamp_us, std::string src_file, int src_line)
 {
-    const std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
-    if (!onlyBuffer) {
-        std::cout << COL_RED << formatted << COL_RESET << '\n';
-        file << formatted;
-        file.flush();
-    }
-
     const log_entry entry{ message, log_level::error, timestamp_us ? timestamp_us : now_us(), std::move(src_file), src_line };
-    logBuffer.push_back(entry);
+    {
+        std::lock_guard<std::mutex> lock(log_mutex);
+        const std::string formatted = std::format("{}{}{}", get_local_time(), std::format(" {} ", get_plugin_name()), message.c_str());
+        if (!onlyBuffer) {
+            std::cout << COL_RED << formatted << COL_RESET << '\n';
+            file << formatted;
+            file.flush();
+        }
+        logBuffer.push_back(entry);
+    }
     notify_listeners(entry);
 }
 
 void plugin_logger::print(const std::string& message)
 {
-    file << message;
-    file.flush();
-
     const log_entry entry{ message, log_level::info, now_us(), "", 0 };
-    logBuffer.push_back(entry);
+    {
+        std::lock_guard<std::mutex> lock(log_mutex);
+        file << message;
+        file.flush();
+        logBuffer.push_back(entry);
+    }
     notify_listeners(entry);
 }
 
 std::vector<logger_base::log_entry> plugin_logger::collect_logs()
 {
+    std::lock_guard<std::mutex> lock(log_mutex);
     return logBuffer;
 }
 
@@ -212,9 +271,10 @@ std::string millennium_logger::get_local_time_stamp()
     std::stringstream bufferStream;
     auto now = std::chrono::system_clock::now();
     auto time = std::chrono::system_clock::to_time_t(now);
+    const auto localTime = local_time(time);
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
-    bufferStream << std::put_time(std::localtime(&time), "%M:%S");
+    bufferStream << std::put_time(&localTime, "%M:%S");
     bufferStream << std::format(".{:03}", ms.count());
     return std::format("[{}]", bufferStream.str());
 }

@@ -1,9 +1,11 @@
 mod css_classes;
 mod engine;
+mod exports;
 mod ipc;
 mod logger;
 mod syntax;
 mod url;
+mod wrappers;
 
 use engine::{apply_patches, PatchSet};
 use std::path::Path;
@@ -131,6 +133,17 @@ fn patch_bytes(url_str: &str, path_str: &str, content: Vec<u8>) -> Vec<u8> {
                     content
                 }
             }
+        }
+    } else {
+        content
+    };
+
+    let content = if url::is_js_url(url_str) {
+        let (rewritten, exported) = exports::patch(name, &content);
+        if exported == 0 {
+            content
+        } else {
+            rewritten
         }
     } else {
         content
@@ -346,4 +359,17 @@ pub unsafe extern "C" fn lb_patch_content(
     };
 
     unsafe { write_output(final_content, out_data, out_size) }
+}
+
+#[test]
+fn builtin_exports_work_without_plugin_ipc() {
+    let source = b"function bL(e){let{nProgress:t,nTransitionSec:n=1,margin:r=`none`}=e;return t}export{bL as unrelated};";
+    let output = patch_bytes(
+        "https://steamloopback.host/test.js",
+        "test.js",
+        source.to_vec(),
+    );
+    assert!(std::str::from_utf8(&output)
+        .unwrap()
+        .contains("bL as __millennium_internal_ProgressBar"));
 }

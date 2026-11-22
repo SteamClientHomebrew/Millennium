@@ -129,7 +129,7 @@ else()
     FetchContent_Declare(luajit        SOURCE_DIR "${MILLENNIUM_BASE}/thirdparty/forks/luajit"      SOURCE_SUBDIR fakedir)
     FetchContent_Declare(nlohmann_json URL "file://${THIRDPARTY_DIR}/nlohmann_json-v3.12.0.tar.gz" DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
     FetchContent_Declare(minizip_ng    URL "file://${THIRDPARTY_DIR}/minizip_ng-4.0.10.tar.gz"     DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
-    FetchContent_Declare(curl          URL "file://${THIRDPARTY_DIR}/curl-8_13_0.tar.gz"           DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
+    FetchContent_Declare(curl          URL "file://${THIRDPARTY_DIR}/curl-8_23_0.tar.gz"           DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR fakedir)
     FetchContent_Declare(re2           GIT_REPOSITORY https://github.com/google/re2 GIT_TAG 2022-04-01 SOURCE_SUBDIR fakedir)
 
     set(DEPENDENCIES zlib luajit nlohmann_json minizip_ng curl re2)

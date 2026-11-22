@@ -36,8 +36,8 @@ namespace mep
 
 exception_capture& exception_capture::instance()
 {
-    /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during __cxa_finalize
-       teardown). See millennium_lifecycle / crash_event_bus. */
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
     static exception_capture* inst = new exception_capture();
     return *inst;
 }

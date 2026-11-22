@@ -20,11 +20,15 @@ let
   millenniumEnv = {
     # consumed by millennium internally.
     MILLENNIUM_RUNTIME_PATH = "${millennium}/lib/libmillennium_x86.so";
+    # SteamRT3 client: the x64 proxy reads this first.
+    MILLENNIUM_RUNTIME_PATH_X64 = "${millennium}/lib/libmillennium_x64.so";
   };
 
   millenniumProfile = ''
     ln -sf ${millennium}/lib/libmillennium_bootstrap_x86.so "$HOME/.local/share/Steam/ubuntu12_32/libXtst.so.6"
     ln -sf ${millennium}/lib/libmillennium_bootstrap_hhx64.so "$HOME/.local/share/Steam/ubuntu12_64/libXtst.so.6"
+    mkdir -p "$HOME/.local/share/Steam/steamrt64"
+    ln -sf ${millennium}/lib/libmillennium_bootstrap_x64.so "$HOME/.local/share/Steam/steamrt64/libXtst.so.6"
   '';
 
   upstreamArgs = removeAttrs args [

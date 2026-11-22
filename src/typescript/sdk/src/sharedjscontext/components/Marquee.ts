@@ -1,6 +1,7 @@
 import { CSSProperties, FC } from 'react';
 
-import { Export, findModuleExport } from '../webpack';
+import { Export, findModuleExport, sourceOf } from '../module-registry';
+import { nativeInternal } from '../internals';
 
 export interface MarqueeProps {
 	play?: boolean;
@@ -16,4 +17,4 @@ export interface MarqueeProps {
 }
 
 /** @component React Components */
-export const Marquee: FC<MarqueeProps> = findModuleExport((e: Export) => e?.toString && e.toString().includes('.Marquee') && e.toString().includes('--fade-length'));
+export const Marquee: FC<MarqueeProps> = nativeInternal('Marquee') ?? findModuleExport((e: Export) => sourceOf(e).includes('.Marquee') && sourceOf(e).includes('--fade-length'));

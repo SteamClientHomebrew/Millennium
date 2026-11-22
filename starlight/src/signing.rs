@@ -62,6 +62,12 @@ pub fn try_sign_star(data: &[u8]) -> anyhow::Result<Option<[u8; 64]>> {
     Ok(Some(sig.to_bytes()))
 }
 
+pub fn sign_bytes(data: &[u8]) -> anyhow::Result<[u8; 64]> {
+    let key = load_signing_key()?;
+    let sig: Signature = key.sign(data);
+    Ok(sig.to_bytes())
+}
+
 pub fn verify_star(data: &[u8], signature: &[u8; 64], public_key: &[u8; 32]) -> bool {
     let Ok(vk) = VerifyingKey::from_bytes(public_key) else {
         return false;

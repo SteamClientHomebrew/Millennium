@@ -63,12 +63,8 @@ class millennium_lifecycle
 
     static millennium_lifecycle& get()
     {
-        /* Deliberately leaked (never destroyed): shutdown runs via atexit/__cxa_finalize
-           handlers (e.g. bootstrap_cleanup -> StopMillennium -> terminate.notify()), which
-           can fire AFTER a function-local static would have been destroyed. Locking a
-           destroyed mutex throws std::system_error (EINVAL). A leaked instance keeps the
-           sync primitives valid for the whole process lifetime; it only holds mutexes,
-           condition variables, and atomics, so there is nothing that needs cleanup. */
+        // Bootstrap cleanup may call StopMillennium after static destruction starts.
+        // Keep synchronization primitives alive until the process exits.
         static millennium_lifecycle* instance = new millennium_lifecycle();
         return *instance;
     }

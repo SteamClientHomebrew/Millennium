@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include "instrumentation/patch_registry.h"
+#include "mep/patch_update_notifier.h"
 #include "millennium/cdp_connector.h"
 #include "millennium/millennium_lifecycle.h"
 #include <atomic>
@@ -172,8 +173,16 @@ TEST_CASE("macOS CDP can connect and stop with a full patch pipe", "[macos][cdp]
     pollfd pending{ patches.input[0], POLLIN, 0 };
     REQUIRE(poll(&pending, 1, 2000) == 1);
     REQUIRE(browser.read_message().at("method") == "test.connected");
+    auto update = std::async(std::launch::async, []
+    {
+        patch_registry_remove("test");
+        patch_update_notifier::instance().notify();
+    });
+    const auto notified = update.wait_for(std::chrono::seconds(1));
     millennium_lifecycle::get().terminate.notify();
     REQUIRE(session.stopped.wait_for(std::chrono::seconds(2)) == std::future_status::ready);
+    REQUIRE(notified == std::future_status::ready);
+    update.get();
 
     REQUIRE(fcntl(patches.output[1], F_SETNOSIGPIPE, 1) == 0);
     const auto written = write(patches.output[1], "x", 1);

@@ -8,7 +8,7 @@ export * from './globals';
 export * from './modules';
 export * from './constSysfsExpr';
 export * from './utils';
-export * from './webpack';
+export * from './module-registry';
 export * from './logger';
 
 import { JSX } from 'react';

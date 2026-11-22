@@ -18,9 +18,9 @@ declare global {
  * @returns {RegExp} RegEx to call .test(component.toString()) on
  */
 export function createPropListRegex(propList: string[], fromStart: boolean = true): RegExp {
-	let regexString = fromStart ? 'const{' : '';
+	let regexString = fromStart ? '(?:const|let|var){' : '';
 	propList.forEach((prop: any, propIdx) => {
-		regexString += `"?${prop}"?:[a-zA-Z_$]{1,2}`;
+		regexString += `["\`]?${prop}["\`]?:[a-zA-Z_$]{1,2}`;
 		if (propIdx < propList.length - 1) {
 			regexString += ',';
 		}

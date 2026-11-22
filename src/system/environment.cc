@@ -160,6 +160,17 @@ void platform::environment::setup()
     const std::string dataDir   = environment::get("XDG_DATA_HOME",   std::format("{}/.local/share", homeDir));
     const std::string stateDir  = environment::get("XDG_STATE_HOME",  std::format("{}/.local/state", homeDir));
 
+#if defined(MILLENNIUM_LINUX_X64)
+    std::map<std::string, std::string> environment_unix
+    {
+        { "OPENSSL_CONF",               "/dev/null" },
+        { "MILLENNIUM_RUNTIME_PATH_X64", environment::get("MILLENNIUM_RUNTIME_PATH_X64", "/usr/lib/millennium/libmillennium_x64.so") },
+        { "MILLENNIUM__STEAM_EXE_PATH", std::format("{}/.steam/steam/steamrt64/steam", homeDir) },
+        { "MILLENNIUM__PLUGINS_PATH",   std::format("{}/millennium/plugins",             dataDir) },
+        { "MILLENNIUM__CONFIG_PATH",    std::format("{}/millennium",                   configDir) },
+        { "MILLENNIUM__LOGS_PATH",      std::format("{}/millennium/logs",               stateDir) },
+    };
+#else
     std::map<std::string, std::string> environment_unix
     {
         { "OPENSSL_CONF",              "/dev/null" },
@@ -169,6 +180,7 @@ void platform::environment::setup()
         { "MILLENNIUM__CONFIG_PATH",    std::format("{}/millennium",                   configDir) },
         { "MILLENNIUM__LOGS_PATH",      std::format("{}/millennium/logs",               stateDir) },
     };
+#endif
     environment.insert(environment_unix.begin(), environment_unix.end());
 #elif __APPLE__
     const std::string homeDir   = platform::environment::get("HOME");

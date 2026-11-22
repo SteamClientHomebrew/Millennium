@@ -37,8 +37,8 @@ namespace mep
 {
 console_capture& console_capture::instance()
 {
-    /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during
-       __cxa_finalize teardown). See millennium_lifecycle / crash_event_bus. */
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
     static console_capture* inst = new console_capture();
     return *inst;
 }

@@ -51,14 +51,6 @@ function PluginIdModal({ installer, modal, refetchDataCb }: PluginIdModalProps) 
 			strDescription={
 				<>
 					{locale.pluginInstallerDescription} <Utils.URLComponent url={PLUGINS_URL} />
-					<br />
-					<br />
-					<TextField
-						// @ts-ignore
-						placeholder={locale.strEnterIdPlaceholder}
-						value={installID}
-						onChange={(e) => setInstallID(e.target.value)}
-					/>
 				</>
 			}
 			bHideCloseIcon={true}
@@ -70,7 +62,16 @@ function PluginIdModal({ installer, modal, refetchDataCb }: PluginIdModalProps) 
 				modal?.Close();
 			}}
 			strOKButtonText={locale.strDownloadAndInstall}
-		/>
+		>
+			<br />
+			<br />
+			<TextField
+				// @ts-ignore
+				placeholder={locale.strEnterIdPlaceholder}
+				value={installID}
+				onChange={(e) => setInstallID(e.target.value)}
+			/>
+		</ConfirmModal>
 	);
 }
 

@@ -35,8 +35,8 @@ namespace mep
 {
 ffi_recorder& ffi_recorder::instance()
 {
-    /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during __cxa_finalize
-       teardown). See millennium_lifecycle / crash_event_bus. */
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
     static ffi_recorder* inst = new ffi_recorder();
     return *inst;
 }

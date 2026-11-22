@@ -261,7 +261,15 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd, bool* matched = null
         "Steam Helper";
 #endif
 
-    if (cmd_line.executable() != target_executable) {
+    const std::string_view executable = cmd_line.executable();
+
+    bool is_webhelper_target = executable == target_executable;
+#if defined(MILLENNIUM_LINUX_X64)
+    /** The SteamRT3 client launches the webhelper ELF directly, not the shell wrapper. */
+    is_webhelper_target = is_webhelper_target || executable == "steamwebhelper";
+#endif
+
+    if (!is_webhelper_target) {
         logger.log("dispatching: {}", cmd_line.exec);
         return cmd;
     }
@@ -398,7 +406,27 @@ const char* Plat_HookedCreateSimpleProcess(const char* cmd, bool* matched = null
         if (create_pv_shim()) {
             cmd_line.ensure_param("--millennium-loopback-ipc-fds", "5,6");
             cmd_line.params.insert(cmd_line.params.begin(), cmd_line.exec);
+#if defined(MILLENNIUM_LINUX_X64)
+            /**
+             * The SteamRT3 client already runs inside its pressure-vessel container, so there is
+             * no pressure-vessel stage in front of the webhelper to impersonate. libmillennium_pvs64
+             * reopens the FIFOs on fds 3-6 and execs the command directly.
+             *
+             * The shim lives beside this library. On an FHS layout that is /usr/lib/millennium,
+             * which only exists on the host, so translate it through /run/host when needed.
+             */
+            std::string pvs64 = find_pvs64_binary();
+            if (access(pvs64.c_str(), X_OK) != 0) {
+                std::string host_path = "/run/host" + pvs64;
+                if (access(host_path.c_str(), X_OK) == 0) pvs64 = host_path;
+            }
+
+            cmd_line.params.insert(cmd_line.params.begin(), pvs64);
             cmd_line.params.insert(cmd_line.params.begin(), "PRESSURE_VESSEL_PREFIX=" + g_pv_shim_dir);
+            cmd_line.params.insert(cmd_line.params.begin(), "MILLENNIUM_PVS64_DIRECT_EXEC=1");
+#else
+            cmd_line.params.insert(cmd_line.params.begin(), "PRESSURE_VESSEL_PREFIX=" + g_pv_shim_dir);
+#endif
             cmd_line.exec = "/usr/bin/env";
 
             if (g_cdp_pipe_change_efd < 0) {

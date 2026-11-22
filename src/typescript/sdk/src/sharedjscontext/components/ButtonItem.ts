@@ -1,6 +1,6 @@
 import { FC } from 'react';
 
-import { CommonUIModule } from '../webpack';
+import { CommonUIModule, sourceOf } from '../module-registry';
 import { ItemProps } from './Item';
 import { createPropListRegex } from '../utils';
 
@@ -11,5 +11,5 @@ export interface ButtonItemProps extends ItemProps {
 const buttonItemRegex = createPropListRegex(['highlightOnFocus', 'childrenContainerWidth'], false);
 /** @component React Components */
 export const ButtonItem = Object.values(CommonUIModule).find(
-	(mod: any) => (mod?.render?.toString && buttonItemRegex.test(mod.render.toString())) || mod?.render?.toString?.().includes('childrenContainerWidth:"min"'),
+	(mod: any) => buttonItemRegex.test(sourceOf(mod?.render)) || sourceOf(mod?.render).includes('childrenContainerWidth:"min"'),
 ) as FC<ButtonItemProps>;

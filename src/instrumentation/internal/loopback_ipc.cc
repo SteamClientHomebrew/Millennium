@@ -67,6 +67,8 @@ static const fd_t INVALID_FD = -1;
 
 struct LoopbackConn
 {
+    enum class InitialList { writing, changed, sent };
+    std::atomic<InitialList> initial_list{ InitialList::writing };
     std::atomic<bool> alive{ true };
     std::mutex write_mu;
     fd_t write_fd = INVALID_FD;
@@ -189,14 +191,26 @@ static void send_patch_list(LoopbackConn& conn)
     std::lock_guard<std::mutex> lock(conn.write_mu);
     if (!conn.alive.load()) return;
     if (!write_frame(conn, build_patch_list_payload())) {
+        logger.warn("loopback IPC: patch list write failed, dropping connection");
         conn.alive.store(false);
         close_fd(conn.write_fd);
         conn.write_fd = INVALID_FD;
     }
 }
 
-static void reader_loop(std::shared_ptr<LoopbackConn> conn, int notifier_id)
+static void run_loopback_conn(std::shared_ptr<LoopbackConn> conn)
 {
+    using InitialList = LoopbackConn::InitialList;
+    const int notifier_id = patch_update_notifier::instance().add_listener([conn]()
+    {
+        // A backend can publish before the Helper starts reading. Let the initial writer catch up.
+        auto state = InitialList::writing;
+        conn->initial_list.compare_exchange_strong(state, InitialList::changed);
+        if (state == InitialList::sent) send_patch_list(*conn);
+    });
+    send_patch_list(*conn);
+    if (conn->initial_list.exchange(InitialList::sent) == InitialList::changed) send_patch_list(*conn);
+
     std::vector<uint8_t> buf;
     while (conn->alive.load()) {
         if (!read_frame(*conn, buf)) break;
@@ -260,18 +274,9 @@ void register_loopback_conn(fd_t write_fd, fd_t read_fd)
     conn->read_fd = read_fd;
 #ifdef __APPLE__
     conn->stop_fd = stop_fd;
-#endif
-
-    // Plugin backends can publish an update while the first snapshot is still being written.
-    const int notifier_id = patch_update_notifier::instance().add_listener([conn]()
-    {
-        send_patch_list(*conn);
-    });
-    send_patch_list(*conn);
-
-#ifdef __APPLE__
-    reader_loop(std::move(conn), notifier_id);
+    run_loopback_conn(std::move(conn));
 #else
-    std::thread(reader_loop, std::move(conn), notifier_id).detach();
+    // On Windows the CreateProcess hook must return before the Helper can drain a full pipe.
+    std::thread(run_loopback_conn, std::move(conn)).detach();
 #endif
 }

@@ -192,7 +192,23 @@ void network_hook_ctl::vfs_request_handler(const nlohmann::basic_json<>& message
                 bFailedRead = true; /** force fail even if the file exists. */
             }
         } else {
-            fileContent = Base64Encode(std::string(std::istreambuf_iterator<char>(localFileStream), std::istreambuf_iterator<char>()));
+            std::string text((std::istreambuf_iterator<char>(localFileStream)), std::istreambuf_iterator<char>());
+            if (fileType == mime::file_type::CSS && !text.empty() && this->should_remap_theme_classes(message, localFilePath)) {
+                theme_class_remapper::stats counters;
+                text = m_class_remapper->rewrite(text, &counters);
+                if (counters.remapped || counters.expanded) {
+                    logger.log("theme class remapper: {} remapped, {} expanded, {} unmapped in {}", counters.remapped, counters.expanded, counters.unmapped, localFilePath.filename().string());
+                }
+            }
+            if (fileType == mime::file_type::JS && !text.empty() && this->should_remap_theme_classes(message, localFilePath)) {
+                theme_class_remapper::stats counters;
+                const bool is_plugin_frontend = localFilePath.generic_string().ends_with("/.millennium/Dist/index.js");
+                text = m_class_remapper->rewrite_script(text, &counters, !is_plugin_frontend);
+                if (counters.remapped || counters.unmapped) {
+                    logger.log("theme class remapper: {} remapped, {} unmapped in {}", counters.remapped, counters.unmapped, localFilePath.filename().string());
+                }
+            }
+            fileContent = Base64Encode(text);
         }
     }
 
@@ -401,6 +417,52 @@ network_hook_ctl::network_hook_ctl(std::shared_ptr<plugin_manager> plugin_manage
     : m_plugin_manager(std::move(plugin_manager)), m_thread_pool(std::make_unique<thread_pool>(std::thread::hardware_concurrency())),
       m_hook_list_ptr(std::make_shared<std::vector<hook_item>>())
 {
+    m_class_remapper = std::make_unique<theme_class_remapper>(
+        []()
+    {
+        const auto entry = INTERNAL_FTP_CALL_DATA.find(std::format("https://millennium.ftp/{}/theme-class-map.json", GetScrambledApiPathToken()));
+        return entry == INTERNAL_FTP_CALL_DATA.end() ? std::string{} : entry->second();
+    },
+        []() { return theme_class_remapper::scan_steam_ui(platform::get_steam_path() / "steamui"); });
+}
+
+bool network_hook_ctl::should_remap_theme_classes(const nlohmann::basic_json<>& message, const std::filesystem::path& local_file_path) const
+{
+    if (std::getenv("MILLENNIUM_DISABLE_THEME_CLASS_REMAP")) return false;
+    if (!m_class_remapper) return false;
+
+    static std::once_flag status_logged;
+    std::call_once(status_logged, [this]() { logger.log("theme class remapper: {}", m_class_remapper->status()); });
+    if (!m_class_remapper->active()) return false;
+
+    const std::string relative = local_file_path.lexically_relative(platform::get_millennium_path() / "themes").generic_string();
+    const bool in_themes = !relative.empty() && !relative.starts_with("..");
+    const bool is_plugin_frontend = local_file_path.generic_string().ends_with("/.millennium/Dist/index.js");
+    if (!in_themes && !is_plugin_frontend) return false;
+
+    const auto& request = message["request"];
+    if (request.contains("headers") && request["headers"].is_object()) {
+        for (const auto& [name, value] : request["headers"].items()) {
+            std::string lowered = name;
+            std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (lowered != "referer" || !value.is_string()) continue;
+
+            const std::string referer = value.get<std::string>();
+            const size_t scheme_end = referer.find("://");
+            if (scheme_end == std::string::npos) break;
+            const size_t host_begin = scheme_end + 3;
+            const size_t host_end = referer.find_first_of("/:?#", host_begin);
+            const std::string host = referer.substr(host_begin, host_end == std::string::npos ? std::string::npos : host_end - host_begin);
+
+            for (const auto* tld : k_steam_tlds) {
+                const std::string suffix = std::format(".{}", tld);
+                if (host == tld || (host.size() > suffix.size() && host.compare(host.size() - suffix.size(), suffix.size(), suffix) == 0)) return false;
+            }
+            break;
+        }
+    }
+
+    return true;
 }
 
 network_hook_ctl::~network_hook_ctl()

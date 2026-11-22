@@ -6,10 +6,8 @@ namespace mep
 
 crash_event_bus& crash_event_bus::instance()
 {
-    /* Leaked, never destroyed: teardown runs during __cxa_finalize (via
-       bootstrap_cleanup -> StopMillennium -> plugin_loader::shutdown), which can
-       fire after a function-local static would have been destroyed. Locking a
-       destroyed mutex throws std::system_error (EINVAL). See millennium_lifecycle. */
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
     static crash_event_bus* s = new crash_event_bus();
     return *s;
 }

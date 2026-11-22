@@ -1,6 +1,6 @@
 import { HTMLAttributes, ReactNode, RefAttributes, FC } from 'react';
 
-import { Export, findModuleExport } from '../webpack';
+import { Export, findModuleExport, sourceOf } from '../module-registry';
 
 export interface CarouselProps extends HTMLAttributes<HTMLDivElement> {
 	autoFocus?: boolean;
@@ -20,4 +20,4 @@ export interface CarouselProps extends HTMLAttributes<HTMLDivElement> {
 	scrollToAlignment?: 'center';
 }
 /** @component React Components */
-export const Carousel = findModuleExport((e: Export) => e.render?.toString().includes('setFocusedColumn:')) as FC<CarouselProps & RefAttributes<HTMLDivElement>>;
+export const Carousel = findModuleExport((e: Export) => sourceOf(e?.render).includes('setFocusedColumn:')) as FC<CarouselProps & RefAttributes<HTMLDivElement>>;

@@ -35,8 +35,8 @@ namespace mep
 
 sdk_ready_bus& sdk_ready_bus::instance()
 {
-    /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during __cxa_finalize
-       teardown). See millennium_lifecycle / crash_event_bus. */
+    // Shutdown still removes listeners after static destruction starts.
+    // Intentionally retain this service for the lifetime of the process.
     static sdk_ready_bus* inst = new sdk_ready_bus();
     return *inst;
 }

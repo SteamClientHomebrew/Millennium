@@ -10,8 +10,8 @@ class patch_update_notifier
 
     static patch_update_notifier& instance()
     {
-        /* Leaked, never destroyed (avoids EINVAL on a destroyed mutex during __cxa_finalize
-           teardown). See millennium_lifecycle / crash_event_bus. */
+        // Backend shutdown still notifies listeners after static destruction starts.
+        // Intentionally retain this service for the lifetime of the process.
         static patch_update_notifier* inst = new patch_update_notifier();
         return *inst;
     }

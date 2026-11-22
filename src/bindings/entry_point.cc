@@ -627,8 +627,9 @@ builtin_payload head::millennium_backend::Core_GetPluginBackendLogs(const builti
 {
     nlohmann::json logData = nlohmann::json::array();
     std::vector<plugin_manager::plugin_t> plugins = m_plugin_manager->get_all_plugins();
+    const auto loggers = get_plugin_logger_mgr();
 
-    for (auto& logger : get_plugin_logger_mgr()) {
+    for (auto& logger : loggers) {
         nlohmann::json logDataItem = nlohmann::json::array();
 
         for (auto& entry : mep::collect_log_snapshot(*logger, 200)) {
@@ -691,7 +692,6 @@ builtin_payload head::millennium_backend::Core_GetPluginBackendLogs(const builti
             { "timestamp", ""                    }
         };
 
-        auto& loggers = get_plugin_logger_mgr();
         for (size_t i = 0; i < loggers.size() && i < logData.size(); ++i) {
             if (loggers[i]->get_plugin_name(false) == crash.plugin_name) {
                 logData[i]["logs"].push_back(crash_entry);

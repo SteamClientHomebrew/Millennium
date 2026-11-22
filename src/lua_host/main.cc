@@ -514,6 +514,15 @@ static json handle_evaluate(lua_State* L, const json& params)
         }
 
         lua_settop(L, stack_base);
+
+        const size_t wire_size = nlohmann::json::to_msgpack(result).size();
+        if (wire_size > kMaxReturnValueSize) {
+            return {
+                { "success", false                                                                                                                       },
+                { "error",   "return value too large (" + std::to_string(wire_size) + " bytes, limit " + std::to_string(kMaxReturnValueSize) + " bytes)" }
+            };
+        }
+
         return result;
     } catch (const std::exception& e) {
         lua_settop(L, stack_base);

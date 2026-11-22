@@ -1,8 +1,8 @@
 import Toast from '../components/Toast';
 import { Logger } from '../logger';
 import { ReactNode } from 'react';
-import { callOriginal, injectFCTrampoline, Patch, replacePatch } from '../utils';
-import { findModuleExport } from '../webpack';
+import { callOriginal, ComponentInterceptor, injectFCTrampoline, interceptComponent, Patch, replacePatch } from '../utils';
+import { findModuleExport } from '../module-registry';
 import { ErrorBoundary } from '../components';
 
 // TODO export
@@ -48,8 +48,11 @@ declare global {
 	}
 }
 
+const TOAST_RENDERER_PATTERN = /controller:["`]notification["`],method:/;
+
 class Toaster extends Logger {
 	private toastPatch?: Patch;
+	private toastInterceptor?: ComponentInterceptor;
 
 	constructor() {
 		super('Toaster');
@@ -57,19 +60,27 @@ class Toaster extends Logger {
 		window.__TOASTER_INSTANCE?.deinit?.();
 		window.__TOASTER_INSTANCE = this;
 
+		const renderMillenniumToasts = (props: any) => {
+			if (!(props?.group?.millennium || props?.group?.notifications?.[0]?.millennium)) return undefined;
+			return props.group.notifications.map((notification: any) => (
+				<ErrorBoundary>
+					<Toast toast={notification.data} newIndicator={notification.bNewIndicator} location={props?.location} />
+				</ErrorBoundary>
+			));
+		};
+
 		const ValveToastRenderer = findModuleExport((e) => e?.toString?.()?.includes(`controller:"notification",method:`));
-		// TODO find a way to undo this if possible?
-		const patchedRenderer = injectFCTrampoline(ValveToastRenderer);
-		this.toastPatch = replacePatch(patchedRenderer, 'component', (args: any[]) => {
-			if (args?.[0]?.group?.millennium || args?.[0]?.group?.notifications?.[0]?.millennium) {
-				return args[0].group.notifications.map((notification: any) => (
-					<ErrorBoundary>
-						<Toast toast={notification.data} newIndicator={notification.bNewIndicator} location={args?.[0]?.location} />
-					</ErrorBoundary>
-				));
-			}
-			return callOriginal;
-		});
+		if (ValveToastRenderer) {
+			// TODO find a way to undo this if possible?
+			const patchedRenderer = injectFCTrampoline(ValveToastRenderer);
+			this.toastPatch = replacePatch(patchedRenderer, 'component', (args: any[]) => renderMillenniumToasts(args?.[0]) ?? callOriginal);
+			return;
+		}
+
+		this.toastInterceptor = interceptComponent(
+			(source) => TOAST_RENDERER_PATTERN.test(source),
+			(renderOriginal) => (props: any) => renderMillenniumToasts(props) ?? renderOriginal(props),
+		);
 	}
 
 	toast(toast: ToastData): ToastNotification {
@@ -148,6 +159,7 @@ class Toaster extends Logger {
 
 	deinit() {
 		this.toastPatch?.unpatch();
+		this.toastInterceptor?.unpatch();
 	}
 }
 

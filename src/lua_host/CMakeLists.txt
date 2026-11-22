@@ -38,6 +38,10 @@ endif()
 
 add_executable(${MILLENNIUM_RTB_NAME} ${LUA_HOST_SOURCES})
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND MILLENNIUM_LINUX_X64)
+    millennium_configure_linux_host_rpath(${MILLENNIUM_RTB_NAME})
+endif()
+
 target_compile_definitions(${MILLENNIUM_RTB_NAME} PRIVATE
     MILLENNIUM_RTB_NAME="${MILLENNIUM_RTB_NAME}"
 )

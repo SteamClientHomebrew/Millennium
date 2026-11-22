@@ -147,15 +147,22 @@ void webkit_world_mgr::attach_to_target(const std::string& target_id, const std:
 
         {
             std::lock_guard<std::mutex> lock(m_targets_mutex);
-            m_attached_targets[target_id] = target_context{ session_id, "", {}, false };
+            auto it = m_attached_targets.find(target_id);
+            if (it == m_attached_targets.end()) return;
+            if (!m_client->is_session_active(session_id)) {
+                m_attached_targets.erase(it);
+                return;
+            }
+            it->second = target_context{ session_id, "", {}, false };
         }
         expose_millennium_to_ctx(session_id, can_reload);
 
-    } catch (const std::exception& e) {
+    } catch (const cdp_cancelled&) {
         /** if the target died before we could attach, that's totally fine. */
-        if (std::string(e.what()) != "No target with given id found") {
-            LOG_ERROR("webkit_world_mgr: exception while attaching to target {}: {}", target_id, e.what());
-        }
+        std::lock_guard<std::mutex> lock(m_targets_mutex);
+        m_attached_targets.erase(target_id);
+    } catch (const std::exception& e) {
+        LOG_ERROR("webkit_world_mgr: exception while attaching to target {}: {}", target_id, e.what());
 
         std::lock_guard<std::mutex> lock(m_targets_mutex);
         auto it = m_attached_targets.find(target_id);
@@ -235,7 +242,10 @@ void webkit_world_mgr::expose_millennium_to_ctx(const std::string& session_id, b
                     },
                                     session_id)
                         .get();
-                } catch (...) {
+                } catch (const cdp_cancelled&) {
+                    throw;
+                } catch (const std::exception& e) {
+                    LOG_ERROR("webkit_world_mgr: failed to remove stale script: {}", e.what());
                 }
             }
         }
@@ -272,6 +282,8 @@ void webkit_world_mgr::expose_millennium_to_ctx(const std::string& session_id, b
             logger.log("webkit_world_mgr: evaluated script in session {} (nested target, no reload)", session_id);
         }
 
+    } catch (const cdp_cancelled&) {
+        return;
     } catch (const std::exception& e) {
         LOG_ERROR("webkit_world_mgr: failed to expose millennium to session {}: {}", session_id, e.what());
     }
@@ -384,6 +396,16 @@ void webkit_world_mgr::setup_event_listeners()
 {
     m_listener_tokens.push_back(m_client->on("Target.targetCreated", std::bind(&webkit_world_mgr::target_create_hdlr, this, std::placeholders::_1)));
     m_listener_tokens.push_back(m_client->on("Target.targetDestroyed", std::bind(&webkit_world_mgr::target_destroy_hdlr, this, std::placeholders::_1)));
+    m_listener_tokens.push_back(m_client->on("Target.detachedFromTarget", [this](const json& params)
+    {
+        if (!params.contains("sessionId") || !params["sessionId"].is_string()) return;
+        const auto session = params["sessionId"].get<std::string>();
+        std::lock_guard<std::mutex> lock(m_targets_mutex);
+        for (auto it = m_attached_targets.begin(); it != m_attached_targets.end();) {
+            if (it->second.session_id == session) it = m_attached_targets.erase(it);
+            else ++it;
+        }
+    }));
     m_listener_tokens.push_back(m_client->on("Target.targetInfoChanged", std::bind(&webkit_world_mgr::target_change_hdlr, this, std::placeholders::_1)));
 }
 
@@ -425,7 +447,10 @@ try {{
                 },
                                 session_id)
                     .get();
-            } catch (...) {
+            } catch (const cdp_cancelled&) {
+                throw;
+            } catch (const std::exception& e) {
+                LOG_ERROR("webkit_world_mgr: failed to remove stale script: {}", e.what());
             }
         }
     }
@@ -462,6 +487,8 @@ try {{
                     }
                 }
                 logger.log("webkit_world_mgr: registered isolated world '{}' for session {}", world_name, session_id);
+            } catch (const cdp_cancelled&) {
+                throw;
             } catch (const std::exception& e) {
                 LOG_ERROR("webkit_world_mgr: failed to register isolated world '{}': {}", world_name, e.what());
             }
@@ -486,6 +513,8 @@ try {{
                 };
                 m_client->send_host("Runtime.evaluate", eval_params, session_id).get();
                 logger.log("webkit_world_mgr: created isolated world '{}' (ctx {}) for session {}", world_name, ctx_id, session_id);
+            } catch (const cdp_cancelled&) {
+                throw;
             } catch (const std::exception& e) {
                 LOG_ERROR("webkit_world_mgr: failed to create isolated world '{}': {}", world_name, e.what());
             }

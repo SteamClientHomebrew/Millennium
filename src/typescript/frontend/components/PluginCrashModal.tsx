@@ -1,7 +1,6 @@
-import { ConfirmModal, DialogButton, Field, IconsModule, Navigation, pluginSelf, showModal } from '@steambrew/sdk';
+import { ConfirmModal, DialogButton, DialogControlsSection, DialogControlsSectionHeader, Field, IconsModule, Navigation, pluginSelf, showModal } from '@steambrew/sdk';
 import { backend } from '../utils/ffi';
 import { settingsClasses } from '../utils/classes';
-import { SettingsDialogSubHeader } from './SteamComponents';
 import { OSType, PluginCrashInfo } from '../types';
 import { setLogViewerAutoSelect } from '../settings/logs';
 import { formatString, locale } from '../utils/localization-manager';
@@ -90,34 +89,11 @@ const CrashModal = ({ detail, closeModal, onResolve }: { detail: PluginCrashInfo
 			strTitle={locale.crashModalTitle}
 			strDescription={
 				<>
-					<Field
-						description={
-							<>
-								{formatString(locale.crashModalDescPre, pluginLabel)}{' '}
-								<a href={`https://github.com/SteamClientHomebrew/PluginDatabase/tree/main/plugins`} target="_blank" rel="noopener noreferrer">
-									{locale.crashModalPluginDatabase}
-								</a>{' '}
-								{locale.crashModalDescPost}
-							</>
-						}
-					/>
-
-					<SettingsDialogSubHeader>{locale.crashModalDeveloperInfo}</SettingsDialogSubHeader>
-					<Field label={locale.crashModalExitCode} description={locale.crashModalExitCodeDescription} icon={<IconsModule.ExclamationPoint color="red" />}>
-						<code style={{ fontFamily: 'monospace', fontSize: '13px' }}>{formatExitCode(detail.exitCode)}</code>
-					</Field>
-					<Field label={locale.crashModalCrashDump} description={locale.crashModalCrashDumpDescription}>
-						{hasCrashDir && (
-							<DialogButton className={settingsClasses.SettingsDialogButton} onClick={openCrashFolder}>
-								{locale.strOpenFolder}
-							</DialogButton>
-						)}
-					</Field>
-					<Field label={locale.crashModalPluginLogs} description={locale.crashModalPluginLogsDescription}>
-						<DialogButton className={settingsClasses.SettingsDialogButton} onClick={viewLogs}>
-							{locale.strViewLogs}
-						</DialogButton>
-					</Field>
+					{formatString(locale.crashModalDescPre, pluginLabel)}{' '}
+					<a href={`https://github.com/SteamClientHomebrew/PluginDatabase/tree/main/plugins`} target="_blank" rel="noopener noreferrer">
+						{locale.crashModalPluginDatabase}
+					</a>{' '}
+					{locale.crashModalDescPost}
 				</>
 			}
 			bAlertDialog={false}
@@ -128,7 +104,26 @@ const CrashModal = ({ detail, closeModal, onResolve }: { detail: PluginCrashInfo
 			onOK={restartPlugin}
 			onMiddleButton={disablePlugin}
 			onCancel={closeModal}
-		/>
+		>
+			<DialogControlsSection>
+				<DialogControlsSectionHeader>{locale.crashModalDeveloperInfo}</DialogControlsSectionHeader>
+				<Field label={locale.crashModalExitCode} description={locale.crashModalExitCodeDescription} icon={<IconsModule.ExclamationPoint color="red" />}>
+					<code style={{ fontFamily: 'monospace', fontSize: '13px' }}>{formatExitCode(detail.exitCode)}</code>
+				</Field>
+				<Field label={locale.crashModalCrashDump} description={locale.crashModalCrashDumpDescription}>
+					{hasCrashDir && (
+						<DialogButton className={settingsClasses.SettingsDialogButton} onClick={openCrashFolder}>
+							{locale.strOpenFolder}
+						</DialogButton>
+					)}
+				</Field>
+				<Field label={locale.crashModalPluginLogs} description={locale.crashModalPluginLogsDescription}>
+					<DialogButton className={settingsClasses.SettingsDialogButton} onClick={viewLogs}>
+						{locale.strViewLogs}
+					</DialogButton>
+				</Field>
+			</DialogControlsSection>
+		</ConfirmModal>
 	);
 };
 

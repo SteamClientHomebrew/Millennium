@@ -67,6 +67,8 @@ pub struct PluginMetadata {
     pub starlight_version: String,
     #[serde(default)]
     pub entry: String,
+    #[serde(default, rename = "sourceCommit")]
+    pub source_commit: String,
 }
 
 pub struct SubEntry {

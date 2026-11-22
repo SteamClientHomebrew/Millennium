@@ -129,6 +129,7 @@ void ffi_binder::extension_route_hdlr(const json& params)
     const int context_id = params["executionContextId"].get<int>();
     const std::string session_id = params["sessionId"].get<std::string>();
     int call_id = -1;
+    bool replying = false;
 
     try {
         json payload = json::parse(params["payload"].get<std::string>());
@@ -156,10 +157,14 @@ void ffi_binder::extension_route_hdlr(const json& params)
             { "contextId", context_id },
             { "expression", std::format("window.{}.__handleCDPResponse({})", ffi_constants::extension_frontend_response_name, response.dump()) }
         };
-        m_client->send_host("Runtime.evaluate", eval_params, session_id);
+        replying = true;
+        m_client->send_host("Runtime.evaluate", eval_params, session_id).get();
 
+    } catch (const cdp_cancelled&) {
+        return;
     } catch (const std::exception& e) {
         LOG_ERROR("ffi_binder: extension route error: {}", e.what());
+        if (replying || !m_client->is_session_active(session_id)) return;
 
         json error_response = {
             { "id",    call_id                     },
@@ -170,8 +175,8 @@ void ffi_binder::extension_route_hdlr(const json& params)
                 { "contextId", context_id },
                 { "expression", std::format("window.{}.__handleCDPResponse({})", ffi_constants::extension_frontend_response_name, error_response.dump()) }
             };
-            m_client->send_host("Runtime.evaluate", eval_params, session_id);
-        } catch (...) {
+            m_client->send_host("Runtime.evaluate", eval_params, session_id).get();
+        } catch (const cdp_cancelled&) {
         }
     }
 }
@@ -334,14 +339,22 @@ void ffi_binder::cdp_proxy_call(const std::string& plugin_name, int callback_id,
             { "contextId", main_ctx },
             { "expression", std::format("{}({}, {})", js_fn, callback_id, value.dump()) }
         };
-        m_client->send_host("Runtime.evaluate", eval_params, main_sess);
+        m_client->send_host("Runtime.evaluate", eval_params, main_sess).get();
     };
 
+    json result;
+    bool is_error = false;
     try {
-        auto result = m_client->send_host(method, params, target_session).get();
-        deliver(result, false);
+        result = m_client->send_host(method, params, target_session).get();
     } catch (const std::exception& e) {
-        deliver(json(std::string(e.what())), true);
+        result = std::string(e.what());
+        is_error = true;
+    }
+    if (!m_client->is_session_active(session_id)) return;
+    try {
+        deliver(result, is_error);
+    } catch (const cdp_cancelled&) {
+        return;
     }
 }
 
@@ -422,6 +435,7 @@ void ffi_binder::plugin_console_hdlr(const json& params)
 
 void ffi_binder::binding_call_hdlr(const json& params)
 {
+    if (params.contains("sessionId") && params["sessionId"].is_string() && !m_client->is_session_active(params["sessionId"].get<std::string>())) return;
     if (!params.contains("name")) {
         return;
     }
@@ -454,6 +468,7 @@ void ffi_binder::binding_call_hdlr(const json& params)
     }
 
     json payload;
+    bool replying = false;
 
     try {
         /** parse the binding payload */
@@ -468,30 +483,40 @@ void ffi_binder::binding_call_hdlr(const json& params)
         const auto result = m_ipc_main->process_message(payload);
         const auto t1 = std::chrono::steady_clock::now();
 
-        {
+        /**
+         * record the call for the ffi recorder. this runs after the call has already completed, so it must never
+         * throw: an exception here would replace a successful result with an error (see #903).
+         */
+        try {
             const int msg_id = payload.value("id", -1);
             const double dur = std::chrono::duration<double, std::milli>(t1 - t0).count();
-            const auto data_field = payload.value("data", json::object());
-            std::string plugin = data_field.value("pluginName", std::string{});
+            const json data = payload.value("data", json::object());
+            std::string plugin = data.value("pluginName", std::string{});
+
+            /** PLUGIN_CONFIG calls carry the numeric config_method enum as methodName, every other call a string */
             std::string method;
-            if (data_field.contains("methodName")) {
-                const auto& method_field = data_field["methodName"];
-                method = method_field.is_string() ? method_field.get<std::string>() : method_field.dump();
+            if (const auto it = data.find("methodName"); it != data.end()) {
+                if (it->is_string())
+                    method = it->get<std::string>();
+                else if (it->is_number_integer())
+                    method = std::format("plugin_config:{}", it->get<int>());
             }
 
             if (!plugin.empty() && msg_id != ipc_main::ipc_method::FRONT_END_LOADED) {
-                mep::ffi_recorder::instance().record({ plugin, method, "fe_to_be", payload.value("data", json::object()).dump(), result.dump(), dur,
-                                                       std::chrono::system_clock::now(), payload.value("caller", std::string{}) });
+                mep::ffi_recorder::instance().record({ plugin, method, "fe_to_be", data.dump(), result.dump(), dur, std::chrono::system_clock::now(),
+                                                       payload.value("caller", std::string{}) });
             }
-        }
-
-        try {
-            this->callback_into_js(params, request_id, result);
         } catch (const std::exception& e) {
-            throw; /** not fatal, the host likely died before we could respond */
+            LOG_ERROR("ffi_binder: failed to record ffi call: {}", e.what());
         }
 
+        replying = true;
+        this->callback_into_js(params, request_id, result);
+
+    } catch (const cdp_cancelled&) {
+        return;
     } catch (const std::exception& e) {
+        if (replying) throw;
         const ordered_json callback_params = {
             { "success",    false    },
             { "returnJson", e.what() }
@@ -523,7 +548,10 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
             { "executionContextId", context_id                  }
         };
         m_client->send_host("Runtime.addBinding", add_binding_params, session_id).get();
-    } catch (...) {
+    } catch (const cdp_cancelled&) {
+        return;
+    } catch (const std::exception& e) {
+        LOG_ERROR("ffi_binder: failed to install binding: {}", e.what());
     }
 
     try {
@@ -532,7 +560,10 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
             { "executionContextId", context_id                            }
         };
         m_client->send_host("Runtime.addBinding", add_extension_binding_params, session_id).get();
-    } catch (...) {
+    } catch (const cdp_cancelled&) {
+        return;
+    } catch (const std::exception& e) {
+        LOG_ERROR("ffi_binder: failed to install binding: {}", e.what());
     }
 
     try {
@@ -541,7 +572,10 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
             { "executionContextId", context_id                            }
         };
         m_client->send_host("Runtime.addBinding", add_cdp_proxy_params, session_id).get();
-    } catch (...) {
+    } catch (const cdp_cancelled&) {
+        return;
+    } catch (const std::exception& e) {
+        LOG_ERROR("ffi_binder: failed to install binding: {}", e.what());
     }
 
     try {
@@ -550,7 +584,10 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
             { "executionContextId", context_id                            }
         };
         m_client->send_host("Runtime.addBinding", add_sdk_ready_params, session_id).get();
-    } catch (...) {
+    } catch (const cdp_cancelled&) {
+        return;
+    } catch (const std::exception& e) {
+        LOG_ERROR("ffi_binder: failed to install binding: {}", e.what());
     }
 
     try {
@@ -559,7 +596,10 @@ void ffi_binder::execution_ctx_created_hdlr(const json& params)
             { "executionContextId", context_id                                  }
         };
         m_client->send_host("Runtime.addBinding", add_console_params, session_id).get();
-    } catch (...) {
+    } catch (const cdp_cancelled&) {
+        return;
+    } catch (const std::exception& e) {
+        LOG_ERROR("ffi_binder: failed to install binding: {}", e.what());
     }
 }
 
