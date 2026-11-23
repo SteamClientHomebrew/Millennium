@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(MacOSBootstrap LANGUAGES CXX)
+project(MacOSBootstrap LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -29,7 +29,7 @@ set_target_properties(macos-child-hook PROPERTIES
     PREFIX ""
     OUTPUT_NAME "${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"
     SUFFIX ""
-    # Injected into every process Steam spawns, including arm64e Apple system
+    # Loaded into every process Steam spawns, including arm64e Apple system
     # binaries; dyld needs a matching slice or those processes abort on launch.
     OSX_ARCHITECTURES "arm64;arm64e;x86_64"
 )
@@ -45,4 +45,14 @@ set_target_properties(SteamWrapper PROPERTIES
     PREFIX ""
     OUTPUT_NAME "steam_osx"
     SUFFIX ""
+)
+
+# The `millennium` command: stages and loads the runtime into the running
+# steam_osx. `load` needs com.apple.security.cs.debugger; signed ad-hoc here, and
+# users self-sign the same way on install (no Apple account). See cli/README.md.
+add_executable(millennium-cli cli/millennium.c)
+set_target_properties(millennium-cli PROPERTIES OUTPUT_NAME "millennium")
+add_custom_command(TARGET millennium-cli POST_BUILD
+    COMMAND codesign --force --entitlements "${CMAKE_CURRENT_SOURCE_DIR}/cli/millennium.entitlements" -s - "$<TARGET_FILE:millennium-cli>"
+    COMMENT "Ad-hoc signing millennium with cs.debugger entitlement"
 )

@@ -104,7 +104,7 @@ if(MILLENNIUM_BUILD_MAIN)
     endif()
 
     if(APPLE)
-        add_custom_target(macos_runtime DEPENDS Millennium hhx64 macos-child-hook macos-bootstrap SteamWrapper ${MILLENNIUM_RTB_NAME})
+        add_custom_target(macos_runtime DEPENDS Millennium hhx64 macos-child-hook macos-bootstrap SteamWrapper millennium-cli ${MILLENNIUM_RTB_NAME})
     endif()
 endif()
 
