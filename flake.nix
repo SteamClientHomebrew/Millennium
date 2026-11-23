@@ -33,13 +33,15 @@
           inherit (self.packages.${system}) millennium;
         };
 
-        millennium = pkgs.callPackage ./packages/nix/millennium.nix { 
+        millennium = pkgs.callPackage ./packages/nix/millennium.nix {
+          src = self;
           bun2nix = bun2nix.packages.${system}.default;
         };
       };
 
       overlays.default = final: prev: {
         millennium = final.callPackage ./packages/nix/millennium.nix {
+          src = self;
           bun2nix = bun2nix.packages.${system}.default;
         };
         millennium-steam = final.callPackage ./packages/nix/steam.nix { };

@@ -1,4 +1,5 @@
 {
+  src,
   cmake,
   ninja,
   pkg-config,
@@ -42,8 +43,7 @@ let
   tsBuildCmds = lib.concatMapStrings (p: "( cd ${p} && bun run build )\n") tsPackages;
 
   commonBuild = {
-    inherit version;
-    src = ./../..;
+    inherit version src;
     
     /* 
       Generate bun dependency lock with:
@@ -113,7 +113,7 @@ let
   };
 
   cargoDeps = rustPlatform.importCargoLock {
-    lockFile = ./../../src/instrumentation/loopback/Cargo.lock;
+    lockFile = "${src}/src/instrumentation/loopback/Cargo.lock";
   };
 
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
