@@ -4,14 +4,7 @@
   inputs = {
     nixpkgs.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst";
     
-    # Used to get properly pinned dependencies that would have a stable hash.
-    /* 
-      Generate with:
-      nix run github:nix-community/bun2nix -- \
-        --lock-file src/typescript/bun.lock \
-        --output-file packages/nix/bun.nix \
-        --copy-prefix ./../../src/typescript/
-    */
+    # Used to get properly pinned dependencies that have a stable hash
     bun2nix = {
       url = "github:nix-community/bun2nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -41,13 +34,13 @@
         };
 
         millennium = pkgs.callPackage ./packages/nix/millennium.nix { 
-          bun2nix = bun2nix.packages.${pkgs.stdenv.hostPlatform.system}.default;
+          bun2nix = bun2nix.packages.${system}.default;
         };
       };
 
       overlays.default = final: prev: {
         millennium = final.callPackage ./packages/nix/millennium.nix {
-          bun2nix = bun2nix.packages.${final.stdenv.hostPlatform.system}.default;
+          bun2nix = bun2nix.packages.${system}.default;
         };
         millennium-steam = final.callPackage ./packages/nix/steam.nix { };
       };

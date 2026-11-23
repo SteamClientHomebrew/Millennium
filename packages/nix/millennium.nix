@@ -45,6 +45,13 @@ let
     inherit version;
     src = ./../..;
     
+    /* 
+      Generate bun dependency lock with:
+      nix run github:nix-community/bun2nix -- \
+        --lock-file src/typescript/bun.lock \
+        --output-file packages/nix/bun.nix \
+        --copy-prefix './../../src/typescript/'
+    */
     bunDeps = bunDeps;
     bunRoot = "src/typescript";
 
@@ -53,7 +60,16 @@ let
     dontUseBunCheck = true;
     dontRunLifecycleScripts = true;
 
-    nativeBuildInputs = [ cmake ninja pkg-config git ];
+    nativeBuildInputs = [ 
+      cmake
+      ninja
+      pkg-config
+      git
+      bun
+      bun2nix.hook
+      nodejs
+      patchelf
+    ];
 
     cmakeGenerator = "Ninja";
     cmakeBuildType = "Release";
@@ -103,8 +119,6 @@ let
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
     pname = "millennium-32";
 
-    nativeBuildInputs = commonBuild.nativeBuildInputs ++ [ bun bun2nix.hook nodejs patchelf ];
-
     buildInputs = [
       pkgsi686Linux.gtk3
       pkgsi686Linux.openssl
@@ -139,10 +153,6 @@ let
     pname = "millennium-64";
 
     nativeBuildInputs = commonBuild.nativeBuildInputs ++ [
-      bun
-      bun2nix.hook
-      nodejs
-      patchelf
       cargo
       rustc
     ];
