@@ -22,7 +22,7 @@ if(MILLENNIUM_BUILD_MAIN)
     if(APPLE)
         add_test(NAME macos_runtime_update
             COMMAND /bin/bash "${CMAKE_CURRENT_SOURCE_DIR}/macos/runtime_update.sh"
-                    "${MILLENNIUM_BASE}/scripts/macos/install_macos.sh" "$<TARGET_FILE_DIR:Millennium>")
+                    "$<TARGET_FILE_DIR:Millennium>")
     endif()
 endif()
 

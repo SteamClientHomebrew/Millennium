@@ -8,8 +8,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-// Shared by the injected bootstrap and the legacy tier0 proxy. Only the fork
-// child maps CEF's fixed descriptors; Steam's own descriptors remain untouched.
+// Used by the bootstrap. Only the fork child maps CEF's fixed descriptors;
+// Steam's own descriptors remain untouched.
 namespace millennium_pipe_bootstrap
 {
 static int sender = -1;

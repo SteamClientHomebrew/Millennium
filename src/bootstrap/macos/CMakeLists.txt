@@ -34,19 +34,6 @@ set_target_properties(macos-child-hook PROPERTIES
     OSX_ARCHITECTURES "arm64;arm64e;x86_64"
 )
 
-add_executable(SteamWrapper steam_launcher.cc)
-target_compile_definitions(SteamWrapper PRIVATE
-    __MILLENNIUM_BOOTLOADER_OUTPUT_NAME__="${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}"
-    __MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}"
-    __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
-    __MILLENNIUM_CHILD_HOOK_OUTPUT_NAME__="${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"
-)
-set_target_properties(SteamWrapper PROPERTIES
-    PREFIX ""
-    OUTPUT_NAME "steam_osx"
-    SUFFIX ""
-)
-
 # The `millennium` command: stages and loads the runtime into the running
 # steam_osx. `load` needs com.apple.security.cs.debugger; signed ad-hoc here, and
 # users self-sign the same way on install (no Apple account). See cli/README.md.
