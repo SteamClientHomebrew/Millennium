@@ -55,6 +55,11 @@ let
     bunDeps = bunDeps;
     bunRoot = "src/typescript";
 
+    bunInstallFlags = [
+      "--offline"
+      "--frozen-lockfile"
+    ];
+
     # We provide our own build phase.
     dontUseBunBuild = true;
     dontUseBunCheck = true;
@@ -84,7 +89,6 @@ let
 
       # Install Bun dependencies while still in the source directory.
       bunNodeModulesInstallPhase
-      bunLifecycleScriptsPhase
 
       # Disable the automatically scheduled second installation.
       bunNodeModulesInstallPhase() {

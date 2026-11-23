@@ -3,11 +3,14 @@
 
   inputs = {
     nixpkgs.url = "https://channels.nixos.org/nixpkgs-unstable/nixexprs.tar.zst";
+
+    # Locked bun commit - we need AT LEAST offline dependency resolution. Used by bun and bun2nix.
+    nixpkgs-bun.url = "github:nixos/nixpkgs/619c39f6eac5d1ed6b8f073a9414baf7034b2356";
     
     # Used to get properly pinned dependencies that have a stable hash
     bun2nix = {
       url = "github:nix-community/bun2nix";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs-bun";
     };
   };
 
@@ -15,6 +18,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-bun,
       bun2nix,
       ...
     }:
@@ -24,6 +28,7 @@
         inherit system;
         config.allowUnfree = true;
       };
+      bunPkgs = nixpkgs-bun.legacyPackages.${system};
     in
     {
       packages.${system} = {
@@ -34,6 +39,7 @@
         };
 
         millennium = pkgs.callPackage ./packages/nix/millennium.nix {
+          inherit (bunPkgs) bun;
           src = self;
           bun2nix = bun2nix.packages.${system}.default;
         };
@@ -41,6 +47,7 @@
 
       overlays.default = final: prev: {
         millennium = final.callPackage ./packages/nix/millennium.nix {
+          inherit (nixpkgs-bun.legacyPackages.${final.stdenv.hostPlatform.system}) bun;
           src = self;
           bun2nix = bun2nix.packages.${system}.default;
         };
