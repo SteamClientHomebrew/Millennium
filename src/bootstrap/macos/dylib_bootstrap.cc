@@ -1,16 +1,20 @@
 #ifdef __APPLE__
 #include <dlfcn.h>
 #include <libgen.h>
+#include <libproc.h>
 #include <limits.h>
 #include <mach-o/dyld.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/proc_info.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 
 #include <string>
 #include <vector>
+#include "got_rebind.h"
 #include "pipe_bootstrap.h"
 
 typedef int (*start_millennium_t)(void);
@@ -180,7 +184,7 @@ static void append_exec_trace(const char* stage, const char* path, char* const a
     fclose(file);
 }
 
-static std::string rewrite_injected_libraries(const std::vector<const char*>& library_paths, const char* removed_path, char* const envp[])
+static std::string rewrite_dyld_insert_list(const std::vector<const char*>& library_paths, const char* removed_path, char* const envp[])
 {
     std::vector<std::string> rewritten_entries;
     const char* existing_value = nullptr;
@@ -273,7 +277,7 @@ static std::vector<std::string> build_child_environment(char* const envp[], cons
     return environment;
 }
 
-struct InjectionPlan
+struct DyldInsertPlan
 {
     std::string dyldInsertLibraries;
     bool includesBootstrap = false;
@@ -306,27 +310,27 @@ static bool is_steam_main_exec_target(const char* path)
     return strcmp(normalized_path, normalized_target) == 0;
 }
 
-static InjectionPlan build_injection_plan(const char* path, char* const envp[], const char* bootstrap_path_ptr)
+static DyldInsertPlan build_dyld_insert_plan(const char* path, char* const envp[], const char* bootstrap_path_ptr)
 {
-    InjectionPlan plan;
+    DyldInsertPlan plan;
     const char* child_hook_path = get_child_hook_path();
 
     plan.includesBootstrap = bootstrap_path_ptr && is_steam_main_exec_target(path);
     plan.includesChildHook = child_hook_path && access(child_hook_path, R_OK) == 0;
 
-    std::vector<const char*> injected_libraries;
+    std::vector<const char*> insert_libraries;
     if (plan.includesBootstrap) {
-        injected_libraries.push_back(bootstrap_path_ptr);
+        insert_libraries.push_back(bootstrap_path_ptr);
     }
     if (plan.includesChildHook) {
-        injected_libraries.push_back(child_hook_path);
+        insert_libraries.push_back(child_hook_path);
     }
 
-    plan.dyldInsertLibraries = rewrite_injected_libraries(injected_libraries, plan.includesBootstrap ? nullptr : bootstrap_path_ptr, envp);
+    plan.dyldInsertLibraries = rewrite_dyld_insert_list(insert_libraries, plan.includesBootstrap ? nullptr : bootstrap_path_ptr, envp);
     return plan;
 }
 
-static const char* describe_injection_plan(const InjectionPlan& plan)
+static const char* describe_dyld_insert_plan(const DyldInsertPlan& plan)
 {
     if (plan.includesBootstrap && plan.includesChildHook) {
         return "bootstrap+child-hook";
@@ -340,7 +344,7 @@ static const char* describe_injection_plan(const InjectionPlan& plan)
     return "";
 }
 
-static void update_current_process_injected_libraries()
+static void update_current_process_dyld_inserts()
 {
     char bootstrap_path[PATH_MAX];
     if (!get_bootstrap_path(bootstrap_path, sizeof(bootstrap_path))) {
@@ -353,13 +357,13 @@ static void update_current_process_injected_libraries()
     }
 
     const char* child_hook_path = get_child_hook_path();
-    std::vector<const char*> injected_libraries;
+    std::vector<const char*> insert_libraries;
 
     if (child_hook_path && access(child_hook_path, R_OK) == 0) {
-        injected_libraries.push_back(child_hook_path);
+        insert_libraries.push_back(child_hook_path);
     }
 
-    const std::string rewritten = rewrite_injected_libraries(injected_libraries, bootstrap_path, nullptr);
+    const std::string rewritten = rewrite_dyld_insert_list(insert_libraries, bootstrap_path, nullptr);
     if (rewritten.empty()) {
         unsetenv("DYLD_INSERT_LIBRARIES");
         return;
@@ -392,7 +396,7 @@ static int millennium_execve(const char* path, char* const argv[], char* const e
 
     char bootstrap_path[PATH_MAX];
     const char* bootstrap_path_ptr = get_bootstrap_path(bootstrap_path, sizeof(bootstrap_path)) ? bootstrap_path : nullptr;
-    const InjectionPlan plan = build_injection_plan(path, envp, bootstrap_path_ptr);
+    const DyldInsertPlan plan = build_dyld_insert_plan(path, envp, bootstrap_path_ptr);
     std::vector<std::string> owned_environment = build_child_environment(envp, plan.dyldInsertLibraries);
     std::vector<char*> exec_environment;
     exec_environment.reserve(owned_environment.size() + 1);
@@ -401,8 +405,8 @@ static int millennium_execve(const char* path, char* const argv[], char* const e
     }
     exec_environment.push_back(nullptr);
 
-    const char* trace_stage = plan.includesBootstrap || plan.includesChildHook ? "exec-pass-through" : "exec-missing-injection";
-    append_exec_trace(trace_stage, path, argv, describe_injection_plan(plan));
+    const char* trace_stage = plan.includesBootstrap || plan.includesChildHook ? "exec-pass-through" : "exec-missing-insert";
+    append_exec_trace(trace_stage, path, argv, describe_dyld_insert_plan(plan));
     return millennium_pipe_bootstrap::exec(path, argv, exec_environment.data(), call_execve_syscall);
 }
 
@@ -415,6 +419,56 @@ static int millennium_execv(const char* path, char* const argv[])
 
 DYLD_INTERPOSE(millennium_execv, execv);
 
+// Attach-mode delivery.
+// When `millennium load` attaches to a running steam_osx, the load-time
+// DYLD_INTERPOSE above never rebinds steam_osx's already-bound exec calls, and
+// the CEF browser is already up without the CDP pipe. So rebind execve/execv at
+// runtime (got_rebind.h) and force ONE relaunch of the browser: steam_osx
+// re-execs it under the hook, which adds --remote-debugging-pipe + the inherited
+// fds exactly as a normal launch.
+
+// The wrapper sets MILLENNIUM_STEAM_EXECUTABLE; `millennium load` sets nothing.
+static bool loaded_by_attach()
+{
+    const char* value = getenv(kSteamExecutableEnv);
+    return !value || value[0] == '\0';
+}
+
+// Kill the one CEF browser (the "Steam Helper" that is steam_osx's direct child,
+// i.e. no --type=); steam_osx respawns it, now caught by the rebound execv.
+static void relaunch_cef_browser_once()
+{
+    const pid_t self = getpid();
+    pid_t pids[8192];
+    const int count = proc_listallpids(pids, sizeof(pids)) / (int)sizeof(pid_t);
+    char path[PROC_PIDPATHINFO_MAXSIZE];
+    for (int index = 0; index < count; ++index) {
+        const pid_t pid = pids[index];
+        if (pid <= 0) continue;
+        struct proc_bsdinfo info;
+        if (proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, sizeof(info)) != sizeof(info)) continue;
+        if ((pid_t)info.pbi_ppid != self) continue;
+        if (proc_pidpath(pid, path, sizeof(path)) <= 0) continue;
+        if (strstr(path, "Steam Helper.app/Contents/MacOS/Steam Helper")) {
+            append_trace("attach-relaunch-browser");
+            kill(pid, SIGKILL);
+            return;
+        }
+    }
+    append_trace("attach-no-browser");
+}
+
+static void install_exec_hook_and_relaunch()
+{
+    void* real_execve = dlsym(RTLD_DEFAULT, "execve");
+    void* real_execv = dlsym(RTLD_DEFAULT, "execv");
+    int patched = 0;
+    if (real_execve) patched += millennium_rebind_by_value(real_execve, (void*)&millennium_execve);
+    if (real_execv) patched += millennium_rebind_by_value(real_execv, (void*)&millennium_execv);
+    append_trace(patched > 0 ? "attach-rebind-installed" : "attach-rebind-noop");
+    relaunch_cef_browser_once();
+}
+
 __attribute__((constructor)) static void bootstrap_init()
 {
     if (!is_steam_main_process()) {
@@ -423,7 +477,7 @@ __attribute__((constructor)) static void bootstrap_init()
 
     g_bootstrap_enabled = true;
     append_trace("bootstrap-main-process");
-    update_current_process_injected_libraries();
+    update_current_process_dyld_inserts();
 
     const char* runtime_path = get_runtime_path();
     if (!runtime_path) {
@@ -450,6 +504,11 @@ __attribute__((constructor)) static void bootstrap_init()
         dlclose(g_millennium_handle);
         g_millennium_handle = nullptr;
         millennium_pipe_bootstrap::shutdown();
+        return;
+    }
+
+    if (loaded_by_attach()) {
+        install_exec_hook_and_relaunch();
     }
 }
 
