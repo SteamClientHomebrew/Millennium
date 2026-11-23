@@ -3,8 +3,9 @@
   ninja,
   pkg-config,
   bun,
+  bun2nix,
+  git,
   nodejs,
-  cacert,
   patchelf,
   rustPlatform,
   cargo,
@@ -27,8 +28,6 @@
   zstd,
   nlohmann_json,
   zlib,
-
-  millennium-src,
   ...
 }:
 let
@@ -39,25 +38,52 @@ let
     "src/typescript/sdk"
     "src/typescript/frontend"
   ];
-
-  tsDirs = lib.concatStringsSep " " (
-    [ "src/typescript/node_modules" ] ++ map (p: "${p}/node_modules") tsPackages
-  );
+  
   tsBuildCmds = lib.concatMapStrings (p: "( cd ${p} && bun run build )\n") tsPackages;
 
   commonBuild = {
     inherit version;
-    src = millennium-src;
+    src = ./../..;
+    
+    bunDeps = bunDeps;
+    bunRoot = "src/typescript";
 
-    nativeBuildInputs = [ cmake ninja pkg-config ];
+    # We provide our own build phase.
+    dontUseBunBuild = true;
+    dontUseBunCheck = true;
+    dontRunLifecycleScripts = true;
 
-    cmakeGenerator      = "Ninja";
-    cmakeBuildType      = "Release";
+    nativeBuildInputs = [ cmake ninja pkg-config git ];
+
+    cmakeGenerator = "Ninja";
+    cmakeBuildType = "Release";
     enableParallelBuilding = true;
 
     cmakeFlags = [
       "-DMILLENNIUM_BUILD_TESTS=OFF"
     ];
+
+    preConfigure = ''
+      export HOME="$TMPDIR"
+
+      # Install Bun dependencies while still in the source directory.
+      bunNodeModulesInstallPhase
+      bunLifecycleScriptsPhase
+
+      # Disable the automatically scheduled second installation.
+      bunNodeModulesInstallPhase() {
+        :
+      }
+
+      # Generate TTC's distribution.
+      (
+        cd src/typescript/ttc
+        bun node_modules/.bin/rollup -c
+      )
+
+      # Build all TypeScript workspaces.
+      ${tsBuildCmds}
+    '';
 
     buildPhase = ''
       runHook preBuild
@@ -66,46 +92,18 @@ let
     '';
   };
 
-  bunDeps = stdenv.mkDerivation {
-    name = "millennium-typescript-bun-deps";
-
-    src = millennium-src;
-    nativeBuildInputs = [ bun cacert ];
-    SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
-
-    buildPhase = ''
-      export HOME=$TMPDIR
-      (cd src/typescript && bun install --frozen-lockfile)
-      (cd src/typescript/ttc && bun node_modules/.bin/rollup -c)
-    '';
-
-    installPhase = ''
-      mkdir -p $out
-
-      for dir in ${tsDirs}; do
-        if [ -d "$dir" ]; then
-          mkdir -p "$out/$(dirname "$dir")"
-          cp -r "$dir" "$out/$dir"
-        fi
-      done
-
-      mkdir -p "$out/src/typescript/ttc"
-      cp -r src/typescript/ttc/dist "$out/src/typescript/ttc/dist"
-    '';
-
-    outputHashMode = "recursive";
-    outputHashAlgo = "sha256";
-    outputHash = "sha256-o0wv6vG1YZR9TcgytD9CDf8zBei4Ulhl59Mo9C6C+vs=";
+  bunDeps = bun2nix.fetchBunDeps {
+    bunNix = ./bun.nix;
   };
 
   cargoDeps = rustPlatform.importCargoLock {
-    lockFile = "${millennium-src}/src/instrumentation/loopback/Cargo.lock";
+    lockFile = ./../../src/instrumentation/loopback/Cargo.lock;
   };
 
   build32 = pkgsi686Linux.stdenv.mkDerivation (commonBuild // {
     pname = "millennium-32";
 
-    nativeBuildInputs = commonBuild.nativeBuildInputs ++ [ bun nodejs patchelf ];
+    nativeBuildInputs = commonBuild.nativeBuildInputs ++ [ bun bun2nix.hook nodejs patchelf ];
 
     buildInputs = [
       pkgsi686Linux.gtk3
@@ -121,25 +119,6 @@ let
     ];
 
     cmakeFlags = commonBuild.cmakeFlags ++ [ "-DMILLENNIUM_LINUX_X64=OFF" "-DDISTRO_NIX=ON" ];
-
-    postPatch = ''
-      export HOME=$TMPDIR
-
-      for dir in ${tsDirs}; do
-        if [ -d ${bunDeps}/$dir ]; then
-          mkdir -p "$(dirname "$dir")"
-          cp -r ${bunDeps}/$dir "$dir"
-          chmod -R u+w "$dir"
-        fi
-      done
-
-      mkdir -p src/typescript/ttc
-      cp -r ${bunDeps}/src/typescript/ttc/dist src/typescript/ttc/dist
-      chmod -R u+w src/typescript/ttc/dist
-
-      patchShebangs src/typescript/node_modules
-      ${tsBuildCmds}
-    '';
 
     installPhase = ''
       runHook preInstall
@@ -161,6 +140,7 @@ let
 
     nativeBuildInputs = commonBuild.nativeBuildInputs ++ [
       bun
+      bun2nix.hook
       nodejs
       patchelf
       cargo
@@ -183,24 +163,7 @@ let
       zlib
     ];
 
-    postPatch = ''
-      export HOME=$TMPDIR
-
-      for dir in ${tsDirs}; do
-        if [ -d ${bunDeps}/$dir ]; then
-          mkdir -p "$(dirname "$dir")"
-          cp -r ${bunDeps}/$dir "$dir"
-          chmod -R u+w "$dir"
-        fi
-      done
-
-      mkdir -p src/typescript/ttc
-      cp -r ${bunDeps}/src/typescript/ttc/dist src/typescript/ttc/dist
-      chmod -R u+w src/typescript/ttc/dist
-
-      patchShebangs src/typescript/node_modules
-      ${tsBuildCmds}
-
+    preConfigure = commonBuild.preConfigure + ''
       mkdir -p src/instrumentation/loopback/.cargo
       cat > src/instrumentation/loopback/.cargo/config.toml << 'EOF'
       [source.crates-io]
