@@ -256,7 +256,7 @@
   "themeInstallerDescription": "Zainstaluj motyw użytkownika, podając jego identyfikator. Znajdziesz go po wybraniu motywu na stronie",
   "quickCssEditorTitle": "Edytor QuickCSS",
   "updateCompletePendingRestart": "Wymaga ponownego uruchomienia",
-  "millenniumUpdateMacOS": "Automatyczne aktualizacje Millennium nie są jeszcze dostępne w systemie macOS.\n\nSkompiluj ponownie kod z bieżącej gałęzi, zainstaluj Millennium ponownie za pomocą polecenia `./scripts/install_macos.sh --repair`, a następnie uruchom ponownie Steam, aby zakończyć aktualizację do wersji {0}.",
+  "millenniumUpdateMacOS": "Automatyczne aktualizacje Millennium nie są jeszcze dostępne w systemie macOS.\n\nSkompiluj ponownie kod z bieżącej gałęzi, zainstaluj Millennium ponownie za pomocą polecenia `millennium setup`, a następnie uruchom ponownie Steam, aby zakończyć aktualizację do wersji {0}.",
   "millenniumUpdateLinux": "Aby zaktualizować Millennium do wersji {0}, uruchom w terminalu następujące polecenie:\n\n`{1}`",
   "legacyPluginModalTitle": "Ostrzeżenie o zgodności wtyczek",
   "legacyPluginModalBody": "Uwaga! Poniższe wtyczki zostały przygotowane dla starszej wersji Millennium i już nie działają. Być może jest już dostępna ich aktualizacja!",

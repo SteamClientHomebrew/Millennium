@@ -237,7 +237,7 @@
 	"themeInstallerDescription": "Встановити тему користувача за ID. Ці ID можна знайти після вибору теми на",
 	"quickCssEditorTitle": "Редактор Quick CSS",
 	"updateCompletePendingRestart": "Очікує перезапуску",
-	"millenniumUpdateMacOS": "Автоматичні оновлення Millennium поки що недоступні на macOS.\n\nПеребудуйте поточну гілку, перевстановіть її за допомогою `./scripts/install_macos.sh --repair`, потім перезапустіть Steam для завершення оновлення до {0}.",
+	"millenniumUpdateMacOS": "Автоматичні оновлення Millennium поки що недоступні на macOS.\n\nПеребудуйте поточну гілку, перевстановіть її за допомогою `millennium setup`, потім перезапустіть Steam для завершення оновлення до {0}.",
 	"millenniumUpdateLinux": "Для оновлення Millennium до {0} виконайте наступну команду у терміналі:\n\n`{1}`",
 	"legacyPluginModalTitle": "Попередження про сумісність плагінів",
 	"legacyPluginModalBody": "Увага! Наступні плагіни були створені для старішої версії Millennium і більше не працюють. Хороша новина — оновлення може вже бути доступне!",
