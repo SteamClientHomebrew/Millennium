@@ -34,9 +34,7 @@ set_target_properties(macos-child-hook PROPERTIES
     OSX_ARCHITECTURES "arm64;arm64e;x86_64"
 )
 
-# The `millennium` command: stages and loads the runtime into the running
-# steam_osx. `load` needs com.apple.security.cs.debugger; signed ad-hoc here, and
-# users self-sign the same way on install (no Apple account). See cli/README.md.
+# The `millennium` command (see cli/README.md), ad-hoc signed with cs.debugger.
 add_executable(millennium-cli cli/millennium.c)
 set_target_properties(millennium-cli PROPERTIES OUTPUT_NAME "millennium")
 add_custom_command(TARGET millennium-cli POST_BUILD

@@ -1,7 +1,5 @@
 #!/bin/bash
-# Build the macOS `millennium` command, ad-hoc signed with cs.debugger (which
-# `millennium load` needs to take the task port). Users self-sign the same way
-# on install, so no Apple account is involved.
+# Build and ad-hoc sign the macOS `millennium` command. See README.md.
 set -euo pipefail
 cd "$(dirname "$0")"
 

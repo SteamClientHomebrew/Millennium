@@ -2,9 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- task_for_pid on a same-user debuggable target — the one entitlement
-         `millennium load` needs. Honored for an ad-hoc signature, which is how
-         it ships: users self-sign on install, no Apple account. -->
+    <!-- task port access for `millennium load`; honored on an ad-hoc signature. -->
     <key>com.apple.security.cs.debugger</key>
     <true/>
 </dict>

@@ -1,36 +1,23 @@
-// millennium — the macOS command for Millennium.
-//
-//   millennium install [--from DIR] setup + self-sign + load on every launch
-//   millennium setup [--from DIR]   copy the built runtime into place
-//   millennium load                 load Millennium into the running Steam
-//   millennium watch                load on every Steam launch (stays resident)
-//   millennium status               show runtime + Steam state
-//   millennium uninstall            remove the staged runtime (keeps plugins/config)
-//
-// `install` is what the one-line installer (curl … | bash) runs after downloading
-// the build; it ad-hoc self-signs here on the user's machine (no Apple account),
-// so the first load only ever asks for one system authorization.
-//
-// Like the Windows and Linux builds, Millennium runs as a dylib loaded into the
-// Steam client. On macOS `load` loads it into the steam_osx you already have
-// open, the same way a debugger loads a library into a running process: take the
-// process's task port and have it call its own dlopen. It needs
-// com.apple.security.cs.debugger (see millennium.entitlements); no sudo, and no
-// Steam file is touched.
+// millennium — the macOS command for Millennium. See cli/README.md.
 
 #if !defined(__APPLE__) || !defined(__aarch64__)
 #error "millennium targets arm64 macOS only."
 #endif
 
+#include <CommonCrypto/CommonDigest.h>
 #include <copyfile.h>
+#include <crt_externs.h>
 #include <dirent.h>
 #include <dlfcn.h>
-#include <stdarg.h>
+#include <errno.h>
 #include <libgen.h>
 #include <libproc.h>
+#include <limits.h>
+#include <mach-o/dyld.h>
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <mach/thread_status.h>
+#include <spawn.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +26,10 @@
 #include <unistd.h>
 
 #define STEAM_MAIN_SUFFIX "/Steam.AppBundle/Steam/Contents/MacOS/steam_osx"
+#define BOOTSTRAP_NAME "libmillennium_bootstrap.dylib"
 #define DEBUG_MARKER ".cef-enable-remote-debugging"
+#define PATH_LINK "/usr/local/bin/millennium"
+#define AGENT_LABEL "com.millennium.loader"
 #define RETURN_SENTINEL 0xdead0000dead0000ull  // dlopen returns here and faults; we catch it
 
 extern NDR_record_t NDR_record;
@@ -106,7 +96,7 @@ static void drop_debug_marker(const char* steam_path)
     snprintf(dir, sizeof(dir), "%s", steam_path);
     char marker[PATH_MAX];
     snprintf(marker, sizeof(marker), "%s/%s", dirname(dir), DEBUG_MARKER);
-    unlink(marker);  // keep the TCP debug port closed; the pipe is all we use
+    unlink(marker);  // keep Steam's TCP debug port closed
 }
 
 static int load_into(pid_t pid, const char* dylib)
@@ -181,7 +171,7 @@ static int load_into(pid_t pid, const char* dylib)
 
 static int bootstrap_path(char* out, size_t size)
 {
-    snprintf(out, size, "%s/libmillennium_bootstrap.dylib", runtime_dir());
+    snprintf(out, size, "%s/current/%s", runtime_dir(), BOOTSTRAP_NAME);
     return access(out, R_OK) == 0;
 }
 
@@ -238,107 +228,206 @@ static const char* kPayload[] = {
     "millennium",
 };
 
-static int copy_one(const char* src_dir, const char* name, const char* dst_dir)
+static int is_luavm(const char* name)
 {
-    char src[PATH_MAX], dst[PATH_MAX];
-    snprintf(src, sizeof(src), "%s/%s", src_dir, name);
-    snprintf(dst, sizeof(dst), "%s/%s", dst_dir, name);
-    if (copyfile(src, dst, NULL, COPYFILE_ALL | COPYFILE_UNLINK) != 0) {
-        fprintf(stderr, "millennium: missing build artifact %s\n", src);
-        return 1;
-    }
-    return 0;
+    return strncmp(name, "libmillennium_luavm", 19) == 0 || strncmp(name, "millennium.luavm", 16) == 0;
 }
 
-static int cmd_setup(const char* from)
+static void remove_tree(const char* path)
 {
-    char self[PATH_MAX];
-    char from_buf[PATH_MAX];
-    if (!from) {
-        char argv0[PATH_MAX];
-        uint32_t n = sizeof(argv0);
-        extern int _NSGetExecutablePath(char*, uint32_t*);
-        if (_NSGetExecutablePath(argv0, &n) == 0 && realpath(argv0, self)) {
-            snprintf(from_buf, sizeof(from_buf), "%s", dirname(self));
-            from = from_buf;
-        }
-    }
-    if (!from) {
-        fprintf(stderr, "millennium: pass --from <build-dir>\n");
-        return 1;
-    }
-
-    const char* dst = runtime_dir();
-    mkdirs(dst);
-
-    for (size_t i = 0; i < sizeof(kPayload) / sizeof(*kPayload); i++) {
-        if (copy_one(from, kPayload[i], dst) != 0) return 1;
-    }
-
-    // luavm's name is arch-dependent; take whatever matches.
-    int have_luavm = 0;
-    DIR* d = opendir(from);
+    DIR* d = opendir(path);
     if (d) {
         struct dirent* e;
         while ((e = readdir(d))) {
-            if (strncmp(e->d_name, "libmillennium_luavm", 19) == 0 || strncmp(e->d_name, "millennium.luavm", 16) == 0) {
-                if (copy_one(from, e->d_name, dst) == 0) have_luavm = 1;
+            if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..")) continue;
+            char child[PATH_MAX];
+            snprintf(child, sizeof(child), "%s/%s", path, e->d_name);
+            struct stat st;
+            if (lstat(child, &st) == 0 && S_ISDIR(st.st_mode)) {
+                remove_tree(child);
+            } else {
+                unlink(child);
             }
         }
         closedir(d);
     }
-    if (!have_luavm) {
-        fprintf(stderr, "millennium: missing libmillennium_luavm_* in %s\n", from);
-        return 1;
+    if (rmdir(path) != 0) unlink(path);  // a symlink or file rather than a directory
+}
+
+static int spawn(char* const argv[])
+{
+    pid_t pid;
+    if (posix_spawnp(&pid, argv[0], NULL, NULL, argv, *_NSGetEnviron()) != 0) return -1;
+    int status;
+    while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
+    return status;
+}
+
+// The payload file names: kPayload plus whichever luavm the build produced.
+static size_t collect_payload(const char* from, char list[][NAME_MAX + 1], size_t max)
+{
+    size_t n = 0;
+    for (size_t i = 0; i < sizeof(kPayload) / sizeof(*kPayload) && n < max; i++) {
+        snprintf(list[n++], NAME_MAX + 1, "%s", kPayload[i]);
+    }
+    DIR* d = opendir(from);
+    if (d) {
+        struct dirent* e;
+        while ((e = readdir(d)) && n < max) {
+            if (is_luavm(e->d_name)) snprintf(list[n++], NAME_MAX + 1, "%s", e->d_name);
+        }
+        closedir(d);
+    }
+    return n;
+}
+
+// A release is named by the SHA-256 of its payload (names and bytes), truncated
+// to 64 bits — identical builds land in the same release directory.
+static int payload_hash(const char* from, char list[][NAME_MAX + 1], size_t n, char out[17])
+{
+    CC_SHA256_CTX ctx;
+    CC_SHA256_Init(&ctx);
+    char buf[65536];
+    for (size_t i = 0; i < n; i++) {
+        char path[PATH_MAX];
+        snprintf(path, sizeof(path), "%s/%s", from, list[i]);
+        FILE* f = fopen(path, "rb");
+        if (!f) {
+            fprintf(stderr, "millennium: missing build artifact %s\n", path);
+            return -1;
+        }
+        CC_SHA256_Update(&ctx, list[i], (CC_LONG)strlen(list[i]) + 1);
+        size_t got;
+        while ((got = fread(buf, 1, sizeof(buf), f)) > 0) CC_SHA256_Update(&ctx, buf, (CC_LONG)got);
+        fclose(f);
+    }
+    unsigned char digest[CC_SHA256_DIGEST_LENGTH];
+    CC_SHA256_Final(digest, &ctx);
+    for (int i = 0; i < 8; i++) snprintf(out + i * 2, 3, "%02x", digest[i]);
+    return 0;
+}
+
+static void point_current(const char* runtime, const char* release_name)
+{
+    char tmp[PATH_MAX], cur[PATH_MAX];
+    snprintf(tmp, sizeof(tmp), "%s/.current.%d", runtime, getpid());
+    snprintf(cur, sizeof(cur), "%s/current", runtime);
+    unlink(tmp);
+    symlink(release_name, tmp);  // relative, so the tree can be moved
+    rename(tmp, cur);
+}
+
+// Drop every release but the current one, and any staging left by a crash.
+static void prune(const char* runtime, const char* keep)
+{
+    DIR* d = opendir(runtime);
+    if (!d) return;
+    struct dirent* e;
+    while ((e = readdir(d))) {
+        int stale = (strncmp(e->d_name, "release-", 8) == 0 && strcmp(e->d_name, keep) != 0) ||
+                    strncmp(e->d_name, ".stage.", 7) == 0 || strncmp(e->d_name, ".current.", 9) == 0;
+        if (!stale) continue;
+        char path[PATH_MAX];
+        snprintf(path, sizeof(path), "%s/%s", runtime, e->d_name);
+        remove_tree(path);
+    }
+    closedir(d);
+}
+
+// Resolve the build directory: --from, else the directory this binary runs from.
+static int resolve_from(const char* from, char out[PATH_MAX])
+{
+    if (from) {
+        snprintf(out, PATH_MAX, "%s", from);
+        return 0;
+    }
+    char self[PATH_MAX], argv0[PATH_MAX];
+    uint32_t n = sizeof(argv0);
+    if (_NSGetExecutablePath(argv0, &n) != 0 || !realpath(argv0, self)) {
+        fprintf(stderr, "millennium: pass --from <build-dir>\n");
+        return -1;
+    }
+    snprintf(out, PATH_MAX, "%s", dirname(self));
+    return 0;
+}
+
+static int cmd_setup(const char* from_arg)
+{
+    char from[PATH_MAX];
+    if (resolve_from(from_arg, from) != 0) return 1;
+
+    char list[16][NAME_MAX + 1];
+    size_t n = collect_payload(from, list, 16);
+    char hash[17] = { 0 };
+    if (payload_hash(from, list, n, hash) != 0) return 1;
+
+    const char* runtime = runtime_dir();
+    char release_name[32], release[PATH_MAX];
+    snprintf(release_name, sizeof(release_name), "release-%s", hash);
+    snprintf(release, sizeof(release), "%s/%s", runtime, release_name);
+
+    if (access(release, F_OK) != 0) {
+        mkdirs(runtime);
+        char stage[PATH_MAX];
+        snprintf(stage, sizeof(stage), "%s/.stage.%d", runtime, getpid());
+        remove_tree(stage);
+        mkdir(stage, 0755);
+        for (size_t i = 0; i < n; i++) {
+            char src[PATH_MAX], dst[PATH_MAX];
+            snprintf(src, sizeof(src), "%s/%s", from, list[i]);
+            snprintf(dst, sizeof(dst), "%s/%s", stage, list[i]);
+            if (copyfile(src, dst, NULL, COPYFILE_ALL) != 0) {
+                fprintf(stderr, "millennium: failed to copy %s\n", src);
+                remove_tree(stage);
+                return 1;
+            }
+        }
+        char cli[PATH_MAX];
+        snprintf(cli, sizeof(cli), "%s/millennium", stage);
+        chmod(cli, 0755);
+        if (rename(stage, release) != 0) {
+            remove_tree(stage);
+            return 1;
+        }
     }
 
-    char p[PATH_MAX];
-    snprintf(p, sizeof(p), "%s/millennium", dst);
-    chmod(p, 0755);
-    printf("millennium: runtime staged in %s\n", dst);
+    point_current(runtime, release_name);
+    prune(runtime, release_name);
+    printf("millennium: staged %s\n", release_name);
     return 0;
 }
 
 static int cmd_status(void)
 {
-    char boot[PATH_MAX];
-    printf("runtime: %s\n", bootstrap_path(boot, sizeof(boot)) ? runtime_dir() : "not staged");
-    pid_t pid = find_steam(NULL, 0);
-    printf("steam:   %s\n", pid ? "running" : "not running");
+    char cur[PATH_MAX], target[PATH_MAX];
+    snprintf(cur, sizeof(cur), "%s/current", runtime_dir());
+    ssize_t len = readlink(cur, target, sizeof(target) - 1);
+    if (len > 0) {
+        target[len] = '\0';
+        printf("runtime: %s\n", target);
+    } else {
+        printf("runtime: not staged\n");
+    }
+    printf("steam:   %s\n", find_steam(NULL, 0) ? "running" : "not running");
     return 0;
 }
 
-// install = stage, clear the download quarantine, ad-hoc self-sign (no Apple
-// account needed), and register a LaunchAgent that loads on every Steam launch.
-
-static const char* kAgentLabel = "com.millennium.loader";
-
 static void agent_plist_path(char* out, size_t size)
 {
-    const char* home = getenv("HOME");
-    snprintf(out, size, "%s/Library/LaunchAgents/%s.plist", home ? home : "", kAgentLabel);
-}
-
-static int run(const char* fmt, ...)
-{
-    char cmd[2 * PATH_MAX];
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(cmd, sizeof(cmd), fmt, ap);
-    va_end(ap);
-    return system(cmd);
+    snprintf(out, size, "%s/Library/LaunchAgents/%s.plist", getenv("HOME"), AGENT_LABEL);
 }
 
 static int cmd_install(const char* from)
 {
     if (cmd_setup(from) != 0) return 1;
-    const char* dst = runtime_dir();
-    const unsigned uid = (unsigned)getuid();
+    const char* runtime = runtime_dir();
+    char cli[PATH_MAX];
+    snprintf(cli, sizeof(cli), "%s/current/millennium", runtime);
 
-    run("xattr -dr com.apple.quarantine '%s' 2>/dev/null", dst);
+    spawn((char*[]){ "xattr", "-dr", "com.apple.quarantine", (char*)runtime, NULL });
 
     char ents[PATH_MAX];
-    snprintf(ents, sizeof(ents), "%s/.entitlements.plist", dst);
+    snprintf(ents, sizeof(ents), "%s/.entitlements.plist", runtime);
     FILE* f = fopen(ents, "w");
     if (f) {
         fputs("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -347,27 +436,34 @@ static int cmd_install(const char* from)
               "</dict></plist>\n", f);
         fclose(f);
     }
-    run("codesign -f -s - --entitlements '%s' '%s/millennium'", ents, dst);
+    spawn((char*[]){ "codesign", "-f", "-s", "-", "--entitlements", ents, cli, NULL });
     unlink(ents);
 
-    char plist[PATH_MAX];
+    unlink(PATH_LINK);
+    if (symlink(cli, PATH_LINK) != 0) {
+        fprintf(stderr, "millennium: could not link %s; invoke %s by path\n", PATH_LINK, cli);
+    }
+
+    char agents[PATH_MAX], plist[PATH_MAX], uid[16];
+    snprintf(agents, sizeof(agents), "%s/Library/LaunchAgents", getenv("HOME"));
+    mkdirs(agents);
     agent_plist_path(plist, sizeof(plist));
-    run("mkdir -p '%s/Library/LaunchAgents'", getenv("HOME"));
+    snprintf(uid, sizeof(uid), "gui/%u", (unsigned)getuid());
     f = fopen(plist, "w");
     if (f) {
         fprintf(f,
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             "<plist version=\"1.0\"><dict>\n"
             "  <key>Label</key><string>%s</string>\n"
-            "  <key>ProgramArguments</key><array><string>%s/millennium</string><string>watch</string></array>\n"
+            "  <key>ProgramArguments</key><array><string>%s</string><string>watch</string></array>\n"
             "  <key>RunAtLoad</key><true/>\n"
             "  <key>KeepAlive</key><true/>\n"
             "</dict></plist>\n",
-            kAgentLabel, dst);
+            AGENT_LABEL, cli);
         fclose(f);
     }
-    run("launchctl bootout gui/%u '%s' 2>/dev/null; launchctl bootstrap gui/%u '%s' 2>/dev/null",
-        uid, plist, uid, plist);
+    spawn((char*[]){ "launchctl", "bootout", uid, plist, NULL });
+    spawn((char*[]){ "launchctl", "bootstrap", uid, plist, NULL });
 
     printf("millennium: installed — open Steam and it loads automatically\n");
     return 0;
@@ -375,30 +471,28 @@ static int cmd_install(const char* from)
 
 static int cmd_uninstall(void)
 {
-    char plist[PATH_MAX];
+    char plist[PATH_MAX], uid[16];
     agent_plist_path(plist, sizeof(plist));
-    run("launchctl bootout gui/%u '%s' 2>/dev/null", (unsigned)getuid(), plist);
+    snprintf(uid, sizeof(uid), "gui/%u", (unsigned)getuid());
+    spawn((char*[]){ "launchctl", "bootout", uid, plist, NULL });
     unlink(plist);
+    unlink(PATH_LINK);
 
-    const char* dst = runtime_dir();
-    for (size_t i = 0; i < sizeof(kPayload) / sizeof(*kPayload); i++) {
-        char p[PATH_MAX];
-        snprintf(p, sizeof(p), "%s/%s", dst, kPayload[i]);
-        unlink(p);
-    }
-    DIR* d = opendir(dst);
+    const char* runtime = runtime_dir();
+    DIR* d = opendir(runtime);
     if (d) {
         struct dirent* e;
         while ((e = readdir(d))) {
-            if (strncmp(e->d_name, "libmillennium_luavm", 19) == 0 || strncmp(e->d_name, "millennium.luavm", 16) == 0) {
+            if (strncmp(e->d_name, "release-", 8) == 0 || strncmp(e->d_name, ".stage.", 7) == 0 ||
+                strncmp(e->d_name, ".current.", 9) == 0 || strcmp(e->d_name, "current") == 0) {
                 char p[PATH_MAX];
-                snprintf(p, sizeof(p), "%s/%s", dst, e->d_name);
-                unlink(p);
+                snprintf(p, sizeof(p), "%s/%s", runtime, e->d_name);
+                remove_tree(p);
             }
         }
         closedir(d);
     }
-    rmdir(dst);  // only succeeds if empty; plugins/config live elsewhere
+    rmdir(runtime);  // only if empty; plugins and config live elsewhere
     printf("millennium: removed staged runtime (plugins and config kept)\n");
     return 0;
 }
