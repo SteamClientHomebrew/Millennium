@@ -190,8 +190,6 @@ void platform::environment::setup()
 
     std::map<std::string, std::string> environment_macos
     {
-        { "MILLENNIUM_RUNTIME_PATH", "/usr/local/lib/millennium/libmillennium_x86.dylib" },
-
         { "MILLENNIUM__STEAM_EXE_PATH", std::format("{}/Library/Application Support/Steam/Steam.app/Contents/MacOS/steam_osx", homeDir) },
         { "MILLENNIUM__PLUGINS_PATH",   std::format("{}/Millennium/plugins", dataDir) },
         { "MILLENNIUM__CONFIG_PATH",    std::format("{}/Millennium",       configDir) },

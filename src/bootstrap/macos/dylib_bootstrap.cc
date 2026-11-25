@@ -14,8 +14,6 @@
 
 #include <string>
 #include <vector>
-#include "got_rebind.h"
-#include "pipe_bootstrap.h"
 
 typedef int (*start_millennium_t)(void);
 typedef int (*stop_millennium_t)(void);
@@ -26,6 +24,9 @@ namespace
 {
 constexpr const char* kRuntimePathEnv = "MILLENNIUM_RUNTIME_PATH";
 constexpr const char* kChildHookPathEnv = "MILLENNIUM_CHILD_HOOK_PATH";
+constexpr const char* kHelperHookPathEnv = "MILLENNIUM_HOOK_HELPER_PATH";
+constexpr const char* kCdpSocketEnv = "MILLENNIUM_CDP_SOCKET";
+constexpr const char* kLoopbackSocketEnv = "MILLENNIUM_LOOPBACK_SOCKET";
 constexpr const char* kSteamExecutableEnv = "MILLENNIUM_STEAM_EXECUTABLE";
 constexpr const char* kBootstrapTraceEnv = "MILLENNIUM_BOOTSTRAP_TRACE_PATH";
 } // namespace
@@ -149,6 +150,21 @@ static const char* get_child_hook_path()
     }
 
     return child_hook_path;
+}
+
+static const char* get_helper_hook_path()
+{
+    static char helper_hook_path[PATH_MAX];
+    static bool initialized = false;
+
+    if (!initialized) {
+        if (!get_adjacent_or_configured_path(kHelperHookPathEnv, __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__, R_OK, helper_hook_path, sizeof(helper_hook_path))) {
+            return nullptr;
+        }
+        initialized = true;
+    }
+
+    return helper_hook_path;
 }
 
 static void append_trace(const char* stage)
@@ -344,17 +360,15 @@ static const char* describe_dyld_insert_plan(const DyldInsertPlan& plan)
     return "";
 }
 
+// Every helper steam_osx spawns must inherit child_hook through
+// DYLD_INSERT_LIBRARIES. The CEF browser is started with posix_spawn, which the
+// execve/execv interpose never sees, so the variable is set on steam_osx itself.
+// On attach it starts empty: set it outright and drop the bootstrap's own entry,
+// which only steam_osx needs.
 static void update_current_process_dyld_inserts()
 {
     char bootstrap_path[PATH_MAX];
-    if (!get_bootstrap_path(bootstrap_path, sizeof(bootstrap_path))) {
-        return;
-    }
-
-    const char* existing_value = getenv("DYLD_INSERT_LIBRARIES");
-    if (!existing_value || existing_value[0] == '\0') {
-        return;
-    }
+    const char* removed_path = get_bootstrap_path(bootstrap_path, sizeof(bootstrap_path)) ? bootstrap_path : nullptr;
 
     const char* child_hook_path = get_child_hook_path();
     std::vector<const char*> insert_libraries;
@@ -363,7 +377,7 @@ static void update_current_process_dyld_inserts()
         insert_libraries.push_back(child_hook_path);
     }
 
-    const std::string rewritten = rewrite_dyld_insert_list(insert_libraries, bootstrap_path, nullptr);
+    const std::string rewritten = rewrite_dyld_insert_list(insert_libraries, removed_path, nullptr);
     if (rewritten.empty()) {
         unsetenv("DYLD_INSERT_LIBRARIES");
         return;
@@ -382,11 +396,6 @@ static int call_execve_syscall(const char* path, char* const argv[], char* const
 
 static int millennium_execve(const char* path, char* const argv[], char* const envp[])
 {
-    // The inherited environment already contains the child hook. Both exec
-    // entry points can use it without allocating in the browser's fork child.
-    if (g_bootstrap_enabled && (envp == environ || !envp) && getpid() != millennium_pipe_bootstrap::owner && millennium_pipe_bootstrap::is_browser(path, argv)) {
-        return millennium_pipe_bootstrap::exec(path, argv, environ, call_execve_syscall);
-    }
     append_exec_trace("exec-enter", path, argv, "");
 
     if (!g_bootstrap_enabled) {
@@ -407,7 +416,7 @@ static int millennium_execve(const char* path, char* const argv[], char* const e
 
     const char* trace_stage = plan.includesBootstrap || plan.includesChildHook ? "exec-pass-through" : "exec-missing-insert";
     append_exec_trace(trace_stage, path, argv, describe_dyld_insert_plan(plan));
-    return millennium_pipe_bootstrap::exec(path, argv, exec_environment.data(), call_execve_syscall);
+    return call_execve_syscall(path, argv, exec_environment.data());
 }
 
 DYLD_INTERPOSE(millennium_execve, execve);
@@ -419,13 +428,9 @@ static int millennium_execv(const char* path, char* const argv[])
 
 DYLD_INTERPOSE(millennium_execv, execv);
 
-// Attach-mode delivery.
-// When `millennium load` attaches to a running steam_osx, the load-time
-// DYLD_INTERPOSE above never rebinds steam_osx's already-bound exec calls, and
-// the CEF browser is already up without the CDP pipe. So rebind execve/execv at
-// runtime (got_rebind.h) and force ONE relaunch of the browser: steam_osx
-// re-execs it under the hook, which adds --remote-debugging-pipe + the inherited
-// fds exactly as a normal launch.
+// When `millennium load` attaches to a running steam_osx, the CEF browser is
+// already up without hhx64. Kill it once: steam_osx respawns it, and the new
+// browser inherits the DYLD_INSERT_LIBRARIES set above, so it loads the hook.
 
 // The wrapper sets MILLENNIUM_STEAM_EXECUTABLE; `millennium load` sets nothing.
 static bool loaded_by_attach()
@@ -434,9 +439,8 @@ static bool loaded_by_attach()
     return !value || value[0] == '\0';
 }
 
-// Kill the one CEF browser (the "Steam Helper" that is steam_osx's direct child,
-// i.e. no --type=); steam_osx respawns it, now caught by the rebound execv.
-static void relaunch_cef_browser_once()
+// The browser is the "Steam Helper" that is steam_osx's direct child (no --type=).
+static void relaunch_cef_browser()
 {
     const pid_t self = getpid();
     pid_t pids[8192];
@@ -458,17 +462,6 @@ static void relaunch_cef_browser_once()
     append_trace("attach-no-browser");
 }
 
-static void install_exec_hook_and_relaunch()
-{
-    void* real_execve = dlsym(RTLD_DEFAULT, "execve");
-    void* real_execv = dlsym(RTLD_DEFAULT, "execv");
-    int patched = 0;
-    if (real_execve) patched += millennium_rebind_by_value(real_execve, (void*)&millennium_execve);
-    if (real_execv) patched += millennium_rebind_by_value(real_execv, (void*)&millennium_execv);
-    append_trace(patched > 0 ? "attach-rebind-installed" : "attach-rebind-noop");
-    relaunch_cef_browser_once();
-}
-
 __attribute__((constructor)) static void bootstrap_init()
 {
     if (!is_steam_main_process()) {
@@ -485,6 +478,24 @@ __attribute__((constructor)) static void bootstrap_init()
         return;
     }
 
+    // Publish this release's paths before the runtime loads, so the runtime and
+    // every process Steam spawns (the CEF browser, through the child hook) load
+    // their libraries from the same release as the bootstrap.
+    setenv(kRuntimePathEnv, runtime_path, 1);
+    if (const char* child_hook_path = get_child_hook_path()) {
+        setenv(kChildHookPathEnv, child_hook_path, 1);
+    }
+    if (const char* helper_hook_path = get_helper_hook_path()) {
+        setenv(kHelperHookPathEnv, helper_hook_path, 1);
+    }
+
+    // CDP and loopback run over unix sockets the runtime listens on and hhx64 connects to.
+    if (const char* home = getenv("HOME"); home && home[0]) {
+        const std::string dir = std::string(home) + "/Library/Application Support/Millennium/";
+        setenv(kCdpSocketEnv, (dir + "cdp.sock").c_str(), 1);
+        setenv(kLoopbackSocketEnv, (dir + "loopback.sock").c_str(), 1);
+    }
+
     g_millennium_handle = dlopen(runtime_path, RTLD_NOW | RTLD_GLOBAL);
     if (!g_millennium_handle) {
         fprintf(stderr, "[Millennium] Failed to load runtime library: %s\n", dlerror());
@@ -499,16 +510,15 @@ __attribute__((constructor)) static void bootstrap_init()
         return;
     }
 
-    if (!millennium_pipe_bootstrap::initialize(g_millennium_handle) || start_millennium() < 0) {
+    if (start_millennium() < 0) {
         fprintf(stderr, "[Millennium] Failed to start runtime.\n");
         dlclose(g_millennium_handle);
         g_millennium_handle = nullptr;
-        millennium_pipe_bootstrap::shutdown();
         return;
     }
 
     if (loaded_by_attach()) {
-        install_exec_hook_and_relaunch();
+        relaunch_cef_browser();
     }
 }
 
@@ -527,6 +537,5 @@ __attribute__((destructor)) static void bootstrap_cleanup()
     g_millennium_handle = nullptr;
 
     g_bootstrap_enabled = false;
-    millennium_pipe_bootstrap::shutdown();
 }
 #endif

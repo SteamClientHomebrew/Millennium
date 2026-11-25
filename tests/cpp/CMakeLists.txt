@@ -11,9 +11,6 @@ set(TEST_SOURCES
 )
 
 add_executable(millennium_cpp_tests ${TEST_SOURCES})
-if(APPLE)
-  target_sources(millennium_cpp_tests PRIVATE test_macos_cdp_pipe.cc)
-endif()
 target_compile_features(millennium_cpp_tests PRIVATE cxx_std_23)
 
 target_include_directories(millennium_cpp_tests PRIVATE
@@ -52,11 +49,11 @@ if(APPLE AND MILLENNIUM_BUILD_MAIN)
   target_compile_features(millennium_macos_connector_tests PRIVATE cxx_std_23)
   target_include_directories(millennium_macos_connector_tests PRIVATE ${CMAKE_SOURCE_DIR}/src/include)
   target_link_libraries(millennium_macos_connector_tests PRIVATE Millennium Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
-  # Each connector test owns the process-wide broker and termination state.
+  # Each connector test owns the process-wide socket paths and termination state.
   foreach(test_name IN ITEMS
       "macOS connector exits without a Helper"
-      "macOS CDP can connect and stop with a full patch pipe"
-      "macOS failed handoff preserves the current Helper connection")
+      "macOS CDP can connect and stop with a full loopback socket"
+      "macOS CDP accepts a new Helper after the previous one exits")
     add_test(NAME "${test_name}" COMMAND millennium_macos_connector_tests "${test_name}")
     set_tests_properties("${test_name}" PROPERTIES TIMEOUT 15)
   endforeach()

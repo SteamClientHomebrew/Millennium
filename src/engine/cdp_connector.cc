@@ -364,83 +364,168 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> socket
 }
 #elif __APPLE__
 
+#include <atomic>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <fcntl.h>
+#include <memory>
+#include <poll.h>
+#include <string>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <thread>
-#include <utility>
-#include "millennium/macos_cdp_pipe.h"
+#include <unistd.h>
 #include "instrumentation/loopback_ipc.h"
 #include "millennium/millennium_lifecycle.h"
 
 namespace
 {
-macos_cdp::broker pipe_broker;
-
 bool terminating()
 {
     return millennium_lifecycle::get().terminate.flag.load();
 }
 } // namespace
 
-// Called before StartMillennium by both macOS bootstrap implementations.
-extern "C" __attribute__((visibility("default"))) int MillenniumAcceptPipeBroker(int fd)
+namespace
 {
-    if (pipe_broker.fd >= 0) return -1;
-    pipe_broker.fd = fcntl(fd, F_DUPFD_CLOEXEC, 10);
-    return pipe_broker.fd < 0 ? -1 : 0;
+// hhx64 in the CEF browser connects to these sockets; the runtime owns the listening ends.
+int listen_unix(const char* path)
+{
+    if (!path || !path[0]) return -1;
+    sockaddr_un addr{};
+    addr.sun_family = AF_UNIX;
+    if (strlen(path) >= sizeof(addr.sun_path)) return -1;
+    strcpy(addr.sun_path, path);
+
+    const int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd < 0) return -1;
+    fcntl(fd, F_SETFD, FD_CLOEXEC);
+    unlink(path);
+    if (bind(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0 || listen(fd, 4) != 0) {
+        close(fd);
+        return -1;
+    }
+    return fd;
 }
+
+// Accept the next connection, or -1 when terminating or the listener dies.
+int accept_until_terminate(int listen_fd)
+{
+    while (!terminating()) {
+        pollfd wait{ listen_fd, POLLIN, 0 };
+        const int result = poll(&wait, 1, 100);
+        if (result < 0 && errno == EINTR) continue;
+        if (result < 0 || (wait.revents & (POLLERR | POLLHUP | POLLNVAL))) return -1;
+        if (!(wait.revents & POLLIN)) continue;
+        const int fd = accept(listen_fd, nullptr, nullptr);
+        if (fd < 0 && (errno == EINTR || errno == EAGAIN)) continue;
+        if (fd < 0) return -1;
+        fcntl(fd, F_SETFD, FD_CLOEXEC);
+        fcntl(fd, F_SETNOSIGPIPE, 1);
+        return fd;
+    }
+    return -1;
+}
+
+// Serve the loopback stream: one browser connection at a time, until terminate.
+void serve_loopback_socket()
+{
+    const char* path = std::getenv("MILLENNIUM_LOOPBACK_SOCKET");
+    const int listen_fd = listen_unix(path);
+    if (listen_fd < 0) {
+        LOG_ERROR("Could not listen on the loopback socket '{}'.", path ? path : "");
+        return;
+    }
+
+    int stop[2] = { -1, -1 };
+    if (pipe(stop) == 0)
+        for (int fd : stop) fcntl(fd, F_SETFD, FD_CLOEXEC);
+
+    std::thread waker([wr = stop[1]]()
+    {
+        millennium_lifecycle::get().terminate.wait();
+        if (wr >= 0)
+            while (write(wr, "", 1) < 0 && errno == EINTR) {}
+    });
+
+    while (!terminating()) {
+        const int conn = accept_until_terminate(listen_fd);
+        if (conn < 0) break;
+        // Non-blocking, so a full socket still yields to the stop pipe on shutdown.
+        fcntl(conn, F_SETFL, O_NONBLOCK);
+        // run_loopback_conn closes both fds; hand it two refs to the one socket.
+        const int write_fd = fcntl(conn, F_DUPFD_CLOEXEC, 10);
+        if (write_fd < 0) {
+            close(conn);
+            continue;
+        }
+        serve_loopback_conn(write_fd, conn, stop[0]);
+    }
+
+    close(listen_fd);
+    if (path) unlink(path);
+    if (waker.joinable()) waker.join();
+    for (int fd : stop)
+        if (fd >= 0) close(fd);
+}
+} // namespace
 
 void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> props)
 {
-    if (pipe_broker.fd < 0 || !props->on_connect) {
-        LOG_ERROR("[{}] macOS CDP pipe broker is not configured.", props->name);
+    if (!props->on_connect) {
+        LOG_ERROR("[{}] No CDP connection handler.", props->name);
+        return;
+    }
+
+    std::thread loopback(serve_loopback_socket);
+
+    const char* path = std::getenv("MILLENNIUM_CDP_SOCKET");
+    const int listen_fd = listen_unix(path);
+    if (listen_fd < 0) {
+        LOG_ERROR("[{}] Could not listen on the CDP socket '{}'.", props->name, path ? path : "");
+        if (loopback.joinable()) loopback.join();
         return;
     }
 
     while (!terminating()) {
-        std::shared_ptr<macos_cdp::connection> conn;
-        while (!terminating() && !conn) {
-            pollfd wait{ pipe_broker.fd, POLLIN, 0 };
-            const int result = poll(&wait, 1, 100);
-            if (result < 0 && errno == EINTR) continue;
-            if (result < 0 || (wait.revents & (POLLERR | POLLHUP | POLLNVAL))) return;
-            if (wait.revents & POLLIN) conn = macos_cdp::receive(pipe_broker.fd);
-        }
-        if (!conn || terminating()) return;
+        const int conn = accept_until_terminate(listen_fd);
+        if (conn < 0) break;
 
-        auto cdp = std::make_shared<cdp_client>([conn](const std::string& payload)
+        auto alive = std::make_shared<std::atomic<bool>>(true);
+        auto cdp = std::make_shared<cdp_client>([conn, alive](const std::string& payload) -> bool
         {
-            return conn->send(payload, terminating);
-        });
-        logger.log("[{}] CDP pipe transport connected.", props->name);
-
-        std::thread patch_worker;
-        int patch_stop[2];
-        if (conn->loopback_read_fd >= 0) {
-            const int read_fd = std::exchange(conn->loopback_read_fd, -1);
-            const int write_fd = std::exchange(conn->loopback_write_fd, -1);
-            if (pipe(patch_stop) == 0) {
-                for (int fd : patch_stop) fcntl(fd, F_SETFD, FD_CLOEXEC);
-                patch_worker = std::thread(serve_loopback_conn, write_fd, read_fd, patch_stop[0]);
-            } else {
-                logger.warn("Could not open the loopback stop pipe: {}", strerror(errno));
-                close(write_fd);
-                close(read_fd);
+            if (!alive->load()) return false;
+            std::string message = payload;
+            message.push_back('\0');
+            size_t offset = 0;
+            while (offset < message.size()) {
+                const auto count = write(conn, message.data() + offset, message.size() - offset);
+                if (count > 0) {
+                    offset += static_cast<size_t>(count);
+                } else if (count < 0 && errno == EINTR) {
+                    continue;
+                } else {
+                    alive->store(false);
+                    return false;
+                }
             }
-        }
+            return true;
+        });
+        logger.log("[{}] CDP socket transport connected.", props->name);
 
         // Read before on_connect: initialization may synchronously wait for CDP.
-        std::thread reader([conn, cdp]()
+        std::thread reader([conn, cdp, alive]()
         {
             std::string buffer;
             char chunk[8192];
-            while (!terminating() && !conn->stopped.load() && cdp->is_active()) {
-                // A queued handoff does not prove exec succeeded. Keep the
-                // current Helper connected until its own pipe closes.
-                pollfd wait{ conn->read_fd, POLLIN, 0 };
+            while (!terminating() && cdp->is_active()) {
+                pollfd wait{ conn, POLLIN, 0 };
                 const int result = poll(&wait, 1, 100);
                 if (result < 0 && errno == EINTR) continue;
-                if (result < 0) break;
-                if (!wait.revents) continue;
-                const auto count = read(conn->read_fd, chunk, sizeof(chunk));
+                if (result < 0 || (wait.revents & (POLLERR | POLLHUP | POLLNVAL))) break;
+                if (!(wait.revents & POLLIN)) continue;
+                const auto count = read(conn, chunk, sizeof(chunk));
                 if (count < 0 && (errno == EINTR || errno == EAGAIN)) continue;
                 if (count <= 0) break;
                 buffer.append(chunk, static_cast<size_t>(count));
@@ -452,7 +537,7 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> props)
                 }
                 buffer.erase(0, offset);
             }
-            conn->stopped.store(true);
+            alive->store(false);
             cdp->shutdown();
         });
 
@@ -460,20 +545,20 @@ void socket_utils::connect_socket(std::shared_ptr<socket_utils::socket_t> props)
             props->on_connect(cdp);
         } catch (const std::exception& e) {
             LOG_ERROR("[{}] Exception in onConnect: {}", props->name, e.what());
-            conn->stopped.store(true);
+            alive->store(false);
         } catch (...) {
             LOG_ERROR("[{}] Unknown exception in onConnect.", props->name);
-            conn->stopped.store(true);
+            alive->store(false);
         }
         reader.join();
-        if (patch_worker.joinable()) {
-            // Wake either patch pipe even if the Helper is still alive.
-            while (write(patch_stop[1], "", 1) < 0 && errno == EINTR) {}
-            patch_worker.join();
-            for (int fd : patch_stop) close(fd);
-        }
-        logger.log("[{}] CDP pipe disconnected; waiting for a new Helper.", props->name);
+        alive->store(false);
+        close(conn);
+        logger.log("[{}] CDP socket disconnected; waiting for a new Helper.", props->name);
     }
+
+    close(listen_fd);
+    if (path) unlink(path);
+    if (loopback.joinable()) loopback.join();
 }
 
 #else

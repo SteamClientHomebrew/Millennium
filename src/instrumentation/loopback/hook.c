@@ -88,6 +88,7 @@ static void fatal(const char* fmt, ...)
 #include <pthread.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include "cef_cdp_bridge.h"
 #elif _WIN32
 #define SNARE_STATIC
 #define SNARE_IMPLEMENTATION
@@ -241,6 +242,18 @@ void* CEF_CALLBACK lb_on_before_load_hdl(void* self, void* browser, void* frame,
 
 void* CEF_CALLBACK lb_get_resource_hdl(void* self, void* browser, void* frame, void* request)
 {
+#ifdef __APPLE__
+    // The first browser to request a resource starts the in-process CDP bridge,
+    // which relays CDP over the runtime's unix socket (the bootstrap publishes the path).
+    static atomic_bool cdp_started = false;
+    bool expected = false;
+    if (browser && atomic_compare_exchange_strong(&cdp_started, &expected, true)) {
+        const char* socket_path = getenv("MILLENNIUM_CDP_SOCKET");
+        if (socket_path && socket_path[0]) {
+            millennium_cdp_bridge_start((cef_browser_t*)browser, socket_path);
+        }
+    }
+#endif
     steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)self;
     if (!handler->inner_req_handler) {
         return NULL;

@@ -21,6 +21,17 @@ static WRITE_CH: OnceLock<Mutex<File>> = OnceLock::new();
 pub fn channels_from_args() -> Option<(File, File)> {
     #[cfg(not(windows))]
     {
+        // macOS: the runtime listens on a unix socket and the browser connects;
+        // the stream's read and write halves become two File owners.
+        if let Some(path) = std::env::var_os("MILLENNIUM_LOOPBACK_SOCKET").filter(|p| !p.is_empty()) {
+            for _ in 0..100 {
+                if let Ok(stream) = std::os::unix::net::UnixStream::connect(&path) {
+                    let write = stream.try_clone().ok()?;
+                    return Some((File::from(std::os::fd::OwnedFd::from(stream)), File::from(std::os::fd::OwnedFd::from(write))));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+        }
         for arg in std::env::args() {
             if let Some(val) = arg.strip_prefix("--millennium-loopback-ipc-fds=") {
                 let mut parts = val.splitn(2, ',');
