@@ -153,7 +153,9 @@ PluginProcess::~PluginProcess()
     if (m_pid > 0) {
         if (is_alive()) {
             ::kill(m_pid, SIGTERM);
-            for (int i = 0; i < 30 && is_alive(); ++i)
+            /* a deadline, so oversleeping on a loaded machine cannot stretch the grace period */
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+            while (is_alive() && std::chrono::steady_clock::now() < deadline)
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if (is_alive()) {
                 ::kill(m_pid, SIGKILL);
