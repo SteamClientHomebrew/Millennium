@@ -22,9 +22,6 @@ set_target_properties(macos-bootstrap PROPERTIES
 )
 
 add_library(macos-child-hook SHARED child_process_hook.cc)
-target_compile_definitions(macos-child-hook PRIVATE
-    __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
-)
 set_target_properties(macos-child-hook PROPERTIES
     PREFIX ""
     OUTPUT_NAME "${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"

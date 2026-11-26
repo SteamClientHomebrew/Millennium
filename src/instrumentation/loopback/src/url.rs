@@ -75,14 +75,11 @@ fn steam_install_path() -> PathBuf {
 
 #[cfg(target_os = "macos")]
 fn steam_install_path() -> PathBuf {
-    if let Some(dir) = std::env::var_os("MILLENNIUM_STEAM_EXECUTABLE")
-        .and_then(|exe| Path::new(&exe).parent().map(Path::to_owned))
-    {
-        return dir;
-    }
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/Users".into());
-    PathBuf::from(home)
-        .join("Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS")
+    // The browser runs from Steam.app/Contents/Frameworks/Steam Helper.app/Contents/MacOS.
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.ancestors().nth(5).map(|contents| contents.join("MacOS")))
+        .unwrap_or_default()
 }
 
 pub fn local_path_from_lb_url(url: &str) -> Option<PathBuf> {

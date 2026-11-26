@@ -84,35 +84,6 @@ static int on_dev_tools_message(cef_dev_tools_message_observer_t* self, cef_brow
     return 1;  // handled; skip the parsed method/event callbacks
 }
 
-// CEF invokes these unconditionally, so they must be non-NULL even unused.
-static void on_method_result(cef_dev_tools_message_observer_t* self, cef_browser_t* b, int id, int ok, const void* r, size_t n)
-{
-    (void)self;
-    (void)b;
-    (void)id;
-    (void)ok;
-    (void)r;
-    (void)n;
-}
-static void on_event(cef_dev_tools_message_observer_t* self, cef_browser_t* b, const void* m, const void* p, size_t n)
-{
-    (void)self;
-    (void)b;
-    (void)m;
-    (void)p;
-    (void)n;
-}
-static void on_agent_attached(cef_dev_tools_message_observer_t* self, cef_browser_t* b)
-{
-    (void)self;
-    (void)b;
-}
-static void on_agent_detached(cef_dev_tools_message_observer_t* self, cef_browser_t* b)
-{
-    (void)self;
-    (void)b;
-}
-
 static observer_t* observer_new(void)
 {
     observer_t* o = calloc(1, sizeof(*o));
@@ -121,11 +92,7 @@ static observer_t* observer_new(void)
     o->iface.base.release = observer_release;
     o->iface.base.has_one_ref = observer_has_one_ref;
     o->iface.base.has_at_least_one_ref = observer_has_at_least_one_ref;
-    o->iface.on_dev_tools_message = on_dev_tools_message;
-    o->iface.on_dev_tools_method_result = on_method_result;
-    o->iface.on_dev_tools_event = on_event;
-    o->iface.on_dev_tools_agent_attached = on_agent_attached;
-    o->iface.on_dev_tools_agent_detached = on_agent_detached;
+    o->iface.on_dev_tools_message = on_dev_tools_message;  // CEF skips the NULL callbacks
     atomic_store(&o->refs, 1);
     return o;
 }
