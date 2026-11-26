@@ -32,9 +32,9 @@ set_target_properties(macos-child-hook PROPERTIES
 )
 
 # The `millennium` command (see cli/README.md), ad-hoc signed with cs.debugger.
-add_executable(millennium-cli cli/millennium.c cli/watch.m)
+add_executable(millennium-cli cli/millennium.c cli/native.m)
 set_target_properties(millennium-cli PROPERTIES OUTPUT_NAME "millennium")
-set_source_files_properties(cli/watch.m PROPERTIES LANGUAGE OBJC COMPILE_OPTIONS -fobjc-arc)
+set_source_files_properties(cli/native.m PROPERTIES LANGUAGE OBJC COMPILE_OPTIONS -fobjc-arc)
 target_link_libraries(millennium-cli PRIVATE "-framework AppKit")
 add_custom_command(TARGET millennium-cli POST_BUILD
     COMMAND codesign --force --entitlements "${CMAKE_CURRENT_SOURCE_DIR}/cli/millennium.entitlements" -s - "$<TARGET_FILE:millennium-cli>"

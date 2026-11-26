@@ -43,17 +43,14 @@ static std::string sibling(const char* name)
 // "Steam Helper" that is steam_osx's direct child.
 static void relaunch_cef_browser()
 {
-    pid_t pids[8192];
-    const int count = proc_listallpids(pids, sizeof(pids)) / (int)sizeof(pid_t);
+    pid_t children[256];
+    const int count = proc_listchildpids(getpid(), children, sizeof(children));  // a pid count, not bytes
     char path[PROC_PIDPATHINFO_MAXSIZE];
     for (int index = 0; index < count; ++index) {
-        struct proc_bsdinfo info;
-        if (proc_pidinfo(pids[index], PROC_PIDTBSDINFO, 0, &info, sizeof(info)) != sizeof(info)) continue;
-        if ((pid_t)info.pbi_ppid != getpid()) continue;
-        if (proc_pidpath(pids[index], path, sizeof(path)) <= 0) continue;
+        if (proc_pidpath(children[index], path, sizeof(path)) <= 0) continue;
         if (strstr(path, "Steam Helper.app/Contents/MacOS/Steam Helper")) {
-            os_log(g_log, "restarting the CEF browser (pid %d) so it loads the child hook", pids[index]);
-            kill(pids[index], SIGKILL);
+            os_log(g_log, "restarting the CEF browser (pid %d) so it loads the child hook", children[index]);
+            kill(children[index], SIGKILL);
             return;
         }
     }

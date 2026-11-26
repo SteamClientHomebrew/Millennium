@@ -1,12 +1,14 @@
 #ifdef __APPLE__
-// Inserted with DYLD_INSERT_LIBRARIES into every process steam_osx spawns. In the
+// Inserted with DYLD_INSERT_LIBRARIES into the processes steam_osx spawns. In the
 // CEF browser it loads hhx64 and hands it cef_browser_host_create_browser, which
-// Steam Helper resolves through dlsym; elsewhere it only forwards dlsym.
+// Steam Helper resolves through dlsym; elsewhere it only forwards dlsym. Every
+// process drops it from the variable, so it never reaches a second generation.
 #include <crt_externs.h>
 #include <dlfcn.h>
 #include <limits.h>
 #include <mach-o/dyld.h>
 #include <os/log.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -35,6 +37,34 @@ static void* millennium_dlsym(void* handle, const char* symbol)
 }
 DYLD_INTERPOSE(millennium_dlsym, dlsym);
 
+// Remove this library from DYLD_INSERT_LIBRARIES, keeping any other entries.
+static void drop_self_from_inserts(void)
+{
+    const char* inserts = getenv("DYLD_INSERT_LIBRARIES");
+    Dl_info info;
+    char self[PATH_MAX];
+    if (!inserts || !dladdr((void*)drop_self_from_inserts, &info) || !realpath(info.dli_fname, self)) return;
+
+    char kept[4096] = "";
+    const char* entry = inserts;
+    while (*entry) {
+        const char* end = strchr(entry, ':');
+        if (!end) end = entry + strlen(entry);
+        char path[PATH_MAX], resolved[PATH_MAX];
+        snprintf(path, sizeof(path), "%.*s", (int)(end - entry), entry);
+        if (!realpath(path, resolved) || strcmp(resolved, self) != 0) {
+            if (kept[0]) strlcat(kept, ":", sizeof(kept));
+            strlcat(kept, path, sizeof(kept));
+        }
+        entry = *end ? end + 1 : end;
+    }
+    if (kept[0]) {
+        setenv("DYLD_INSERT_LIBRARIES", kept, 1);
+    } else {
+        unsetenv("DYLD_INSERT_LIBRARIES");
+    }
+}
+
 // The CEF browser is the "Steam Helper" with no --type= switch.
 static int is_cef_browser(void)
 {
@@ -53,10 +83,8 @@ static int is_cef_browser(void)
 
 __attribute__((constructor)) static void child_hook_init(void)
 {
+    drop_self_from_inserts();
     if (!is_cef_browser()) return;
-
-    // The browser's own children (renderers, GPU, utilities) need nothing from us.
-    unsetenv("DYLD_INSERT_LIBRARIES");
 
     os_log_t log = os_log_create("app.steambrew.millennium", "child-hook");
     const char* path = getenv("MILLENNIUM_HOOK_HELPER_PATH");

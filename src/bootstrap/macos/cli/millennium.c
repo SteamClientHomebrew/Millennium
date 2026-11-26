@@ -6,6 +6,7 @@
 
 #include <CommonCrypto/CommonDigest.h>
 #include <copyfile.h>
+#include <removefile.h>
 #include <crt_externs.h>
 #include <dirent.h>
 #include <dlfcn.h>
@@ -26,7 +27,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "watch.h"
+#include "native.h"
 
 #define STEAM_MAIN_SUFFIX "/Steam.AppBundle/Steam/Contents/MacOS/steam_osx"
 #define STEAM_BUNDLE_ID "com.valvesoftware.steam"
@@ -60,19 +61,6 @@ static const char* runtime_dir(void)
         snprintf(dir, sizeof(dir), "%s/Library/Application Support/Millennium/runtime", home ? home : "");
     }
     return dir;
-}
-
-static void mkdirs(const char* path)
-{
-    char buf[PATH_MAX];
-    snprintf(buf, sizeof(buf), "%s", path);
-    for (char* p = buf + 1; *p; p++) {
-        if (*p != '/') continue;
-        *p = '\0';
-        mkdir(buf, 0755);
-        *p = '/';
-    }
-    mkdir(buf, 0755);
 }
 
 // Match steam_osx by its executable path. /Applications/Steam.app shares the
@@ -247,25 +235,10 @@ static int is_luavm(const char* name)
     return strncmp(name, "libmillennium_luavm", 19) == 0 || strncmp(name, "millennium.luavm", 16) == 0;
 }
 
+// Remove a file, symlink or directory tree.
 static void remove_tree(const char* path)
 {
-    DIR* d = opendir(path);
-    if (d) {
-        struct dirent* e;
-        while ((e = readdir(d))) {
-            if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..")) continue;
-            char child[PATH_MAX];
-            snprintf(child, sizeof(child), "%s/%s", path, e->d_name);
-            struct stat st;
-            if (lstat(child, &st) == 0 && S_ISDIR(st.st_mode)) {
-                remove_tree(child);
-            } else {
-                unlink(child);
-            }
-        }
-        closedir(d);
-    }
-    if (rmdir(path) != 0) unlink(path);  // a symlink or file rather than a directory
+    removefile(path, NULL, REMOVEFILE_RECURSIVE);
 }
 
 static int spawn(char* const argv[])
@@ -381,7 +354,7 @@ static int cmd_setup(const char* from_arg)
     snprintf(release, sizeof(release), "%s/%s", runtime, release_name);
 
     if (access(release, F_OK) != 0) {
-        mkdirs(runtime);
+        mkpath_np(runtime, 0755);
         char stage[PATH_MAX];
         snprintf(stage, sizeof(stage), "%s/.stage.%d", runtime, getpid());
         remove_tree(stage);
@@ -390,7 +363,7 @@ static int cmd_setup(const char* from_arg)
             char src[PATH_MAX], dst[PATH_MAX];
             snprintf(src, sizeof(src), "%s/%s", from, list[i]);
             snprintf(dst, sizeof(dst), "%s/%s", stage, list[i]);
-            if (copyfile(src, dst, NULL, COPYFILE_ALL) != 0) {
+            if (copyfile(src, dst, NULL, COPYFILE_ALL | COPYFILE_CLONE) != 0) {
                 fprintf(stderr, "millennium: failed to copy %s\n", src);
                 remove_tree(stage);
                 return 1;
@@ -442,14 +415,7 @@ static int cmd_install(const char* from)
 
     char ents[PATH_MAX];
     snprintf(ents, sizeof(ents), "%s/.entitlements.plist", runtime);
-    FILE* f = fopen(ents, "w");
-    if (f) {
-        fputs("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-              "<plist version=\"1.0\"><dict>\n"
-              "  <key>com.apple.security.cs.debugger</key><true/>\n"
-              "</dict></plist>\n", f);
-        fclose(f);
-    }
+    write_debugger_entitlements(ents);
     spawn((char*[]){ "codesign", "-f", "-s", "-", "--entitlements", ents, cli, NULL });
     unlink(ents);
 
@@ -460,23 +426,10 @@ static int cmd_install(const char* from)
 
     char agents[PATH_MAX], plist[PATH_MAX], uid[16];
     snprintf(agents, sizeof(agents), "%s/Library/LaunchAgents", getenv("HOME"));
-    mkdirs(agents);
+    mkpath_np(agents, 0755);
     agent_plist_path(plist, sizeof(plist));
     snprintf(uid, sizeof(uid), "gui/%u", (unsigned)getuid());
-    f = fopen(plist, "w");
-    if (f) {
-        fprintf(f,
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            "<plist version=\"1.0\"><dict>\n"
-            "  <key>Label</key><string>%s</string>\n"
-            "  <key>ProgramArguments</key><array><string>%s</string><string>watch</string></array>\n"
-            "  <key>RunAtLoad</key><true/>\n"
-            "  <key>KeepAlive</key><true/>\n"
-            "  <key>LimitLoadToSessionType</key><string>Aqua</string>\n"
-            "</dict></plist>\n",
-            AGENT_LABEL, cli);
-        fclose(f);
-    }
+    write_agent_plist(plist, AGENT_LABEL, cli);
     spawn((char*[]){ "launchctl", "bootout", uid, plist, NULL });
     spawn((char*[]){ "launchctl", "bootstrap", uid, plist, NULL });
 

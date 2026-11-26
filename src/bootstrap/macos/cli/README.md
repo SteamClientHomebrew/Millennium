@@ -36,7 +36,9 @@ the CEF browser is already up, it restarts it once so the new one inherits that.
 
 In the browser, the child hook (`../child_hook.c`) loads `hhx64` and interposes
 `dlsym`: Steam Helper resolves `cef_browser_host_create_browser` by name, and
-gets `hhx64`'s wrapper instead. CEF's code is never patched. `hhx64` drives CEF's
+gets `hhx64`'s wrapper instead. CEF's code is never patched. Each process the
+child hook lands in drops it from `DYLD_INSERT_LIBRARIES`, so it reaches only
+steam_osx's direct children; Millennium's plugin VMs are spawned without it. `hhx64` drives CEF's
 in-process DevTools and talks to the runtime over unix sockets in
 `~/Library/Application Support/Millennium/` (`../cef_cdp_bridge.c`). The bridge
 stays off if the CEF major differs from the layout it was built for.
@@ -44,7 +46,7 @@ stays off if the CEF major differs from the layout it was built for.
 ## How `watch` works
 
 The autostart agent runs `watch`, which asks `NSWorkspace` for launch
-notifications and sleeps until Steam starts (`watch.m`). It loads within about a
+notifications and sleeps until Steam starts (`native.m`). It loads within about a
 second of the launch, usually before Steam opens its browser, so that browser
 needs no restart.
 

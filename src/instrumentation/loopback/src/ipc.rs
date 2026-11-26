@@ -4,7 +4,7 @@ use std::io::{Read, Write};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[cfg(not(windows))]
+#[cfg(all(unix, not(target_os = "macos")))]
 use std::os::unix::io::FromRawFd;
 #[cfg(windows)]
 use std::os::windows::io::FromRawHandle;
@@ -19,19 +19,22 @@ pub struct PatchDef {
 static WRITE_CH: OnceLock<Mutex<File>> = OnceLock::new();
 
 pub fn channels_from_args() -> Option<(File, File)> {
-    #[cfg(not(windows))]
+    // macOS: the runtime listens on a unix socket and the browser connects; the
+    // stream's read and write halves become two File owners.
+    #[cfg(target_os = "macos")]
     {
-        // macOS: the runtime listens on a unix socket and the browser connects;
-        // the stream's read and write halves become two File owners.
-        if let Some(path) = std::env::var_os("MILLENNIUM_LOOPBACK_SOCKET").filter(|p| !p.is_empty()) {
-            for _ in 0..100 {
-                if let Ok(stream) = std::os::unix::net::UnixStream::connect(&path) {
-                    let write = stream.try_clone().ok()?;
-                    return Some((File::from(std::os::fd::OwnedFd::from(stream)), File::from(std::os::fd::OwnedFd::from(write))));
-                }
-                std::thread::sleep(std::time::Duration::from_millis(100));
+        let path = std::env::var_os("MILLENNIUM_LOOPBACK_SOCKET").filter(|p| !p.is_empty())?;
+        for _ in 0..100 {
+            if let Ok(stream) = std::os::unix::net::UnixStream::connect(&path) {
+                let write = stream.try_clone().ok()?;
+                return Some((File::from(std::os::fd::OwnedFd::from(stream)), File::from(std::os::fd::OwnedFd::from(write))));
             }
+            std::thread::sleep(std::time::Duration::from_millis(100));
         }
+        None
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
         for arg in std::env::args() {
             if let Some(val) = arg.strip_prefix("--millennium-loopback-ipc-fds=") {
                 let mut parts = val.splitn(2, ',');

@@ -81,7 +81,9 @@ static PluginProcess::process_metrics read_proc_metrics(pid_t pid)
     return m;
 }
 #elif defined(__APPLE__)
+#include <crt_externs.h>
 #include <mach/mach.h>
+#include <vector>
 
 static PluginProcess::process_metrics read_proc_metrics(pid_t pid)
 {
@@ -628,6 +630,14 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
     }
 #else
     {
+#ifdef __APPLE__
+        /* the plugin VM is ours: give it none of the libraries inserted into steam_osx */
+        std::vector<char*> child_env;
+        for (char** entry = *_NSGetEnviron(); *entry; ++entry) {
+            if (strncmp(*entry, "DYLD_INSERT_LIBRARIES=", 22) != 0) child_env.push_back(*entry);
+        }
+        child_env.push_back(nullptr);
+#endif
         child_pid = ::fork();
         if (child_pid < 0) {
             LOG_ERROR("[spawn] fork() failed for plugin '{}'", plugin_name);
@@ -641,7 +651,12 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
             ::prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif
             ::close(server_fd);
+#ifdef __APPLE__
+            char* const child_argv[] = { const_cast<char*>(exe_path.c_str()), const_cast<char*>(socket_path.c_str()), nullptr };
+            ::execve(exe_path.c_str(), child_argv, child_env.data());
+#else
             ::execl(exe_path.c_str(), exe_path.c_str(), socket_path.c_str(), nullptr);
+#endif
             /* execl only returns on error */
             _exit(127);
         }
