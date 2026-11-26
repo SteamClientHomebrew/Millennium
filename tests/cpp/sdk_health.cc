@@ -28,7 +28,7 @@
  * SOFTWARE.
  */
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include <fcntl.h>
 #include <nlohmann/json.hpp>
 #include <poll.h>
@@ -40,6 +40,7 @@
 #include <unistd.h>
 
 #include <chrono>
+#include <deque>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -55,6 +56,7 @@ using steady = std::chrono::steady_clock;
 using tp = steady::time_point;
 
 static int g_req_id = 0;
+static std::deque<json> pending_events;
 
 static std::string next_id()
 {
@@ -75,9 +77,18 @@ static bool recv_exact(int fd, void* buf, size_t n, tp deadline)
         int ms = ms_left(deadline);
         if (ms == 0) return false;
         struct pollfd pfd = { fd, POLLIN, 0 };
-        if (poll(&pfd, 1, ms) <= 0) return false;
+        const int ready = poll(&pfd, 1, ms);
+        if (ready < 0 && errno == EINTR) continue;
+        if (ready <= 0) {
+            std::println(stderr, "MEP read {}", ready == 0 ? "timed out" : strerror(errno));
+            return false;
+        }
         ssize_t r = read(fd, ptr + got, n - got);
-        if (r <= 0) return false;
+        if (r < 0 && errno == EINTR) continue;
+        if (r <= 0) {
+            std::println(stderr, "MEP connection {}", r == 0 ? "closed" : strerror(errno));
+            return false;
+        }
         got += static_cast<size_t>(r);
     }
     return true;
@@ -88,11 +99,16 @@ static std::optional<json> recv_frame(int fd, tp deadline)
     uint8_t len_buf[4];
     if (!recv_exact(fd, len_buf, 4, deadline)) return std::nullopt;
     uint32_t len = len_buf[0] | (uint32_t(len_buf[1]) << 8) | (uint32_t(len_buf[2]) << 16) | (uint32_t(len_buf[3]) << 24);
+    if (len == 0 || len > 4 * 1024 * 1024) {
+        std::println(stderr, "Invalid MEP frame length: {}", len);
+        return std::nullopt;
+    }
     std::vector<uint8_t> payload(len);
     if (!recv_exact(fd, payload.data(), len, deadline)) return std::nullopt;
     try {
         return json::from_msgpack(payload);
-    } catch (...) {
+    } catch (const std::exception& error) {
+        std::println(stderr, "Invalid MEP message: {}", error.what());
         return std::nullopt;
     }
 }
@@ -119,9 +135,14 @@ static std::optional<json> mep_request(int fd, const std::string& method, const 
         { "params", params    }
     };
     if (!send_frame(fd, req)) return std::nullopt;
-    return recv_frame(fd, deadline);
+    while (auto frame = recv_frame(fd, deadline)) {
+        if (frame->value("id", "") == req["id"].get<std::string>()) return frame;
+        if (frame->value("type", "") == "event") pending_events.push_back(std::move(*frame));
+    }
+    return std::nullopt;
 }
 
+#ifdef __linux__
 static void kill_existing_steam()
 {
     if (system("pkill -x steam > /dev/null 2>&1") == 0) {
@@ -182,6 +203,7 @@ static pid_t launch_steam()
     std::thread(stream_prefixed, pipefd[0], "[steam] ").detach();
     return pid;
 }
+#endif
 
 static bool wait_for_socket(const std::string& path, int timeout_secs)
 {
@@ -224,6 +246,7 @@ int main(int argc, char* argv[])
     std::string dump_file = "/tmp/sdk-health-dump.json";
     double timeout_sec = 60.0;
     bool no_launch = false;
+    bool fresh = false;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -235,10 +258,19 @@ int main(int argc, char* argv[])
             timeout_sec = std::stod(argv[++i]);
         else if (arg == "--no-launch")
             no_launch = true;
+        else if (arg == "--fresh")
+            fresh = true;
     }
 
     pid_t steam_pid = -1;
     int sock_fd = -1;
+
+#ifdef __APPLE__
+    if (!no_launch) {
+        std::println(stderr, "On macOS, launch the test Steam session separately and use --no-launch.");
+        return 1;
+    }
+#endif
 
     auto cleanup = [&]()
     {
@@ -262,7 +294,9 @@ int main(int argc, char* argv[])
                 steam_pid = -1;
             }
         }
-        kill_existing_steam();
+#ifdef __linux__
+        if (!no_launch) kill_existing_steam();
+#endif
     };
 
     signal(SIGTERM, [](int)
@@ -270,11 +304,14 @@ int main(int argc, char* argv[])
         exit(1);
     });
 
+#ifdef __linux__
     if (!no_launch) {
         kill_existing_steam();
         unlink(mep_socket.c_str());
         steam_pid = launch_steam();
+        if (steam_pid < 0) return 1;
     }
+#endif
 
     std::print("waiting to connect to MEP...");
     if (!wait_for_socket(mep_socket, 30)) {
@@ -312,9 +349,16 @@ int main(int argc, char* argv[])
     }
     const std::string exc_sub_id = (*exc_resp)["result"]["subscription_id"].get<std::string>();
 
-    auto ready_resp = mep_request(sock_fd, "sdk.ready", nullptr, race_deadline);
+    const json ready_params = fresh ? json{ { "replay", false } } : json(nullptr);
+    auto ready_resp = mep_request(sock_fd, "sdk.ready", ready_params, race_deadline);
     if (!ready_resp || !(*ready_resp)["error"].is_null()) {
         std::println(stderr, "FAIL: sdk.ready subscribe error");
+        cleanup();
+        return 1;
+    }
+
+    if (fresh && (*ready_resp)["result"].value("replay", true)) {
+        std::println(stderr, "FAIL: runtime does not support sdk.ready without replay");
         cleanup();
         return 1;
     }
@@ -330,13 +374,20 @@ int main(int argc, char* argv[])
         return rc;
     };
 
-    if (!(*ready_resp)["result"]["ready"].is_null()) return on_sdk_ready((*ready_resp)["result"]["ready"]);
+    if (!fresh && !(*ready_resp)["result"]["ready"].is_null()) return on_sdk_ready((*ready_resp)["result"]["ready"]);
 
     const std::string ready_sub_id = (*ready_resp)["result"]["subscription_id"].get<std::string>();
     std::println("subscribed exceptions={}#ready={}. waiting ...", exc_sub_id, ready_sub_id);
+    std::fflush(stdout);
 
     while (ms_left(race_deadline) > 0) {
-        auto event = recv_frame(sock_fd, race_deadline);
+        std::optional<json> event;
+        if (!pending_events.empty()) {
+            event = std::move(pending_events.front());
+            pending_events.pop_front();
+        } else {
+            event = recv_frame(sock_fd, race_deadline);
+        }
         if (!event) break;
 
         auto& ev = *event;
@@ -368,7 +419,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::println(stderr, "FAIL: timed out after {}s waiting for sdk.ready", timeout_sec);
+    std::println(stderr, "FAIL: SDK readiness was not confirmed (timeout or transport failure)");
     cleanup();
     return 1;
 }

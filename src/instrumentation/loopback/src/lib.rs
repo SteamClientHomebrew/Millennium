@@ -17,15 +17,16 @@ struct PatchEngine {
 }
 
 impl PatchEngine {
-    fn new() -> Arc<Self> {
-        let engine = Arc::new(PatchEngine {
+    fn new() -> Option<Self> {
+        let channels = ipc::channels_from_args()?;
+        let engine = PatchEngine {
             patch_set: Arc::new(RwLock::new(None)),
             ready: Arc::new((Mutex::new(false), Condvar::new())),
-        });
+        };
 
         let patch_set = Arc::clone(&engine.patch_set);
         let ready = Arc::clone(&engine.ready);
-        ipc::init(move |defs| {
+        ipc::init(channels, move |defs| {
             let mut plugins: Vec<&str> = defs.iter().map(|d| d.plugin.as_str()).collect();
             plugins.sort_unstable();
             plugins.dedup();
@@ -47,17 +48,19 @@ impl PatchEngine {
             cvar.notify_all();
         });
 
-        engine
+        Some(engine)
     }
 }
 
-static ENGINE: OnceLock<Arc<PatchEngine>> = OnceLock::new();
+static ENGINE: OnceLock<Option<PatchEngine>> = OnceLock::new();
 
-fn get_engine() -> &'static Arc<PatchEngine> {
-    ENGINE.get_or_init(|| {
-        logger::init();
-        PatchEngine::new()
-    })
+fn get_engine() -> Option<&'static PatchEngine> {
+    ENGINE
+        .get_or_init(|| {
+            logger::init();
+            PatchEngine::new()
+        })
+        .as_ref()
 }
 
 fn catch_ffi<F, R>(context: &str, fallback: R, f: F) -> R
@@ -146,11 +149,13 @@ fn patch_bytes(url_str: &str, path_str: &str, content: Vec<u8>) -> Vec<u8> {
         content
     };
 
+    let Some(engine) = get_engine() else {
+        return content;
+    };
     let t_total = std::time::Instant::now();
     let size_kb = content.len() as f64 / 1024.0;
 
     {
-        let engine = get_engine();
         {
             let (lock, cvar) = &*engine.ready;
             let ready = lock.lock().unwrap();
@@ -354,4 +359,17 @@ pub unsafe extern "C" fn lb_patch_content(
     };
 
     unsafe { write_output(final_content, out_data, out_size) }
+}
+
+#[test]
+fn builtin_exports_work_without_plugin_ipc() {
+    let source = b"function bL(e){let{nProgress:t,nTransitionSec:n=1,margin:r=`none`}=e;return t}export{bL as unrelated};";
+    let output = patch_bytes(
+        "https://steamloopback.host/test.js",
+        "test.js",
+        source.to_vec(),
+    );
+    assert!(std::str::from_utf8(&output)
+        .unwrap()
+        .contains("bL as __millennium_internal_ProgressBar"));
 }

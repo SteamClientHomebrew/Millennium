@@ -59,7 +59,7 @@ void sdk_ready_bus::notify(const sdk_ready_event& ev)
     }
 }
 
-int sdk_ready_bus::add_listener(listener_fn fn)
+int sdk_ready_bus::add_listener(listener_fn fn, bool replay_last)
 {
     std::optional<sdk_ready_event> replay;
     int id;
@@ -67,7 +67,7 @@ int sdk_ready_bus::add_listener(listener_fn fn)
         std::lock_guard<std::mutex> lock(m_mutex);
         id = ++m_id_counter;
         m_listeners[id] = fn;
-        replay = m_last;
+        if (replay_last) replay = m_last;
     }
     /* replay immediately if the event already fired before this listener registered */
     if (replay) {

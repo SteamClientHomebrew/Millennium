@@ -52,6 +52,8 @@ if(WIN32)
 elseif(APPLE)
     enable_language(OBJCXX)
     list(APPEND SOURCE_FILES "${MILLENNIUM_BASE}/src/platform/macos_window_style.mm")
+    list(APPEND SOURCE_FILES macos/cef_cdp_bridge.c)
+    include_directories(macos)
 endif()
 
 corrosion_import_crate(

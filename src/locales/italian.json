@@ -256,7 +256,7 @@
     "themeInstallerDescription": "Installa un tema utente tramite un ID. Puoi trovare questi ID dopo aver selezionato un tema su",
     "quickCssEditorTitle": "Editor Quick CSS",
     "updateCompletePendingRestart": "Riavvio in attesa",
-    "millenniumUpdateMacOS": "Gli aggiornamenti automatici di Millennium non sono ancora disponibili su macOS.\n\nRicompila il ramo corrente, reinstallalo con `./scripts/install_macos.sh --repair`, quindi riavvia Steam per completare l'aggiornamento alla versione {0}.",
+    "millenniumUpdateMacOS": "Gli aggiornamenti automatici di Millennium non sono ancora disponibili su macOS.\n\nRicompila il ramo corrente, reinstallalo con `millennium setup`, quindi riavvia Steam per completare l'aggiornamento alla versione {0}.",
     "millenniumUpdateLinux": "Per aggiornare Millennium alla versione {0}, esegui il seguente comando nel terminale:\n\n`{1}`",
     "legacyPluginModalTitle": "Avviso di compatibilità dei plugin",
     "legacyPluginModalBody": "Attenzione! I seguenti plugin sono stati sviluppati per una versione precedente di Millennium e non funzionano più. La buona notizia è che potrebbe essere già disponibile un aggiornamento!",

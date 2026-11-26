@@ -336,7 +336,7 @@ std::future<json> cdp_client::send_host(const std::string& method, const json& p
     std::lock_guard<std::mutex> send_lock(m_send_mutex);
     {
         std::lock_guard<std::mutex> lock(m_requests_mutex);
-        if (!m_pending_requests.count(id)) return future;
+        if (m_shutdown.load(std::memory_order_acquire) || !m_pending_requests.count(id)) return future;
     }
     try {
         if (!m_sender(payload)) error = std::make_exception_ptr(std::runtime_error("Send failed"));

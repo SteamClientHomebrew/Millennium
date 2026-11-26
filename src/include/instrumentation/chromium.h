@@ -62,21 +62,26 @@
 #ifndef RTLD_NOLOAD
 #define RTLD_NOLOAD 0
 #endif
+#ifdef __APPLE__
+/* CEF's image, taken from the export the child hook hands over (see
+   millennium_hook_cef_export). Steam may load CEF RTLD_LOCAL, so a global lookup
+   is not enough. */
+extern void* g_cef_handle;
+static inline void* get_cef_handle()
+{
+    return g_cef_handle;
+}
+#else
 static inline void* get_cef_handle()
 {
     static void* handle = NULL;
     if (!handle) {
-#ifdef __APPLE__
-        handle = dlopen("Chromium Embedded Framework", RTLD_LAZY | RTLD_NOLOAD);
-        if (!handle) handle = dlopen("Chromium Embedded Framework", RTLD_LAZY);
-        if (!handle) handle = dlopen(NULL, RTLD_LAZY);
-#else
         handle = dlopen("libcef.so", RTLD_LAZY | RTLD_NOLOAD);
         if (!handle) handle = dlopen("libcef.so", RTLD_LAZY);
-#endif
     }
     return handle;
 }
+#endif
 
 #define CEF_LAZY_LOAD(func_name, return_type, param_types)                                                                                                                         \
     static return_type(*lazy_##func_name) param_types = NULL;                                                                                                                      \

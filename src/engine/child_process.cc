@@ -81,7 +81,9 @@ static PluginProcess::process_metrics read_proc_metrics(pid_t pid)
     return m;
 }
 #elif defined(__APPLE__)
+#include <crt_externs.h>
 #include <mach/mach.h>
+#include <vector>
 
 static PluginProcess::process_metrics read_proc_metrics(pid_t pid)
 {
@@ -151,7 +153,9 @@ PluginProcess::~PluginProcess()
     if (m_pid > 0) {
         if (is_alive()) {
             ::kill(m_pid, SIGTERM);
-            for (int i = 0; i < 30 && is_alive(); ++i)
+            /* a deadline, so oversleeping on a loaded machine cannot stretch the grace period */
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+            while (is_alive() && std::chrono::steady_clock::now() < deadline)
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             if (is_alive()) {
                 ::kill(m_pid, SIGKILL);
@@ -545,13 +549,20 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
 #ifdef _WIN32
     plugin_ipc::socket_fd server_fd = static_cast<plugin_ipc::socket_fd>(::socket(AF_UNIX, SOCK_STREAM, 0));
     if (server_fd == INVALID_SOCKET) {
-#else
+#elif defined(__linux__)
     plugin_ipc::socket_fd server_fd = static_cast<plugin_ipc::socket_fd>(::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0));
+    if (server_fd < 0) {
+#else
+    /* macOS has no SOCK_CLOEXEC; set FD_CLOEXEC after a successful socket() below. */
+    plugin_ipc::socket_fd server_fd = static_cast<plugin_ipc::socket_fd>(::socket(AF_UNIX, SOCK_STREAM, 0));
     if (server_fd < 0) {
 #endif
         LOG_ERROR("[spawn] socket() failed for plugin '{}'", plugin_name);
         return nullptr;
     }
+#if defined(__APPLE__)
+    ::fcntl(server_fd, F_SETFD, FD_CLOEXEC);
+#endif
 
     sockaddr_un addr{};
     addr.sun_family = AF_UNIX;
@@ -621,6 +632,14 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
     }
 #else
     {
+#ifdef __APPLE__
+        /* the plugin VM is ours: give it none of the libraries inserted into steam_osx */
+        std::vector<char*> child_env;
+        for (char** entry = *_NSGetEnviron(); *entry; ++entry) {
+            if (strncmp(*entry, "DYLD_INSERT_LIBRARIES=", 22) != 0) child_env.push_back(*entry);
+        }
+        child_env.push_back(nullptr);
+#endif
         child_pid = ::fork();
         if (child_pid < 0) {
             LOG_ERROR("[spawn] fork() failed for plugin '{}'", plugin_name);
@@ -634,7 +653,12 @@ std::unique_ptr<PluginProcess> spawn_plugin_process(const std::string& plugin_na
             ::prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif
             ::close(server_fd);
+#ifdef __APPLE__
+            char* const child_argv[] = { const_cast<char*>(exe_path.c_str()), const_cast<char*>(socket_path.c_str()), nullptr };
+            ::execve(exe_path.c_str(), child_argv, child_env.data());
+#else
             ::execl(exe_path.c_str(), exe_path.c_str(), socket_path.c_str(), nullptr);
+#endif
             /* execl only returns on error */
             _exit(127);
         }

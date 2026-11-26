@@ -247,7 +247,7 @@
     "themeInstallerDescription": "通过 ID 安装用户主题。可在以下页面选择主题后找到这些 ID：",
     "quickCssEditorTitle": "快速 CSS 编辑器",
     "updateCompletePendingRestart": "等待重启",
-    "millenniumUpdateMacOS": "macOS 尚不支持 Millennium 自动更新。\n\n请重新构建当前分支，并使用 `./scripts/install_macos.sh --repair` 重新安装，然后重启 Steam 以更新到 {0}。",
+    "millenniumUpdateMacOS": "macOS 尚不支持 Millennium 自动更新。\n\n请重新构建当前分支，并使用 `millennium setup` 重新安装，然后重启 Steam 以更新到 {0}。",
     "millenniumUpdateLinux": "要将 Millennium 更新到 {0}，请在终端中运行以下命令：\n\n`{1}`",
     "legacyPluginModalTitle": "插件兼容性警告",
     "legacyPluginModalBody": "注意！以下插件是为旧版 Millennium 构建的，现已无法使用。不过好消息是 — 可能已经有了可用的新版本！",

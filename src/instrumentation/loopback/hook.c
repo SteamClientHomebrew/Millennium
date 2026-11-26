@@ -80,6 +80,8 @@ static void fatal(const char* fmt, ...)
 #define SNARE_STATIC
 #define SNARE_IMPLEMENTATION
 #include "libsnare.h"
+#elif defined(__APPLE__)
+#include "cef_cdp_bridge.h"
 #elif _WIN32
 #define SNARE_STATIC
 #define SNARE_IMPLEMENTATION
@@ -95,6 +97,9 @@ static void fatal(const char* fmt, ...)
 
 #if defined(__linux__) || defined(_WIN32)
 static snare_inline_t g_cef_hook = NULL;
+#elif defined(__APPLE__)
+/** the real cef_browser_host_create_browser, handed over by the child hook (see millennium_hook_cef_export). */
+static void* g_cef_create_browser = NULL;
 #endif
 extern cef_resource_request_handler_t* create_steamloopback_request_handler(const char* url, cef_resource_request_handler_t* inner);
 extern struct _cef_client_t* orig_c;
@@ -230,6 +235,18 @@ void* CEF_CALLBACK lb_on_before_load_hdl(void* self, void* browser, void* frame,
 
 void* CEF_CALLBACK lb_get_resource_hdl(void* self, void* browser, void* frame, void* request)
 {
+#ifdef __APPLE__
+    // The first browser to request a resource starts the in-process CDP bridge,
+    // which relays CDP over the runtime's unix socket (the bootstrap publishes the path).
+    static atomic_bool cdp_started = false;
+    bool expected = false;
+    if (browser && atomic_compare_exchange_strong(&cdp_started, &expected, true)) {
+        const char* socket_path = getenv("MILLENNIUM_CDP_SOCKET");
+        if (socket_path && socket_path[0]) {
+            millennium_cdp_bridge_start((cef_browser_t*)browser, socket_path, get_cef_handle());
+        }
+    }
+#endif
     steamloopback_request_handler_t* handler = (steamloopback_request_handler_t*)self;
     if (!handler->inner_req_handler) {
         return NULL;
@@ -691,7 +708,10 @@ int tramp_cef_browser_host_create_browser(const void* _1, struct _cef_client_t* 
         c->get_request_handler = (struct _cef_request_handler_t * (CEF_CALLBACK*)(void*)) hooked_get_request_handler;
     }
 
-#if defined(_WIN32) || defined(__linux__)
+#if defined(__APPLE__)
+    typedef int (*cef_create_browser_fn)(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
+    return ((cef_create_browser_fn)g_cef_create_browser)(_1, c, _3, _4, _5, _6);
+#elif defined(_WIN32) || defined(__linux__)
     if (!g_cef_hook) {
         fatal("cef_browser_host_create_browser: hook not installed, call dropped");
         return 0;
@@ -708,6 +728,24 @@ int tramp_cef_browser_host_create_browser(const void* _1, struct _cef_client_t* 
     return 0;
 #endif
 }
+
+#if defined(__APPLE__)
+/**
+ * macOS: Steam Helper resolves cef_browser_host_create_browser with dlsym. The
+ * child hook interposes dlsym and calls this with the real export; Steam gets
+ * the wrapper above, which forwards to it. CEF's code is never modified.
+ */
+void* g_cef_handle = NULL;
+
+__attribute__((visibility("default"))) void* millennium_hook_cef_export(const char* symbol, void* real)
+{
+    (void)symbol;
+    Dl_info info;
+    if (!g_cef_handle && dladdr(real, &info)) g_cef_handle = dlopen(info.dli_fname, RTLD_LAZY | RTLD_NOLOAD);
+    g_cef_create_browser = real;
+    return (void*)tramp_cef_browser_host_create_browser;
+}
+#endif
 
 #if defined(__linux__)
 static int find_cef_fn(struct dl_phdr_info* info, size_t size, void* data)

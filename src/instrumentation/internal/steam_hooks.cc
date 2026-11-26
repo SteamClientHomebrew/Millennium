@@ -815,68 +815,9 @@ bool initialize_steam_hooks()
     return true;
 }
 #elif defined(__APPLE__)
-#include "millennium/logger.h"
-
-#include <filesystem>
-#include <unistd.h>
-
+// The bootstrap installs the Steam Helper hook before the runtime loads.
 bool initialize_steam_hooks()
 {
-    const char* configured_port = std::getenv("MILLENNIUM_DEBUG_PORT");
-    std::string debugger_port = (configured_port && configured_port[0] != '\0') ? configured_port : DEFAULT_DEVTOOLS_PORT;
-
-    std::filesystem::path helper_hook_path;
-    std::filesystem::path child_hook_path;
-
-    const char* configured_hook_path = std::getenv("MILLENNIUM_HOOK_HELPER_PATH");
-    if (configured_hook_path && configured_hook_path[0] != '\0') {
-        helper_hook_path = configured_hook_path;
-    } else {
-        const char* runtime_path = std::getenv("MILLENNIUM_RUNTIME_PATH");
-        if (runtime_path && runtime_path[0] != '\0') {
-            const std::filesystem::path runtime_directory = std::filesystem::path(runtime_path).parent_path();
-            helper_hook_path = runtime_directory / "libmillennium_hhx64.dylib";
-            child_hook_path = runtime_directory / "libmillennium_child_hook.dylib";
-        }
-    }
-
-    const char* configured_child_hook_path = std::getenv("MILLENNIUM_CHILD_HOOK_PATH");
-    if (configured_child_hook_path && configured_child_hook_path[0] != '\0') {
-        child_hook_path = configured_child_hook_path;
-    }
-
-    if (helper_hook_path.empty()) {
-        const char* steam_path = std::getenv("MILLENNIUM__STEAM_PATH");
-        if (steam_path && steam_path[0] != '\0') {
-            const std::filesystem::path steam_directory = steam_path;
-            helper_hook_path = steam_directory / "libmillennium_hhx64.dylib";
-            if (child_hook_path.empty()) {
-                child_hook_path = steam_directory / "libmillennium_child_hook.dylib";
-            }
-        }
-    }
-
-    if (helper_hook_path.empty()) {
-        logger.warn("macOS bootstrap-based helper injection could not resolve libmillennium_hhx64.dylib.");
-        return false;
-    }
-
-    if (access(helper_hook_path.c_str(), R_OK) != 0) {
-        logger.warn("macOS bootstrap-based helper injection is not available because '{}' is missing.", helper_hook_path.string());
-        return false;
-    }
-
-    if (child_hook_path.empty()) {
-        logger.warn("macOS bootstrap-based helper injection could not resolve libmillennium_child_hook.dylib.");
-        return false;
-    }
-
-    if (access(child_hook_path.c_str(), R_OK) != 0) {
-        logger.warn("macOS bootstrap-based helper injection is not available because '{}' is missing.", child_hook_path.string());
-        return false;
-    }
-
-    logger.log("Using bootstrap-based Steam Helper injection on macOS with debugger port {}", debugger_port);
     return true;
 }
 #endif

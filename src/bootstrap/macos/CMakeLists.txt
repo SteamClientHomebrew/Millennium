@@ -1,15 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
-project(MacOSBootstrap LANGUAGES CXX)
+project(MacOSBootstrap LANGUAGES C CXX OBJC)
 
 set(CMAKE_CXX_STANDARD 17)
-
-# Resolve repo root robustly for both standalone wrapper builds (-S src/bootstrap/macos)
-# and top-level builds that include this directory.
-if(DEFINED MILLENNIUM_REPO_ROOT)
-    get_filename_component(MILLENNIUM_RESOLVED_ROOT "${MILLENNIUM_REPO_ROOT}" ABSOLUTE)
-else()
-    get_filename_component(MILLENNIUM_RESOLVED_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-endif()
 
 foreach(required_var IN ITEMS MILLENNIUM_OUTPUT_NAME MILLENNIUM_BOOTLOADER_OUTPUT_NAME MILLENNIUM_HOOK_HELPER_OUTPUT_NAME MILLENNIUM_CHILD_HOOK_OUTPUT_NAME)
     if(NOT DEFINED ${required_var})
@@ -29,26 +21,26 @@ set_target_properties(macos-bootstrap PROPERTIES
     SUFFIX ""
 )
 
-add_library(macos-child-hook SHARED child_process_hook.cc)
-target_compile_definitions(macos-child-hook PRIVATE
-    __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
-)
+add_library(macos-child-hook SHARED child_hook.c)
 set_target_properties(macos-child-hook PROPERTIES
     PREFIX ""
     OUTPUT_NAME "${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"
     SUFFIX ""
 )
 
-add_executable(SteamWrapper steam_launcher.cc)
-target_compile_definitions(SteamWrapper PRIVATE
-    __MILLENNIUM_BOOTLOADER_OUTPUT_NAME__="${MILLENNIUM_BOOTLOADER_OUTPUT_NAME}"
-    __MILLENNIUM_OUTPUT_NAME__="${MILLENNIUM_OUTPUT_NAME}"
-    __MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__="${MILLENNIUM_HOOK_HELPER_OUTPUT_NAME}"
-    __MILLENNIUM_CHILD_HOOK_OUTPUT_NAME__="${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"
-    MILLENNIUM_ROOT="${MILLENNIUM_RESOLVED_ROOT}"
-)
-set_target_properties(SteamWrapper PROPERTIES
-    PREFIX ""
-    OUTPUT_NAME "steam_osx"
-    SUFFIX ""
+# Inserted into every process steam_osx spawns, and dyld aborts a launch whose
+# inserted library has no matching slice. On Apple silicon those processes can
+# be arm64, arm64e (Apple system binaries) or x86_64 (under Rosetta).
+if(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+    set_target_properties(macos-child-hook PROPERTIES OSX_ARCHITECTURES "arm64;arm64e;x86_64")
+endif()
+
+# The `millennium` command (see cli/README.md), ad-hoc signed with cs.debugger.
+add_executable(millennium-cli cli/millennium.c cli/native.m)
+set_target_properties(millennium-cli PROPERTIES OUTPUT_NAME "millennium")
+set_source_files_properties(cli/native.m PROPERTIES LANGUAGE OBJC COMPILE_OPTIONS -fobjc-arc)
+target_link_libraries(millennium-cli PRIVATE "-framework AppKit")
+add_custom_command(TARGET millennium-cli POST_BUILD
+    COMMAND codesign --force --entitlements "${CMAKE_CURRENT_SOURCE_DIR}/cli/millennium.entitlements" -s - "$<TARGET_FILE:millennium-cli>"
+    COMMENT "Ad-hoc signing millennium with cs.debugger entitlement"
 )
