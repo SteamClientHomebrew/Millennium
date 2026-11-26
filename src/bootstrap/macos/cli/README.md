@@ -1,59 +1,50 @@
 # `millennium` (macOS)
 
-`millennium` stages the runtime, loads it into the running Steam, and manages
-autostart.
-
 ```
-millennium install [--from DIR] setup + self-sign + autostart on every launch
-millennium setup [--from DIR]   stage the built runtime (release-<hash> + current)
-millennium load                 load Millennium into the running Steam
-millennium watch                load on every Steam launch (sleeps until Steam starts)
-millennium status               show the staged release and Steam state
-millennium uninstall            remove the staged runtime + autostart
+millennium install [--from DIR]  setup, self-sign, and load on every Steam launch
+millennium setup [--from DIR]    stage the built runtime
+millennium load                  load Millennium into the running Steam
+millennium watch                 load on every Steam launch (run by the autostart agent)
+millennium status                show the staged release and Steam state
+millennium uninstall             remove the runtime and autostart; keep plugins and config
 ```
 
-## Signing (no Apple Developer account)
+## Signing
 
 `load` needs `com.apple.security.cs.debugger`, which macOS honors on an ad-hoc
-signature for same-user debugging. `install` self-signs `millennium` locally with
-that entitlement (`millennium.entitlements`); this needs no paid account and no
-notarization.
-The first load prompts once for authorization, then remembers it.
+signature for same-user debugging. `install` signs `millennium` that way, so no
+Apple Developer account or notarization is involved. macOS asks for
+authorization on the first load.
 
 ## Staging
 
-`setup` lays the payload down as `runtime/release-<hash>` (hash = SHA-256 of the
-payload) and swaps the relative `current` symlink onto it by rename. A running
-Steam keeps the files it already mapped; the next launch picks up `current`.
-Re-staging an identical build is a no-op, and old releases are pruned.
+`setup` copies the build into `runtime/release-<hash>` (a SHA-256 of the
+payload) and points the `current` symlink at it. A running Steam keeps the
+files it mapped; the next load uses `current`. Restaging the same build changes
+nothing, and older releases are removed.
 
-## How `load` works
+## Loading
 
-`load` takes the running `steam_osx`'s task port (same user, no sudo) and has it
-`dlopen` the bootstrap on a short-lived pthread. The bootstrap starts the runtime
-and sets `DYLD_INSERT_LIBRARIES` to the child hook (`../dylib_bootstrap.cc`). If
-the CEF browser is already up, it restarts it once so the new one inherits that.
+1. `load` takes `steam_osx`'s task port and has a new thread `dlopen` the
+   bootstrap (`../dylib_bootstrap.cc`). The bootstrap starts the runtime and sets
+   `DYLD_INSERT_LIBRARIES` to the child hook, restarting the CEF browser if it is
+   already up.
+2. In the browser, the child hook (`../child_hook.c`) loads `hhx64` and
+   interposes `dlsym`, so Steam's lookup of `cef_browser_host_create_browser`
+   returns `hhx64`'s wrapper. Every process it lands in removes it from
+   `DYLD_INSERT_LIBRARIES`, so it never spreads past steam_osx's children.
+3. `hhx64` drives CEF's in-process DevTools and talks to the runtime over unix
+   sockets in `~/Library/Application Support/Millennium/`
+   (`src/instrumentation/loopback/macos/`). It stays off if Steam's CEF major
+   differs from the one its struct layout was taken from.
 
-In the browser, the child hook (`../child_hook.c`) loads `hhx64` and interposes
-`dlsym`: Steam Helper resolves `cef_browser_host_create_browser` by name, and
-gets `hhx64`'s wrapper instead. CEF's code is never patched. Each process the
-child hook lands in drops it from `DYLD_INSERT_LIBRARIES`, so it reaches only
-steam_osx's direct children; Millennium's plugin VMs are spawned without it. `hhx64` drives CEF's
-in-process DevTools and talks to the runtime over unix sockets in
-`~/Library/Application Support/Millennium/` (`../cef_cdp_bridge.c`). The bridge
-stays off if the CEF major differs from the layout it was built for.
+`watch` waits for `NSWorkspace` launch notifications (`native.m`), so it loads
+about a second after Steam starts, before the browser exists.
 
-## How `watch` works
-
-The autostart agent runs `watch`, which asks `NSWorkspace` for launch
-notifications and sleeps until Steam starts (`native.m`). It loads within about a
-second of the launch, usually before Steam opens its browser, so that browser
-needs no restart.
+A Rosetta-translated task accepts only arm64 thread state, so `load` refuses a
+Steam started under Rosetta.
 
 ## Logs
-
-Every part logs to the unified log under the `app.steambrew.millennium`
-subsystem (categories `agent`, `bootstrap`, `child-hook`, `cdp`):
 
 ```sh
 log stream --info --predicate 'subsystem == "app.steambrew.millennium"'
@@ -61,5 +52,4 @@ log stream --info --predicate 'subsystem == "app.steambrew.millennium"'
 
 ## Build
 
-`./build.sh` compiles `millennium` and signs it ad hoc, the same way `install`
-signs it on the user's machine.
+`./build.sh` compiles `millennium` for this Mac and signs it ad hoc.
