@@ -11,6 +11,7 @@
 #include <dirent.h>
 #include <dlfcn.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <libgen.h>
 #include <libproc.h>
 #include <limits.h>
@@ -303,10 +304,16 @@ static void remove_tree(const char* path)
     removefile(path, NULL, REMOVEFILE_RECURSIVE);
 }
 
-static int spawn(char* const argv[])
+// Run argv to completion. quiet drops its stderr, for calls whose failure is expected.
+static int spawn(char* const argv[], int quiet)
 {
+    posix_spawn_file_actions_t actions;
+    posix_spawn_file_actions_init(&actions);
+    if (quiet) posix_spawn_file_actions_addopen(&actions, STDERR_FILENO, "/dev/null", O_WRONLY, 0);
     pid_t pid;
-    if (posix_spawnp(&pid, argv[0], NULL, NULL, argv, *_NSGetEnviron()) != 0) return -1;
+    const int spawned = posix_spawnp(&pid, argv[0], &actions, NULL, argv, *_NSGetEnviron());
+    posix_spawn_file_actions_destroy(&actions);
+    if (spawned != 0) return -1;
     int status;
     while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {}
     return status;
@@ -473,17 +480,21 @@ static int cmd_install(const char* from)
     char cli[PATH_MAX];
     snprintf(cli, sizeof(cli), "%s/current/millennium", runtime);
 
-    spawn((char*[]){ "xattr", "-dr", "com.apple.quarantine", (char*)runtime, NULL });
+    spawn((char*[]){ "xattr", "-dr", "com.apple.quarantine", (char*)runtime, NULL }, 0);
 
     char ents[PATH_MAX];
     snprintf(ents, sizeof(ents), "%s/.entitlements.plist", runtime);
     write_debugger_entitlements(ents);
-    spawn((char*[]){ "codesign", "-f", "-s", "-", "--entitlements", ents, cli, NULL });
+    spawn((char*[]){ "codesign", "-f", "-s", "-", "--entitlements", ents, cli, NULL }, 0);
     unlink(ents);
 
-    unlink(PATH_LINK);
-    if (symlink(cli, PATH_LINK) != 0) {
-        fprintf(stderr, "millennium: could not link %s; invoke %s by path\n", PATH_LINK, cli);
+    char linked[PATH_MAX];
+    const ssize_t len = readlink(PATH_LINK, linked, sizeof(linked) - 1);
+    if (len < 0 || (linked[len] = '\0', strcmp(linked, cli) != 0)) {
+        unlink(PATH_LINK);
+        if (symlink(cli, PATH_LINK) != 0) {
+            fprintf(stderr, "millennium: could not link %s; invoke %s by path\n", PATH_LINK, cli);
+        }
     }
 
     char agents[PATH_MAX], plist[PATH_MAX], uid[16];
@@ -492,8 +503,8 @@ static int cmd_install(const char* from)
     agent_plist_path(plist, sizeof(plist));
     snprintf(uid, sizeof(uid), "gui/%u", (unsigned)getuid());
     write_agent_plist(plist, AGENT_LABEL, cli);
-    spawn((char*[]){ "launchctl", "bootout", uid, plist, NULL });
-    spawn((char*[]){ "launchctl", "bootstrap", uid, plist, NULL });
+    spawn((char*[]){ "launchctl", "bootout", uid, plist, NULL }, 1);
+    spawn((char*[]){ "launchctl", "bootstrap", uid, plist, NULL }, 0);
 
     printf("millennium: installed — open Steam and it loads automatically\n");
     return 0;
@@ -504,7 +515,7 @@ static int cmd_uninstall(void)
     char plist[PATH_MAX], uid[16];
     agent_plist_path(plist, sizeof(plist));
     snprintf(uid, sizeof(uid), "gui/%u", (unsigned)getuid());
-    spawn((char*[]){ "launchctl", "bootout", uid, plist, NULL });
+    spawn((char*[]){ "launchctl", "bootout", uid, plist, NULL }, 1);
     unlink(plist);
     unlink(PATH_LINK);
 
