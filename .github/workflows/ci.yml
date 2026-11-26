@@ -13,7 +13,7 @@ on:
         default: false
 
 concurrency:
-  group: ci-build
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -24,13 +24,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
           fetch-depth: 0
 
       - name: Download Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -57,7 +57,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -113,14 +113,14 @@ jobs:
 
       - name: Upload Unsigned Build Artifact
         id: upload-unsigned-artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           include-hidden-files: true
           name: unsigned-millennium-windows
           path: D:/a/millennium-build/
 
       - name: Upload PDB Symbols
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: millennium-pdb
           path: D:/a/pdb/
@@ -140,7 +140,7 @@ jobs:
 
       - name: Upload Signed Build Release
         id: upload-signed-artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           include-hidden-files: true
           name: signed-millennium-windows
@@ -157,7 +157,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -234,11 +234,74 @@ jobs:
         run: bash scripts/linux/check-release-glibc.sh "$HOME/build/usr/lib/millennium"
 
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           include-hidden-files: true
           name: millennium-linux
           path: ~/build/
+
+  build-macos:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-26
+          - arch: x86_64
+            runner: macos-15-intel
+
+    runs-on: ${{ matrix.runner }}
+    # A failed macOS build leaves its package out of the release instead of blocking Windows and Linux.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Update Millennium Version
+        if: ${{ needs.prepare.outputs.version != '' }}
+        run: |
+          echo "# current version of millennium" > ./scripts/version
+          echo "v${{ needs.prepare.outputs.version }}" >> ./scripts/version
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: brew install ninja openssl@3
+
+      - name: Build Millennium
+        run: |
+          cmake --preset osx-${{ matrix.arch }}-release -DGITHUB_ACTION_BUILD=ON -DMILLENNIUM_RUN_TESTS_ON_BUILD=OFF \
+            -DOPENSSL_ROOT_DIR="$(brew --prefix openssl@3)"
+          cmake --build build/osx-${{ matrix.arch }}-release
+
+      - name: Test Millennium
+        run: ctest --test-dir build/osx-${{ matrix.arch }}-release --output-on-failure
+
+      - name: Package Millennium
+        run: |
+          # The payload `millennium setup --from` stages. tar keeps the executable bits
+          # and ad-hoc signatures that an artifact zip would drop.
+          build=build/osx-${{ matrix.arch }}-release
+          payload=~/package/millennium
+          mkdir -p "$payload"
+          cp "$build"/{libmillennium,libmillennium_bootstrap,libmillennium_child_hook,libmillennium_hhx64}.dylib \
+             "$build"/millennium "$build"/libmillennium_luavm_* "$payload/"
+          tar -czf ~/package/millennium-darwin-${{ matrix.arch }}.tar.gz -C "$payload" .
+          find "$payload" -type f -exec stat -f %z {} + | awk '{ s += $1 } END { print s }' \
+            > ~/package/millennium-darwin-${{ matrix.arch }}.installsize
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: millennium-darwin-${{ matrix.arch }}
+          path: ~/package/millennium-darwin-${{ matrix.arch }}.*
 
   test-pkgbuild:
     needs: prepare
@@ -257,7 +320,7 @@ jobs:
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
 
@@ -324,18 +387,18 @@ jobs:
           [ $ARCH_FAIL -eq 0 ] || { echo "ERROR: binary architecture mismatch"; exit 1; }
 
   release:
-    needs: [prepare, build-windows, build-linux, test-pkgbuild]
+    needs: [prepare, build-windows, build-linux, build-macos, test-pkgbuild]
     runs-on: ubuntu-latest
     if: ${{ inputs.release_artifacts == true }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: true
           fetch-depth: 0
 
       - name: Download Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
@@ -345,19 +408,27 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Windows Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: signed-millennium-windows
           path: ./artifacts/windows
 
       - name: Download Linux Build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: millennium-linux
           path: ./artifacts/linux
 
+      - name: Download macOS Builds
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: millennium-darwin-*
+          path: ./artifacts/macos
+          merge-multiple: true
+
       - name: Download PDB Symbols
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: millennium-pdb
           path: ./artifacts/pdb
@@ -386,6 +457,16 @@ jobs:
           sed -i 's#\./artifacts/release/##g' ${linux_release_name}.sha256
           du -sb ./artifacts/linux | awk '{print $1}' > ${linux_release_name}.installsize
 
+          # macOS packages are built and measured on their runners; one may be missing
+          for package in ./artifacts/macos/millennium-darwin-*.tar.gz; do
+            [ -e "$package" ] || continue
+            macos_release_name="./artifacts/release/millennium-v${{ needs.prepare.outputs.version }}-$(basename "$package" .tar.gz | sed 's/^millennium-//')"
+            cp "$package" ${macos_release_name}.tar.gz
+            cp "${package%.tar.gz}.installsize" ${macos_release_name}.installsize
+            sha256sum ${macos_release_name}.tar.gz > ${macos_release_name}.sha256
+            sed -i 's#\./artifacts/release/##g' ${macos_release_name}.sha256
+          done
+
           pdb_name="millennium-v${{ needs.prepare.outputs.version }}-pdb"
           pdb_release_name="./artifacts/release/${pdb_name}"
           cd ./artifacts/pdb && zip -r ../release/${pdb_name}.zip . && cd ../..
@@ -405,7 +486,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.ref_name }}
 
@@ -451,12 +532,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.update-pkgbuild.outputs.updated_sha }}
 
       - name: Publish AUR package
-        uses: KSXGitHub/github-actions-deploy-aur@master
+        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
         with:
           pkgname: millennium
           pkgbuild: ./packages/arch/PKGBUILD
