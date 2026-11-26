@@ -30,7 +30,8 @@
 
 # https://github.com/SteamClientHomebrew/Millennium/blob/main/scripts/install.sh
 
-readonly GITHUB_ACCOUNT="SteamClientHomebrew/Millennium"
+# MILLENNIUM_REPO points the installer at a fork, for its releases and CI runs.
+readonly GITHUB_ACCOUNT="${MILLENNIUM_REPO:-SteamClientHomebrew/Millennium}"
 readonly RELEASES_URI="https://api.github.com/repos/${GITHUB_ACCOUNT}/releases"
 readonly DOWNLOAD_URI="https://github.com/${GITHUB_ACCOUNT}/releases/download"
 readonly NIGHTLY_URI="https://nightly.link/${GITHUB_ACCOUNT}/actions/runs"
