@@ -1,7 +1,7 @@
 // millennium — the macOS command for Millennium. See cli/README.md.
 
-#if !defined(__APPLE__) || !defined(__aarch64__)
-#error "millennium targets arm64 macOS only."
+#if !defined(__APPLE__) || !(defined(__aarch64__) || defined(__x86_64__))
+#error "millennium targets arm64 and x86_64 macOS."
 #endif
 
 #include <CommonCrypto/CommonDigest.h>
@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
 #include <unistd.h>
 
 #include "native.h"
@@ -35,7 +36,10 @@
 #define DEBUG_MARKER ".cef-enable-remote-debugging"
 #define PATH_LINK "/usr/local/bin/millennium"
 #define AGENT_LABEL "com.millennium.loader"
-#define RETURN_SENTINEL 0xdead0000dead0000ull  // dlopen returns here and faults; we catch it
+// The loader thread returns here and faults, which tells load_into it is done. It
+// lies in __PAGEZERO: always unmapped, and a valid address on arm64 and x86_64,
+// so the fault reports exactly this address on both.
+#define RETURN_SENTINEL 0xdead0000ull
 
 extern NDR_record_t NDR_record;
 
@@ -95,8 +99,69 @@ static void drop_debug_marker(const char* steam_path)
     unlink(marker);  // keep Steam's TCP debug port closed
 }
 
+#if defined(__aarch64__)
+#define THREAD_FLAVOR ARM_THREAD_STATE64
+#else
+#define THREAD_FLAVOR x86_THREAD_STATE64
+#endif
+
+// Start `th` in pthread_create_from_mach_thread(tid, NULL, dlopen, path), so a
+// real pthread with TLS runs dlopen. Its return goes to RETURN_SENTINEL, which
+// faults into the exception port and lets load_into reap the thread.
+static kern_return_t start_loader_thread(task_t task, thread_act_t th, void* spawn, void* dlopen_fn, mach_vm_address_t path, mach_vm_address_t stack_top)
+{
+    const uint64_t tid_slot = path + 0x800;  // scratch space in the path's page
+#if defined(__aarch64__)
+    (void)task;
+    arm_thread_state64_t state;
+    memset(&state, 0, sizeof(state));
+    __darwin_arm_thread_state64_set_pc_fptr(state, spawn);
+    state.__x[0] = tid_slot;
+    state.__x[1] = 0;
+    state.__x[2] = (uint64_t)dlopen_fn;
+    state.__x[3] = path;
+    state.__lr = RETURN_SENTINEL;
+    state.__sp = stack_top;
+    return thread_set_state(th, ARM_THREAD_STATE64, (thread_state_t)&state, ARM_THREAD_STATE64_COUNT);
+#else
+    // The return address lives on the stack; a function entered by `call` sees
+    // rsp = 8 (mod 16).
+    const uint64_t sentinel = RETURN_SENTINEL;
+    const mach_vm_address_t sp = stack_top - sizeof(sentinel);
+    mach_vm_write(task, sp, (vm_offset_t)&sentinel, sizeof(sentinel));
+    x86_thread_state64_t state;
+    memset(&state, 0, sizeof(state));
+    state.__rip = (uint64_t)spawn;
+    state.__rdi = tid_slot;
+    state.__rsi = 0;
+    state.__rdx = (uint64_t)dlopen_fn;
+    state.__rcx = path;
+    state.__rsp = sp;
+    return thread_set_state(th, x86_THREAD_STATE64, (thread_state_t)&state, x86_THREAD_STATE64_COUNT);
+#endif
+}
+
+// A Rosetta-translated task only takes arm64 thread state, so the x86_64 path
+// works on Intel Macs but not against a translated Steam.
+static int is_translated(pid_t pid)
+{
+    struct kinfo_proc info;
+    size_t size = sizeof(info);
+    int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, pid };
+    return sysctl(mib, 4, &info, &size, NULL, 0) == 0 && (info.kp_proc.p_flag & P_TRANSLATED);
+}
+
 static int load_into(pid_t pid, const char* dylib)
 {
+    if (is_translated(pid)) {
+        fprintf(stderr, "millennium: Steam (pid %d) runs under Rosetta and cannot be loaded into; quit it and open Steam natively\n", pid);
+        return 1;
+    }
+    if (is_translated(getpid())) {
+        fprintf(stderr, "millennium: this command runs under Rosetta; run it natively\n");
+        return 1;
+    }
+
     void* dlopen_addr = dlsym(RTLD_DEFAULT, "dlopen");
     void* spawn_addr = dlsym(RTLD_DEFAULT, "pthread_create_from_mach_thread");
     if (!dlopen_addr || !spawn_addr) {
@@ -112,7 +177,7 @@ static int load_into(pid_t pid, const char* dylib)
         return 1;
     }
 
-    // the path of the dylib to load
+    // the path of the dylib to load; it stays mapped for dlopen to read
     size_t len = strlen(dylib) + 1;
     mach_vm_address_t path_region = 0;
     mach_vm_allocate(task, &path_region, 0x1000, VM_FLAGS_ANYWHERE);
@@ -123,49 +188,46 @@ static int load_into(pid_t pid, const char* dylib)
 
     // a fresh thread, suspended until the fault handler is armed
     thread_act_t th = MACH_PORT_NULL;
+    mach_port_t exc = MACH_PORT_NULL;
+    exc_request_t req;
+    memset(&req, 0, sizeof(req));
     kr = thread_create(task, &th);
     if (kr != KERN_SUCCESS) {
         fprintf(stderr, "millennium: thread_create failed: %s\n", mach_error_string(kr));
-        return 1;
+        goto done;
     }
 
-    mach_port_t exc = MACH_PORT_NULL;
     mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &exc);
     mach_port_insert_right(mach_task_self(), exc, exc, MACH_MSG_TYPE_MAKE_SEND);
     thread_set_exception_ports(th, EXC_MASK_BAD_ACCESS | EXC_MASK_BAD_INSTRUCTION, exc,
-                               EXCEPTION_DEFAULT | MACH_EXCEPTION_CODES, ARM_THREAD_STATE64);
+                               EXCEPTION_DEFAULT | MACH_EXCEPTION_CODES, THREAD_FLAVOR);
 
-    // Have a real pthread call dlopen(path): pthread_create_from_mach_thread
-    // gives it proper TLS. x2 = start = dlopen, x3 = arg = path; lr = sentinel so
-    // the return faults and the handler below can reap this thread.
-    arm_thread_state64_t state;
-    memset(&state, 0, sizeof(state));
-    __darwin_arm_thread_state64_set_pc_fptr(state, spawn_addr);
-    state.__x[0] = path_region + 0x800;  // scratch tid slot in the same page
-    state.__x[1] = 0;
-    state.__x[2] = (uint64_t)dlopen_addr;
-    state.__x[3] = path_region;
-    state.__lr = RETURN_SENTINEL;
-    state.__sp = (stack + 0x200000 - 0x1000) & ~0xFULL;
-    thread_set_state(th, ARM_THREAD_STATE64, (thread_state_t)&state, ARM_THREAD_STATE64_COUNT);
+    kr = start_loader_thread(task, th, spawn_addr, dlopen_addr, path_region, (stack + 0x200000 - 0x1000) & ~0xFULL);
+    if (kr != KERN_SUCCESS) {
+        fprintf(stderr, "millennium: thread_set_state failed: %s\n", mach_error_string(kr));
+        goto done;
+    }
     thread_resume(th);
 
-    exc_request_t req;
-    memset(&req, 0, sizeof(req));
-    // The fault means the pthread running dlopen exists; it no longer needs this
-    // thread or its stack. The path stays mapped for dlopen to read.
+    // Faulting at the sentinel means pthread_create_from_mach_thread returned and
+    // the pthread running dlopen exists; this thread and its stack are done.
     kr = mach_msg(&req.Head, MACH_RCV_MSG | MACH_RCV_TIMEOUT, 0, sizeof(req), exc, 8000, MACH_PORT_NULL);
-    thread_terminate(th);
-    mach_port_deallocate(mach_task_self(), th);
-    mach_port_mod_refs(mach_task_self(), exc, MACH_PORT_RIGHT_RECEIVE, -1);
+    if (kr != KERN_SUCCESS) {
+        fprintf(stderr, "millennium: the loader thread did not finish: %s\n", mach_error_string(kr));
+    } else if (req.exception != EXC_BAD_ACCESS || (uint64_t)req.code[1] != RETURN_SENTINEL) {
+        fprintf(stderr, "millennium: the loader thread faulted (exception %d at 0x%llx)\n", req.exception, (unsigned long long)req.code[1]);
+        kr = KERN_FAILURE;
+    }
+
+done:
+    if (th != MACH_PORT_NULL) {
+        thread_terminate(th);
+        mach_port_deallocate(mach_task_self(), th);
+    }
+    if (exc != MACH_PORT_NULL) mach_port_mod_refs(mach_task_self(), exc, MACH_PORT_RIGHT_RECEIVE, -1);
     mach_vm_deallocate(task, stack, 0x200000);
     mach_port_deallocate(mach_task_self(), task);
-
-    if (kr != KERN_SUCCESS) {
-        fprintf(stderr, "millennium: load did not complete (no sentinel fault)\n");
-        return 1;
-    }
-    return 0;
+    return kr == KERN_SUCCESS ? 0 : 1;
 }
 
 static int bootstrap_path(char* out, size_t size)
@@ -480,6 +542,7 @@ static int usage(void)
 
 int main(int argc, char** argv)
 {
+    setlinebuf(stdout);  // keep progress lines in order with errors when piped
     if (argc < 2) return usage();
     const char* cmd = argv[1];
     if (strcmp(cmd, "install") == 0 || strcmp(cmd, "setup") == 0) {
