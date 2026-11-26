@@ -26,10 +26,14 @@ set_target_properties(macos-child-hook PROPERTIES
     PREFIX ""
     OUTPUT_NAME "${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"
     SUFFIX ""
-    # Loaded into every process Steam spawns, including arm64e Apple system
-    # binaries; dyld needs a matching slice or those processes abort on launch.
-    OSX_ARCHITECTURES "arm64;arm64e;x86_64"
 )
+
+# Inserted into every process steam_osx spawns, and dyld aborts a launch whose
+# inserted library has no matching slice. On Apple silicon those processes can
+# be arm64, arm64e (Apple system binaries) or x86_64 (under Rosetta).
+if(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64")
+    set_target_properties(macos-child-hook PROPERTIES OSX_ARCHITECTURES "arm64;arm64e;x86_64")
+endif()
 
 # The `millennium` command (see cli/README.md), ad-hoc signed with cs.debugger.
 add_executable(millennium-cli cli/millennium.c cli/native.m)

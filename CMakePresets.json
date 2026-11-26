@@ -94,25 +94,55 @@
       }
     },
     {
+      "name": "osx",
+      "hidden": true,
       "inherits": "default",
-      "name": "osx-release",
-      "displayName": "osx-release",
-      "description": "MacOS release build.",
-      "binaryDir": "${sourceDir}/build/osx-release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_OSX_SYSROOT": "macosx"
       }
     },
     {
-      "inherits": "default",
-      "name": "osx-debug",
-      "displayName": "osx-debug",
-      "description": "MacOS debug build.",
-      "binaryDir": "${sourceDir}/build/osx-debug",
+      "inherits": "osx",
+      "name": "osx-arm64-release",
+      "displayName": "osx-arm64-release",
+      "description": "macOS release build for Apple silicon.",
+      "binaryDir": "${sourceDir}/build/osx-arm64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_OSX_ARCHITECTURES": "arm64"
+      }
+    },
+    {
+      "inherits": "osx",
+      "name": "osx-arm64-debug",
+      "displayName": "osx-arm64-debug",
+      "description": "macOS debug build for Apple silicon.",
+      "binaryDir": "${sourceDir}/build/osx-arm64-debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_OSX_SYSROOT": "macosx"
+        "CMAKE_OSX_ARCHITECTURES": "arm64"
+      }
+    },
+    {
+      "inherits": "osx",
+      "name": "osx-x86_64-release",
+      "displayName": "osx-x86_64-release",
+      "description": "macOS release build for Intel.",
+      "binaryDir": "${sourceDir}/build/osx-x86_64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_OSX_ARCHITECTURES": "x86_64"
+      }
+    },
+    {
+      "inherits": "osx",
+      "name": "osx-x86_64-debug",
+      "displayName": "osx-x86_64-debug",
+      "description": "macOS debug build for Intel.",
+      "binaryDir": "${sourceDir}/build/osx-x86_64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_OSX_ARCHITECTURES": "x86_64"
       }
     },
     {
