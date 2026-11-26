@@ -184,6 +184,16 @@ verify_checksum() {
     fi >/dev/null
 }
 
+# /usr/local/bin belongs to root on Apple silicon; ask for the password only to make this link.
+link_command() {
+    local cli="${HOME}/Library/Application Support/Millennium/runtime/current/millennium"
+    local link="/usr/local/bin/millennium"
+    [ "$(readlink "${link}")" = "${cli}" ] && return 0
+    ln -sf "${cli}" "${link}" 2>/dev/null && return 0
+    log "linking ${link} (sudo)..."
+    sudo mkdir -p "${link%/*}" && sudo ln -sf "${cli}" "${link}" || warn "could not link ${link}; run ${cli} by path"
+}
+
 install_millennium() {
     local extract_path="$1"
 
@@ -191,6 +201,7 @@ install_millennium() {
         is_macos && log "[DRY RUN] Would run ${extract_path}/millennium install" \
                  || log "[DRY RUN] Would copy files from ${extract_path} to /"
     elif is_macos; then
+        link_command
         "${extract_path}/millennium" install --from "${extract_path}"
     else
         sudo cp -r "${extract_path}"/* / || true
