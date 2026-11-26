@@ -243,7 +243,7 @@ void* CEF_CALLBACK lb_get_resource_hdl(void* self, void* browser, void* frame, v
     if (browser && atomic_compare_exchange_strong(&cdp_started, &expected, true)) {
         const char* socket_path = getenv("MILLENNIUM_CDP_SOCKET");
         if (socket_path && socket_path[0]) {
-            millennium_cdp_bridge_start((cef_browser_t*)browser, socket_path);
+            millennium_cdp_bridge_start((cef_browser_t*)browser, socket_path, get_cef_handle());
         }
     }
 #endif
@@ -735,9 +735,13 @@ int tramp_cef_browser_host_create_browser(const void* _1, struct _cef_client_t* 
  * child hook interposes dlsym and calls this with the real export; Steam gets
  * the wrapper above, which forwards to it. CEF's code is never modified.
  */
+void* g_cef_handle = NULL;
+
 __attribute__((visibility("default"))) void* millennium_hook_cef_export(const char* symbol, void* real)
 {
     (void)symbol;
+    Dl_info info;
+    if (!g_cef_handle && dladdr(real, &info)) g_cef_handle = dlopen(info.dli_fname, RTLD_LAZY | RTLD_NOLOAD);
     g_cef_create_browser = real;
     return (void*)tramp_cef_browser_host_create_browser;
 }
