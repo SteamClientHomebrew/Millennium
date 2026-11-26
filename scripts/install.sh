@@ -50,13 +50,18 @@ format_size() {
 verify_platform() {
     case $(uname -sm) in
         "Linux x86_64") echo "linux-x86_64" ;;
-        *) log "Unsupported platform $(uname -sm). x86_64 is the only available platform."; exit 1 ;;
+        # Steam runs natively, so a shell under Rosetta still needs the arm64 build.
+        Darwin*) [ "$(sysctl -in hw.optional.arm64)" = 1 ] && echo "darwin-arm64" || echo "darwin-x86_64" ;;
+        *) log "Unsupported platform $(uname -sm). Millennium supports Linux x86_64 and macOS."; exit 1 ;;
     esac
 }
 
+is_macos() { [[ "${target}" == darwin-* ]]; }
+
 check_dependencies() {
     log "resolving dependencies..."
-    local deps=(curl tar jq sudo)
+    local deps=(curl tar jq)
+    is_macos || deps+=(sudo)
     [ -n "${RUN_ID}" ] && deps+=(unzip)
     for cmd in "${deps[@]}"; do
         command -v "${cmd}" >/dev/null || {
@@ -121,18 +126,26 @@ fetch_release_info() {
 fetch_artifact_from_run() {
     local run_id="$1"
     local dest_dir="$2"
-    local zip_url="${NIGHTLY_URI}/${run_id}/millennium-linux.zip"
+    local artifact="millennium-linux"
+    is_macos && artifact="millennium-${target}"
+    local zip_url="${NIGHTLY_URI}/${run_id}/${artifact}.zip"
     local zip_file="${dest_dir}.zip"
 
     mkdir -p "${dest_dir}"
     log "downloading from nightly.link (no auth required)..."
     if ! curl --fail --location --output "${zip_file}" "${zip_url}"; then
-        log "Download failed. Check that run ${run_id} exists, is from a public repo, and has a 'millennium-linux' artifact."
+        log "Download failed. Check that run ${run_id} exists, is from a public repo, and has a '${artifact}' artifact."
         return 1
     fi
 
     unzip -q "${zip_file}" -d "${dest_dir}"
     rm -f "${zip_file}"
+
+    # The macOS artifact wraps the release tarball, which keeps the executable bits.
+    if is_macos; then
+        tar xzf "${dest_dir}/${artifact}.tar.gz" -C "${dest_dir}"
+        rm -f "${dest_dir}/${artifact}".*
+    fi
 }
 
 confirm_installation() {
@@ -161,13 +174,25 @@ extract_package() {
     tar xzf "${tar_file}" -C "${extract_dir}"
 }
 
+# macOS has a BSD sha256sum, which lacks --status, or none before macOS 14.
+verify_checksum() {
+    if command -v sha256sum >/dev/null; then
+        sha256sum -c -
+    else
+        shasum -a 256 -c -
+    fi >/dev/null
+}
+
 install_millennium() {
     local extract_path="$1"
 
-    if [ "${DRY_RUN}" -eq 0 ]; then
-        sudo cp -r "${extract_path}"/* / || true
+    if [ "${DRY_RUN}" -eq 1 ]; then
+        is_macos && log "[DRY RUN] Would run ${extract_path}/millennium install" \
+                 || log "[DRY RUN] Would copy files from ${extract_path} to /"
+    elif is_macos; then
+        "${extract_path}/millennium" install --from "${extract_path}"
     else
-        log "[DRY RUN] Would copy files from ${extract_path} to /"
+        sudo cp -r "${extract_path}"/* / || true
     fi
 }
 
@@ -231,8 +256,8 @@ main() {
     check_dependencies
     check_ssl_i386
 
-    install_dir="${DRY_RUN:+./dry-run}"
-    install_dir="${install_dir:-${INSTALL_DIR}}"
+    install_dir="${INSTALL_DIR}"
+    [ "${DRY_RUN}" -eq 1 ] && install_dir="./dry-run"
     extract_path="${install_dir}/files"
 
     rm -rf "${install_dir}"
@@ -244,7 +269,7 @@ main() {
         log "receiving packages..."
 
         log "(1/2) Downloading and unpacking artifact from run ${RUN_ID}..."
-        fetch_artifact_from_run "${RUN_ID}" "${extract_path}"
+        fetch_artifact_from_run "${RUN_ID}" "${extract_path}" || exit 1
         log "(2/2) Installing millennium..."
         install_millennium "${extract_path}"
     else
@@ -259,7 +284,7 @@ main() {
         sha256digest=$(curl -sL "${sha256_uri}")
         installed_size=$(format_size "$(curl -sL "${install_size_uri}")")
 
-        log "\nPackages (1) millennium@${tag}-x86_64\n"
+        log "\nPackages (1) millennium@${tag}-${target#*-}\n"
         log "Total Download Size:  $(printf "%10s\n" "${size}")"
         log "Total Installed Size: $(printf "%10s\n" "${installed_size}")"
 
@@ -269,9 +294,9 @@ main() {
         tar_file="${install_dir}/millennium-v${tag}-${target}.tar.gz"
 
         log "(1/4) Downloading millennium-v${tag}-${target}.tar.gz..."
-        download_package "${download_uri}" "${tar_file}"
+        download_package "${download_uri}" "${tar_file}" || exit 1
         log "(2/4) Verifying checksums..."
-        if (cd "${install_dir}" && echo "${sha256digest}" | sha256sum -c --status); then
+        if (cd "${install_dir}" && echo "${sha256digest}" | verify_checksum); then
             echo -ne "\033[1A"
             log "(2/4) Verifying checksums... OK"
         else
@@ -284,9 +309,11 @@ main() {
         install_millennium "${extract_path}"
     fi
 
-    log ":: Running post-install scripts..."
-    log "(1/1) Setting up shared object preloader hook..."
-    post_install
+    if ! is_macos; then
+        log ":: Running post-install scripts..."
+        log "(1/1) Setting up shared object preloader hook..."
+        post_install
+    fi
 
     cleanup "${install_dir}"
 
