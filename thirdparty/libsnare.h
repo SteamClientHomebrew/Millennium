@@ -1170,7 +1170,7 @@ SNARE_EXPORT int SNARE_API snare_inline_install(snare_inline_t hook) {
   return 0;
 }
 SNARE_EXPORT int SNARE_API snare_inline_remove(snare_inline_t hook) {
-  if (!hook->installed)
+  if (hook == NULL || !hook->installed)
     return -EINVAL;
 
 #ifdef SNARE_WINDOWS
