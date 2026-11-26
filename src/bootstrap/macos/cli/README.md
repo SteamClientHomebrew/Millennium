@@ -1,48 +1,41 @@
 # `millennium` (macOS)
 
-The macOS command for Millennium. It stages the runtime, loads it into the Steam
-you already have open, and reports state — one binary, no launcher, no debug
-port, no changes to any Steam file.
+`millennium` stages the runtime, loads it into the running Steam, and manages
+autostart.
 
 ```
-millennium install [--from DIR] setup + self-sign + load on every Steam launch
-millennium setup [--from DIR]   copy the built runtime into place
+millennium install [--from DIR] setup + self-sign + autostart on every launch
+millennium setup [--from DIR]   stage the built runtime (release-<hash> + current)
 millennium load                 load Millennium into the running Steam
 millennium watch                load on every Steam launch (stays resident)
-millennium status               show runtime + Steam state
+millennium status               show the staged release and Steam state
 millennium uninstall            remove the staged runtime + autostart
 ```
 
-## Installing (no Apple Developer account)
+## Signing (no Apple Developer account)
 
-The one-line installer (`curl -fsSL https://steambrew.app/install.sh | bash`)
-downloads the build and runs `millennium install`. `install` stages the runtime,
-clears the download quarantine, **ad-hoc signs** `millennium` locally with the
-`cs.debugger` entitlement (macOS honors that for same-user debugging — no paid
-account, no notarization), and registers a per-user LaunchAgent that runs
-`millennium watch`. From then on you open the real Steam.app and Millennium loads
-into it.
+`load` needs `com.apple.security.cs.debugger`, which macOS honors on an ad-hoc
+signature for same-user debugging. `install` self-signs `millennium` locally with
+that entitlement (`millennium.entitlements`); this needs no paid account and no
+notarization.
+The first load prompts once for authorization, then remembers it.
 
-The first load asks for one macOS authorization (an admin password, the standard
-"take control of another process" prompt); after that it is remembered. No Xcode
-and no developer-mode setup are required.
+## Staging
+
+`setup` lays the payload down as `runtime/release-<hash>` (hash = SHA-256 of the
+payload) and swaps the relative `current` symlink onto it by rename. A running
+Steam keeps the files it already mapped; the next launch picks up `current`.
+Re-staging an identical build is a no-op, and old releases are pruned.
 
 ## How `load` works
 
-You open the real `/Applications/Steam.app` and it starts normally. `millennium
-load` then loads the bootstrap into the running `steam_osx` the way a debugger
-loads a library into a running process: it takes the process's task port (needs
-`com.apple.security.cs.debugger`, same user, no sudo) and has the process call
-its own `dlopen` on a short-lived pthread. Steam keeps running.
-
-The loaded bootstrap brings up Millennium's CDP channel over Steam's own
-`--remote-debugging-pipe` (`../dylib_bootstrap.cc`, `../got_rebind.h`).
+`load` takes the running `steam_osx`'s task port (same user, no sudo) and has it
+`dlopen` the bootstrap on a short-lived pthread. The bootstrap starts the runtime
+and restarts the CEF browser once so it loads the hook (`../dylib_bootstrap.cc`).
+The hook drives CEF's in-process DevTools and talks to the runtime over unix
+sockets in `~/Library/Application Support/Millennium/` (`../cef_cdp_bridge.c`).
 
 ## Build
 
-```bash
-./build.sh
-```
-
-Compiles and ad-hoc signs `millennium` with `cs.debugger` — the same signature
-that ships, which `millennium install` re-applies on the user's machine.
+`./build.sh` compiles `millennium` and signs it ad hoc, the same way `install`
+signs it on the user's machine.
