@@ -81,13 +81,6 @@ static void fatal(const char* fmt, ...)
 #define SNARE_IMPLEMENTATION
 #include "libsnare.h"
 #elif defined(__APPLE__)
-#include <dlfcn.h>
-#include <libkern/OSCacheControl.h>
-#include <mach/mach.h>
-#include <mach/mach_vm.h>
-#include <pthread.h>
-#include <sys/mman.h>
-#include <unistd.h>
 #include "cef_cdp_bridge.h"
 #elif _WIN32
 #define SNARE_STATIC
@@ -105,8 +98,8 @@ static void fatal(const char* fmt, ...)
 #if defined(__linux__) || defined(_WIN32)
 static snare_inline_t g_cef_hook = NULL;
 #elif defined(__APPLE__)
-/** original cef_browser_host_create_browser, reached through a trampoline (see macos_initialize_trampoline). */
-static void* g_cef_trampoline = NULL;
+/** the real cef_browser_host_create_browser, handed over by the child hook (see millennium_hook_cef_export). */
+static void* g_cef_create_browser = NULL;
 #endif
 extern cef_resource_request_handler_t* create_steamloopback_request_handler(const char* url, cef_resource_request_handler_t* inner);
 extern struct _cef_client_t* orig_c;
@@ -717,11 +710,7 @@ int tramp_cef_browser_host_create_browser(const void* _1, struct _cef_client_t* 
 
 #if defined(__APPLE__)
     typedef int (*cef_create_browser_fn)(const void*, struct _cef_client_t*, void*, const void*, void*, void*);
-    if (!g_cef_trampoline) {
-        fatal("cef_browser_host_create_browser: hook not installed, call dropped");
-        return 0;
-    }
-    return ((cef_create_browser_fn)g_cef_trampoline)(_1, c, _3, _4, _5, _6);
+    return ((cef_create_browser_fn)g_cef_create_browser)(_1, c, _3, _4, _5, _6);
 #elif defined(_WIN32) || defined(__linux__)
     if (!g_cef_hook) {
         fatal("cef_browser_host_create_browser: hook not installed, call dropped");
@@ -742,91 +731,16 @@ int tramp_cef_browser_host_create_browser(const void* _1, struct _cef_client_t* 
 
 #if defined(__APPLE__)
 /**
- * macOS (arm64): Steam Helper links the Chromium Embedded Framework directly, so
- * by the time libmillennium_child_hook dlopens this library the framework is
- * mapped and cef_browser_host_create_browser can be found with RTLD_DEFAULT.
- *
- * libsnare's arm64 path allocates its trampoline on the heap and makes it RWX,
- * which Apple Silicon refuses. Instead: the trampoline lives in a MAP_JIT page,
- * and the 16-byte entry patch goes through mach_vm_protect(VM_PROT_COPY), which
- * Steam Helper allows because it has no hardened runtime.
- *
- * Both the patch and the jump back are `ldr x16, #8; br x16; .quad target`
- * (x16 is the intra-procedure scratch register, free at a function entry).
- * The copied prologue must be position independent; this is checked below.
+ * macOS: Steam Helper resolves cef_browser_host_create_browser with dlsym. The
+ * child hook interposes dlsym and calls this with the real export; Steam gets
+ * the wrapper above, which forwards to it. CEF's code is never modified.
  */
-#if defined(__aarch64__)
-#define MLNM_ARM64_PATCH_LEN 16
-
-static void mlnm_arm64_abs_jump(uint32_t* at, const void* target)
+__attribute__((visibility("default"))) void* millennium_hook_cef_export(const char* symbol, void* real)
 {
-    at[0] = 0x58000050; /* ldr x16, #8 */
-    at[1] = 0xd61f0200; /* br  x16 */
-    memcpy(&at[2], &target, sizeof(target));
+    (void)symbol;
+    g_cef_create_browser = real;
+    return (void*)tramp_cef_browser_host_create_browser;
 }
-
-/** true if the instruction does not depend on its own address. */
-static bool mlnm_arm64_is_position_independent(uint32_t insn)
-{
-    if ((insn & 0x1f000000) == 0x10000000) return false; /* adr, adrp */
-    if ((insn & 0x7c000000) == 0x14000000) return false; /* b, bl */
-    if ((insn & 0xfe000000) == 0x54000000) return false; /* b.cond */
-    if ((insn & 0x7e000000) == 0x34000000) return false; /* cbz, cbnz */
-    if ((insn & 0x7e000000) == 0x36000000) return false; /* tbz, tbnz */
-    if ((insn & 0x3b000000) == 0x18000000) return false; /* ldr (literal) */
-    return true;
-}
-
-__attribute__((constructor)) static void macos_initialize_trampoline(void)
-{
-    uint8_t* cef_fn = (uint8_t*)dlsym(RTLD_DEFAULT, "cef_browser_host_create_browser");
-    if (!cef_fn) {
-        fatal("hook: cef_browser_host_create_browser not found");
-        return;
-    }
-
-    uint32_t prologue[MLNM_ARM64_PATCH_LEN / 4];
-    memcpy(prologue, cef_fn, sizeof(prologue));
-    for (size_t i = 0; i < MLNM_ARM64_PATCH_LEN / 4; i++) {
-        if (!mlnm_arm64_is_position_independent(prologue[i])) {
-            fatal("hook: cef_browser_host_create_browser prologue is not relocatable (insn %zu = %08x)", i, prologue[i]);
-            return;
-        }
-    }
-
-    const size_t page = (size_t)sysconf(_SC_PAGESIZE);
-    uint8_t* tramp = (uint8_t*)mmap(NULL, page, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANON | MAP_JIT, -1, 0);
-    if (tramp == MAP_FAILED) {
-        fatal("hook: trampoline mmap failed");
-        return;
-    }
-    pthread_jit_write_protect_np(0);
-    memcpy(tramp, prologue, sizeof(prologue));
-    mlnm_arm64_abs_jump((uint32_t*)(tramp + MLNM_ARM64_PATCH_LEN), cef_fn + MLNM_ARM64_PATCH_LEN);
-    pthread_jit_write_protect_np(1);
-    sys_icache_invalidate(tramp, 2 * MLNM_ARM64_PATCH_LEN);
-
-    const mach_vm_address_t page_start = (mach_vm_address_t)((uintptr_t)cef_fn & ~(uintptr_t)(page - 1));
-    const mach_vm_size_t span = (mach_vm_size_t)(((uintptr_t)cef_fn + MLNM_ARM64_PATCH_LEN) - (uintptr_t)page_start);
-    kern_return_t kr = mach_vm_protect(mach_task_self(), page_start, span, FALSE, VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
-    if (kr != KERN_SUCCESS) {
-        fatal("hook: mach_vm_protect(write) failed: %d", kr);
-        munmap(tramp, page);
-        return;
-    }
-
-    uint32_t patch[MLNM_ARM64_PATCH_LEN / 4];
-    mlnm_arm64_abs_jump(patch, (const void*)tramp_cef_browser_host_create_browser);
-    g_cef_trampoline = tramp; /* publish before the entry can reach the hook */
-    memcpy(cef_fn, patch, sizeof(patch));
-
-    kr = mach_vm_protect(mach_task_self(), page_start, span, FALSE, VM_PROT_READ | VM_PROT_EXECUTE);
-    sys_icache_invalidate(cef_fn, MLNM_ARM64_PATCH_LEN);
-    if (kr != KERN_SUCCESS) {
-        fatal("hook: mach_vm_protect(restore) failed: %d", kr);
-    }
-}
-#endif
 #endif
 
 #if defined(__linux__)

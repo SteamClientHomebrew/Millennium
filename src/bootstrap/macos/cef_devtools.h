@@ -7,6 +7,10 @@
 
 #include <stddef.h>
 
+// The layout below is only valid for this CEF major; the bridge checks
+// cef_version_info(0) against it before touching a browser.
+#define CEF_LAYOUT_MAJOR 126
+
 typedef struct _cef_base_ref_counted_t
 {
     size_t size;

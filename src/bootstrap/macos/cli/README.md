@@ -7,7 +7,7 @@ autostart.
 millennium install [--from DIR] setup + self-sign + autostart on every launch
 millennium setup [--from DIR]   stage the built runtime (release-<hash> + current)
 millennium load                 load Millennium into the running Steam
-millennium watch                load on every Steam launch (stays resident)
+millennium watch                load on every Steam launch (sleeps until Steam starts)
 millennium status               show the staged release and Steam state
 millennium uninstall            remove the staged runtime + autostart
 ```
@@ -31,9 +31,31 @@ Re-staging an identical build is a no-op, and old releases are pruned.
 
 `load` takes the running `steam_osx`'s task port (same user, no sudo) and has it
 `dlopen` the bootstrap on a short-lived pthread. The bootstrap starts the runtime
-and restarts the CEF browser once so it loads the hook (`../dylib_bootstrap.cc`).
-The hook drives CEF's in-process DevTools and talks to the runtime over unix
-sockets in `~/Library/Application Support/Millennium/` (`../cef_cdp_bridge.c`).
+and sets `DYLD_INSERT_LIBRARIES` to the child hook (`../dylib_bootstrap.cc`). If
+the CEF browser is already up, it restarts it once so the new one inherits that.
+
+In the browser, the child hook (`../child_hook.c`) loads `hhx64` and interposes
+`dlsym`: Steam Helper resolves `cef_browser_host_create_browser` by name, and
+gets `hhx64`'s wrapper instead. CEF's code is never patched. `hhx64` drives CEF's
+in-process DevTools and talks to the runtime over unix sockets in
+`~/Library/Application Support/Millennium/` (`../cef_cdp_bridge.c`). The bridge
+stays off if the CEF major differs from the layout it was built for.
+
+## How `watch` works
+
+The autostart agent runs `watch`, which asks `NSWorkspace` for launch
+notifications and sleeps until Steam starts (`watch.m`). It loads within about a
+second of the launch, usually before Steam opens its browser, so that browser
+needs no restart.
+
+## Logs
+
+Every part logs to the unified log under the `app.steambrew.millennium`
+subsystem (categories `agent`, `bootstrap`, `child-hook`, `cdp`):
+
+```sh
+log stream --info --predicate 'subsystem == "app.steambrew.millennium"'
+```
 
 ## Build
 

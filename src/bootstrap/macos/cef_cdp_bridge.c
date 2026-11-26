@@ -3,6 +3,7 @@
 
 #include <dlfcn.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <os/log.h>
 #include <pthread.h>
 #include <stdatomic.h>
@@ -21,11 +22,45 @@ static int (*cef_post_task)(int thread_id, cef_task_t* task);
 
 static struct
 {
+    os_log_t log;
     int fd;  // runtime socket
     cef_browser_host_t* host;
     cef_registration_t* registration;
     pthread_mutex_t write_lock;
 } g = { .fd = -1, .write_lock = PTHREAD_MUTEX_INITIALIZER };
+
+// Ref counting for our own CEF objects. `type` holds `iface` (whose first member
+// is the CEF base) and an atomic `refs`; `destroy` runs when the last ref goes.
+#define CEF_REFCOUNTED(prefix, type, destroy)                                                                                                                                       \
+    static void prefix##_add_ref(cef_base_ref_counted_t* self)                                                                                                                     \
+    {                                                                                                                                                                              \
+        atomic_fetch_add(&((type*)self)->refs, 1);                                                                                                                                 \
+    }                                                                                                                                                                              \
+    static int prefix##_release(cef_base_ref_counted_t* self)                                                                                                                      \
+    {                                                                                                                                                                              \
+        if (atomic_fetch_sub(&((type*)self)->refs, 1) != 1) return 0;                                                                                                              \
+        destroy((type*)self);                                                                                                                                                      \
+        return 1;                                                                                                                                                                  \
+    }                                                                                                                                                                              \
+    static int prefix##_has_one_ref(cef_base_ref_counted_t* self)                                                                                                                  \
+    {                                                                                                                                                                              \
+        return atomic_load(&((type*)self)->refs) == 1;                                                                                                                             \
+    }                                                                                                                                                                              \
+    static int prefix##_has_at_least_one_ref(cef_base_ref_counted_t* self)                                                                                                         \
+    {                                                                                                                                                                              \
+        return atomic_load(&((type*)self)->refs) >= 1;                                                                                                                             \
+    }                                                                                                                                                                              \
+    static type* prefix##_alloc(void)                                                                                                                                              \
+    {                                                                                                                                                                              \
+        type* object = calloc(1, sizeof(type));                                                                                                                                    \
+        object->iface.base.size = sizeof(object->iface);                                                                                                                           \
+        object->iface.base.add_ref = prefix##_add_ref;                                                                                                                             \
+        object->iface.base.release = prefix##_release;                                                                                                                             \
+        object->iface.base.has_one_ref = prefix##_has_one_ref;                                                                                                                     \
+        object->iface.base.has_at_least_one_ref = prefix##_has_at_least_one_ref;                                                                                                   \
+        atomic_store(&object->refs, 1);                                                                                                                                            \
+        return object;                                                                                                                                                             \
+    }
 
 static int write_all(const void* buf, size_t n)
 {
@@ -52,26 +87,11 @@ typedef struct
     _Atomic int refs;
 } observer_t;
 
-static void observer_add_ref(cef_base_ref_counted_t* self)
+static void observer_destroy(observer_t* o)
 {
-    atomic_fetch_add(&((observer_t*)self)->refs, 1);
+    free(o);
 }
-static int observer_release(cef_base_ref_counted_t* self)
-{
-    if (atomic_fetch_sub(&((observer_t*)self)->refs, 1) == 1) {
-        free(self);
-        return 1;
-    }
-    return 0;
-}
-static int observer_has_one_ref(cef_base_ref_counted_t* self)
-{
-    return atomic_load(&((observer_t*)self)->refs) == 1;
-}
-static int observer_has_at_least_one_ref(cef_base_ref_counted_t* self)
-{
-    return atomic_load(&((observer_t*)self)->refs) >= 1;
-}
+CEF_REFCOUNTED(observer, observer_t, observer_destroy)
 
 static int on_dev_tools_message(cef_dev_tools_message_observer_t* self, cef_browser_t* browser, const void* message, size_t size)
 {
@@ -84,20 +104,7 @@ static int on_dev_tools_message(cef_dev_tools_message_observer_t* self, cef_brow
     return 1;  // handled; skip the parsed method/event callbacks
 }
 
-static observer_t* observer_new(void)
-{
-    observer_t* o = calloc(1, sizeof(*o));
-    o->iface.base.size = sizeof(cef_dev_tools_message_observer_t);
-    o->iface.base.add_ref = observer_add_ref;
-    o->iface.base.release = observer_release;
-    o->iface.base.has_one_ref = observer_has_one_ref;
-    o->iface.base.has_at_least_one_ref = observer_has_at_least_one_ref;
-    o->iface.on_dev_tools_message = on_dev_tools_message;  // CEF skips the NULL callbacks
-    atomic_store(&o->refs, 1);
-    return o;
-}
-
-// --- generic ref-counted CEF task carrying a payload ------------------------
+// --- tasks: work posted to the CEF UI thread ---------------------------------
 
 typedef struct cdp_task_t
 {
@@ -109,28 +116,13 @@ typedef struct cdp_task_t
     size_t len;
 } cdp_task_t;
 
-static void task_add_ref(cef_base_ref_counted_t* self)
+static void task_destroy(cdp_task_t* t)
 {
-    atomic_fetch_add(&((cdp_task_t*)self)->refs, 1);
+    free(t->data);
+    free(t);
 }
-static int task_release(cef_base_ref_counted_t* self)
-{
-    cdp_task_t* t = (cdp_task_t*)self;
-    if (atomic_fetch_sub(&t->refs, 1) == 1) {
-        free(t->data);
-        free(t);
-        return 1;
-    }
-    return 0;
-}
-static int task_has_one_ref(cef_base_ref_counted_t* self)
-{
-    return atomic_load(&((cdp_task_t*)self)->refs) == 1;
-}
-static int task_has_at_least_one_ref(cef_base_ref_counted_t* self)
-{
-    return atomic_load(&((cdp_task_t*)self)->refs) >= 1;
-}
+CEF_REFCOUNTED(task, cdp_task_t, task_destroy)
+
 static void task_execute(cef_task_t* self)
 {
     cdp_task_t* t = (cdp_task_t*)self;
@@ -139,15 +131,9 @@ static void task_execute(cef_task_t* self)
 
 static cdp_task_t* task_new(void (*run)(cdp_task_t*))
 {
-    cdp_task_t* t = calloc(1, sizeof(*t));
-    t->iface.base.size = sizeof(cef_task_t);
-    t->iface.base.add_ref = task_add_ref;
-    t->iface.base.release = task_release;
-    t->iface.base.has_one_ref = task_has_one_ref;
-    t->iface.base.has_at_least_one_ref = task_has_at_least_one_ref;
+    cdp_task_t* t = task_alloc();
     t->iface.execute = task_execute;
     t->run = run;
-    atomic_store(&t->refs, 1);
     return t;
 }
 
@@ -181,6 +167,7 @@ static void* reader_loop(void* arg)
     char chunk[8192];
     for (;;) {
         ssize_t got = read(g.fd, chunk, sizeof(chunk));
+        if (got < 0 && errno == EINTR) continue;
         if (got <= 0) break;
         if (len + (size_t)got > cap) {
             cap = (len + (size_t)got) * 2;
@@ -198,6 +185,7 @@ static void* reader_loop(void* arg)
         len -= start;
     }
     free(buf);
+    os_log(g.log, "runtime closed the CDP socket");
     return NULL;
 }
 
@@ -210,11 +198,14 @@ static void run_start(cdp_task_t* t)
     browser->base.release(&browser->base);
 
     // CEF adopts the observer's reference; the registration keeps it alive.
-    g.registration = g.host->add_dev_tools_message_observer(g.host, &observer_new()->iface);
+    observer_t* observer = observer_alloc();
+    observer->iface.on_dev_tools_message = on_dev_tools_message;  // CEF skips the NULL callbacks
+    g.registration = g.host->add_dev_tools_message_observer(g.host, &observer->iface);
 
     pthread_t reader;
     pthread_create(&reader, NULL, reader_loop, NULL);
     pthread_detach(reader);
+    os_log(g.log, "CDP bridge attached");
 }
 
 // The runtime may not have bound its socket yet when the first resource request
@@ -226,6 +217,7 @@ static int connect_runtime(const char* path)
     for (int attempt = 0; attempt < 100; ++attempt) {
         int fd = socket(AF_UNIX, SOCK_STREAM, 0);
         if (fd < 0) return -1;
+        fcntl(fd, F_SETFD, FD_CLOEXEC);  // keep it out of the renderers
         if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) == 0) return fd;
         close(fd);
         usleep(100 * 1000);
@@ -244,24 +236,31 @@ static void* connect_worker(void* arg)
     start_args_t* a = arg;
     g.fd = connect_runtime(a->path);
     if (g.fd < 0) {
-        os_log_error(OS_LOG_DEFAULT, "millennium: could not reach the runtime at %{public}s (%{public}s)", a->path, strerror(errno));
+        os_log_error(g.log, "could not reach the runtime at %{public}s (%{public}s)", a->path, strerror(errno));
+        a->browser->base.release(&a->browser->base);
     } else {
         cdp_task_t* t = task_new(run_start);
         t->browser = a->browser;  // the task takes over our reference
         post(t);
-        a->browser = NULL;
     }
-    if (a->browser) a->browser->base.release(&a->browser->base);
     free(a);
     return NULL;
 }
 
 int millennium_cdp_bridge_start(cef_browser_t* browser, const char* socket_path)
 {
+    g.log = os_log_create("app.steambrew.millennium", "cdp");
+
     // libcef is already in the process; its C exports resolve through the global scope.
+    int (*version_info)(int entry) = dlsym(RTLD_DEFAULT, "cef_version_info");
     cef_post_task = dlsym(RTLD_DEFAULT, "cef_post_task");
-    if (!cef_post_task) {
-        os_log_error(OS_LOG_DEFAULT, "millennium: cef_post_task is unavailable");
+    if (!version_info || !cef_post_task) {
+        os_log_error(g.log, "CEF exports are missing; the CDP bridge stays off");
+        return -1;
+    }
+    const int major = version_info(0);
+    if (major != CEF_LAYOUT_MAJOR) {
+        os_log_error(g.log, "CEF %d is not the CEF %d layout this bridge was built for; the CDP bridge stays off", major, CEF_LAYOUT_MAJOR);
         return -1;
     }
 

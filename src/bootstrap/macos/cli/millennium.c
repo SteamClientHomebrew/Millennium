@@ -17,6 +17,7 @@
 #include <mach/mach.h>
 #include <mach/mach_vm.h>
 #include <mach/thread_status.h>
+#include <os/log.h>
 #include <spawn.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -25,7 +26,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "watch.h"
+
 #define STEAM_MAIN_SUFFIX "/Steam.AppBundle/Steam/Contents/MacOS/steam_osx"
+#define STEAM_BUNDLE_ID "com.valvesoftware.steam"
 #define BOOTSTRAP_NAME "libmillennium_bootstrap.dylib"
 #define DEBUG_MARKER ".cef-enable-remote-debugging"
 #define PATH_LINK "/usr/local/bin/millennium"
@@ -71,21 +75,25 @@ static void mkdirs(const char* path)
     mkdir(buf, 0755);
 }
 
-// Match steam_osx by its executable path, so a CEF helper that merely carries
-// that path in its arguments is not mistaken for the main process.
+// Match steam_osx by its executable path. /Applications/Steam.app shares the
+// bundle id and executable name but is only the launcher, and a CEF helper may
+// carry the path in its arguments.
+static int is_steam_main(pid_t pid, char* out_path, size_t out_size)
+{
+    char path[PROC_PIDPATHINFO_MAXSIZE];
+    int len = proc_pidpath(pid, path, sizeof(path));
+    size_t suffix = strlen(STEAM_MAIN_SUFFIX);
+    if (len <= 0 || (size_t)len < suffix || strcmp(path + len - suffix, STEAM_MAIN_SUFFIX) != 0) return 0;
+    if (out_path && out_size) snprintf(out_path, out_size, "%s", path);
+    return 1;
+}
+
 static pid_t find_steam(char* out_path, size_t out_size)
 {
     pid_t pids[4096];
     int n = proc_listallpids(pids, sizeof(pids));
-    char path[PROC_PIDPATHINFO_MAXSIZE];
-    size_t suffix = strlen(STEAM_MAIN_SUFFIX);
     for (int i = 0; i < n; i++) {
-        if (pids[i] <= 0) continue;
-        int len = proc_pidpath(pids[i], path, sizeof(path));
-        if (len <= 0 || (size_t)len < suffix) continue;
-        if (strcmp(path + len - suffix, STEAM_MAIN_SUFFIX) != 0) continue;
-        if (out_path && out_size) snprintf(out_path, out_size, "%s", path);
-        return pids[i];
+        if (pids[i] > 0 && is_steam_main(pids[i], out_path, out_size)) return pids[i];
     }
     return 0;
 }
@@ -156,11 +164,14 @@ static int load_into(pid_t pid, const char* dylib)
 
     exc_request_t req;
     memset(&req, 0, sizeof(req));
+    // The fault means the pthread running dlopen exists; it no longer needs this
+    // thread or its stack. The path stays mapped for dlopen to read.
     kr = mach_msg(&req.Head, MACH_RCV_MSG | MACH_RCV_TIMEOUT, 0, sizeof(req), exc, 8000, MACH_PORT_NULL);
-    if (kr == KERN_SUCCESS) usleep(1500 * 1000);  // let dlopen finish (runs the bootstrap constructor)
-
     thread_terminate(th);
-    mach_port_deallocate(mach_task_self(), exc);
+    mach_port_deallocate(mach_task_self(), th);
+    mach_port_mod_refs(mach_task_self(), exc, MACH_PORT_RIGHT_RECEIVE, -1);
+    mach_vm_deallocate(task, stack, 0x200000);
+    mach_port_deallocate(mach_task_self(), task);
 
     if (kr != KERN_SUCCESS) {
         fprintf(stderr, "millennium: load did not complete (no sentinel fault)\n");
@@ -195,29 +206,32 @@ static int cmd_load(void)
     return 0;
 }
 
+static char g_boot[PATH_MAX];
+
+static void on_steam_launch(pid_t pid)
+{
+    static os_log_t log;
+    if (!log) log = os_log_create("app.steambrew.millennium", "agent");
+    char steam_path[PATH_MAX];
+    if (!is_steam_main(pid, steam_path, sizeof(steam_path))) return;
+    drop_debug_marker(steam_path);
+    if (load_into(pid, g_boot) == 0) {
+        os_log(log, "loaded into steam_osx (pid %d)", pid);
+    } else {
+        os_log_error(log, "could not load into steam_osx (pid %d)", pid);
+    }
+}
+
+// Sleeps until Steam launches; NSWorkspace wakes it, so there is no polling.
 static int cmd_watch(void)
 {
-    char boot[PATH_MAX];
-    if (!bootstrap_path(boot, sizeof(boot))) {
+    if (!bootstrap_path(g_boot, sizeof(g_boot))) {
         fprintf(stderr, "millennium: no staged runtime — run `millennium setup` first\n");
         return 1;
     }
     printf("millennium: watching for Steam — open it normally and it loads\n");
-    pid_t loaded = 0;
-    for (;;) {
-        char steam_path[PATH_MAX];
-        pid_t pid = find_steam(steam_path, sizeof(steam_path));
-        if (pid && pid != loaded) {
-            drop_debug_marker(steam_path);
-            if (load_into(pid, boot) == 0) {
-                printf("millennium: loaded into pid %d\n", pid);
-                loaded = pid;
-            }
-        } else if (!pid) {
-            loaded = 0;  // Steam closed; arm for the next launch
-        }
-        sleep(2);
-    }
+    watch_app_launches(STEAM_BUNDLE_ID, on_steam_launch);
+    return 0;
 }
 
 static const char* kPayload[] = {
@@ -458,6 +472,7 @@ static int cmd_install(const char* from)
             "  <key>ProgramArguments</key><array><string>%s</string><string>watch</string></array>\n"
             "  <key>RunAtLoad</key><true/>\n"
             "  <key>KeepAlive</key><true/>\n"
+            "  <key>LimitLoadToSessionType</key><string>Aqua</string>\n"
             "</dict></plist>\n",
             AGENT_LABEL, cli);
         fclose(f);
@@ -504,7 +519,7 @@ static int usage(void)
             "  install [--from DIR] setup + self-sign + autostart on every Steam launch\n"
             "  setup [--from DIR]   stage the built runtime only\n"
             "  load                 load Millennium into the running Steam\n"
-            "  watch                load on every Steam launch (stays resident)\n"
+            "  watch                load on every Steam launch (sleeps until Steam starts)\n"
             "  status               show runtime + Steam state\n"
             "  uninstall            remove the staged runtime + autostart\n");
     return 2;

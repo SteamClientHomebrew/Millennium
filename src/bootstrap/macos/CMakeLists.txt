@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(MacOSBootstrap LANGUAGES C CXX)
+project(MacOSBootstrap LANGUAGES C CXX OBJC)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -21,7 +21,7 @@ set_target_properties(macos-bootstrap PROPERTIES
     SUFFIX ""
 )
 
-add_library(macos-child-hook SHARED child_process_hook.cc)
+add_library(macos-child-hook SHARED child_hook.c)
 set_target_properties(macos-child-hook PROPERTIES
     PREFIX ""
     OUTPUT_NAME "${MILLENNIUM_CHILD_HOOK_OUTPUT_NAME}"
@@ -32,8 +32,10 @@ set_target_properties(macos-child-hook PROPERTIES
 )
 
 # The `millennium` command (see cli/README.md), ad-hoc signed with cs.debugger.
-add_executable(millennium-cli cli/millennium.c)
+add_executable(millennium-cli cli/millennium.c cli/watch.m)
 set_target_properties(millennium-cli PROPERTIES OUTPUT_NAME "millennium")
+set_source_files_properties(cli/watch.m PROPERTIES LANGUAGE OBJC COMPILE_OPTIONS -fobjc-arc)
+target_link_libraries(millennium-cli PRIVATE "-framework AppKit")
 add_custom_command(TARGET millennium-cli POST_BUILD
     COMMAND codesign --force --entitlements "${CMAKE_CURRENT_SOURCE_DIR}/cli/millennium.entitlements" -s - "$<TARGET_FILE:millennium-cli>"
     COMMENT "Ad-hoc signing millennium with cs.debugger entitlement"

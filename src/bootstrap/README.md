@@ -5,7 +5,7 @@
 - Windows -> wsock32.dll
 - Linux (32-bit client, `ubuntu12_32/steam`) -> `libXtst.so.6` proxy hook (`libmillennium_bootstrap_x86.so`, built by the opt-in `-x86` presets)
 - Linux (SteamRT3 64-bit client, `steamrt64/steam`) -> `libXtst.so.6` proxy hook (`libmillennium_bootstrap_x64.so`, built by the default Linux presets)
-- macOS -> the `millennium` command (`macos/cli/`) loads `macos/dylib_bootstrap.cc` into the running `steam_osx`; the bootstrap restarts the CEF browser once so it loads `hhx64`. See `scripts/macos/README.md`.
+- macOS -> the `millennium` command (`macos/cli/`) loads `macos/dylib_bootstrap.cc` into the running `steam_osx`; the child hook loads `hhx64` into the CEF browser. See `scripts/macos/README.md`.
 
 ## Linux runtime dependencies
 

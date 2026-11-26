@@ -4,8 +4,8 @@
 #include <libproc.h>
 #include <limits.h>
 #include <mach-o/dyld.h>
+#include <os/log.h>
 #include <signal.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -15,6 +15,7 @@
 typedef int (*millennium_entry_t)(void);
 
 static void* g_millennium_handle = nullptr;
+static os_log_t g_log;
 
 static bool is_steam_main_process()
 {
@@ -51,6 +52,7 @@ static void relaunch_cef_browser()
         if ((pid_t)info.pbi_ppid != getpid()) continue;
         if (proc_pidpath(pids[index], path, sizeof(path)) <= 0) continue;
         if (strstr(path, "Steam Helper.app/Contents/MacOS/Steam Helper")) {
+            os_log(g_log, "restarting the CEF browser (pid %d) so it loads the child hook", pids[index]);
             kill(pids[index], SIGKILL);
             return;
         }
@@ -60,12 +62,13 @@ static void relaunch_cef_browser()
 __attribute__((constructor)) static void bootstrap_init()
 {
     if (!is_steam_main_process()) return;
+    g_log = os_log_create("app.steambrew.millennium", "bootstrap");
 
     const std::string runtime = sibling(__MILLENNIUM_OUTPUT_NAME__);
     const std::string child_hook = sibling(__MILLENNIUM_CHILD_HOOK_OUTPUT_NAME__);
     const std::string helper_hook = sibling(__MILLENNIUM_HOOK_HELPER_OUTPUT_NAME__);
     if (runtime.empty() || child_hook.empty() || helper_hook.empty()) {
-        fprintf(stderr, "[Millennium] The staged runtime is incomplete; run `millennium setup`.\n");
+        os_log_error(g_log, "the staged runtime is incomplete; run `millennium setup`");
         return;
     }
 
@@ -84,13 +87,13 @@ __attribute__((constructor)) static void bootstrap_init()
 
     g_millennium_handle = dlopen(runtime.c_str(), RTLD_NOW | RTLD_GLOBAL);
     if (!g_millennium_handle) {
-        fprintf(stderr, "[Millennium] Failed to load runtime library: %s\n", dlerror());
+        os_log_error(g_log, "could not load the runtime: %{public}s", dlerror());
         return;
     }
 
     auto start = (millennium_entry_t)dlsym(g_millennium_handle, "StartMillennium");
     if (!start || start() < 0) {
-        fprintf(stderr, "[Millennium] Failed to start runtime.\n");
+        os_log_error(g_log, "the runtime failed to start");
         dlclose(g_millennium_handle);
         g_millennium_handle = nullptr;
         return;
