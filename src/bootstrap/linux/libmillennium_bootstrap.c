@@ -64,7 +64,7 @@ static const char* get_millennium_library_path(void)
 
 static int load_and_start_millennium(void)
 {
-    h_millennium = dlopen_or_log(k_millennium_path, RTLD_LAZY | RTLD_GLOBAL);
+    h_millennium = dlopen_or_log(k_millennium_path, MILLENNIUM_DLOPEN_FLAGS);
     if (!h_millennium) return 0;
 
     start_millennium_t fn_start = (start_millennium_t)dlsym_or_log(h_millennium, "StartMillennium");

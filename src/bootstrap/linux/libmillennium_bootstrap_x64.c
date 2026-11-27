@@ -203,7 +203,7 @@ static void resolve_real_xtst(void)
 static int load_and_start_millennium(void)
 {
     const char* path = get_millennium_library_path();
-    h_millennium = dlopen(path, RTLD_LAZY | RTLD_GLOBAL);
+    h_millennium = dlopen(path, MILLENNIUM_DLOPEN_FLAGS);
 
     if (!h_millennium) {
         /**
@@ -213,7 +213,7 @@ static int load_and_start_millennium(void)
         char host_path[PATH_MAX];
         if (path[0] == '/') {
             snprintf(host_path, sizeof(host_path), "/run/host%s", path);
-            h_millennium = dlopen(host_path, RTLD_LAZY | RTLD_GLOBAL);
+            h_millennium = dlopen(host_path, MILLENNIUM_DLOPEN_FLAGS);
             if (h_millennium) path = host_path;
         }
     }
