@@ -97,10 +97,7 @@ export class RenderPluginComponent extends Component<PluginComponentProps, Rende
 			try {
 				const configData = await backend.config.plugins.getAll(plugin.data.name);
 				if (configData && Object.keys(configData).length > 0) {
-					const shouldDelete = await Utils.ShowMessageBox(
-						formatString(locale.pluginDeleteConfigPrompt ?? 'Do you want to delete saved settings for {0}?', plugin.data.common_name ?? ''),
-						locale.strHeadsUp,
-					);
+					const shouldDelete = await Utils.ShowMessageBox(formatString(locale.pluginDeleteConfigPrompt, plugin.data.common_name ?? ''), locale.strHeadsUp);
 					if (shouldDelete) {
 						await backend.config.plugins.removeAll(plugin.data.name);
 					}

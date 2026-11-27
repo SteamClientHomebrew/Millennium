@@ -75,6 +75,18 @@ export function setLogViewerAutoSelect(...names: string[]) {
 	pendingAutoSelect = names.filter(Boolean);
 }
 
+/** Display label only; `name` stays untouched because it is used to match logs coming from the backend. */
+function getLogDisplayName(name: string) {
+	switch (name) {
+		case 'Standard Output':
+			return locale.logPanelStandardOutput;
+		case 'Package Manager':
+			return locale.logPanelPackageManager;
+		default:
+			return name;
+	}
+}
+
 export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 	constructor(props: {}) {
 		super(props);
@@ -110,7 +122,7 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		if (this.state.selectedLog !== prevState.selectedLog) {
 			const container = pluginSelf.mainWindow.document.querySelector('.MillenniumSettings .DialogHeader');
 			if (container) {
-				container.textContent = this.state.selectedLog?.name || locale.settingsPanelLogs;
+				container.textContent = getLogDisplayName(this.state.selectedLog?.name ?? '') || locale.settingsPanelLogs;
 			}
 			this.aggregateLogStats();
 		}
@@ -162,7 +174,8 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 		const errors = log?.logs?.filter((log) => log.level === LogLevel.ERROR) ?? [];
 		const warnings = log?.logs?.filter((log) => log.level === LogLevel.WARNING) ?? [];
 
-		const messageType = errors?.length !== 0 ? 'encountered errors' : 'issued warnings';
+		const displayName = getLogDisplayName(log.name);
+		const statusTemplate = errors?.length !== 0 ? locale.logPanelPluginEncounteredErrors : locale.logPanelPluginIssuedWarnings;
 
 		return (
 			<DialogButton
@@ -172,10 +185,10 @@ export class RenderLogViewer extends Component<{}, RenderLogViewerState> {
 				data-error-count={errors?.length}
 				data-warning-count={warnings?.length}
 			>
-				<DesktopTooltip bDisabled={errors?.length === 0 && warnings?.length === 0} toolTipContent={`${log.name} ${messageType}.`} direction="top">
+				<DesktopTooltip bDisabled={errors?.length === 0 && warnings?.length === 0} toolTipContent={formatString(statusTemplate, displayName)} direction="top">
 					<IconsModule.ExclamationPoint />
 				</DesktopTooltip>
-				{log?.name}
+				{displayName}
 			</DialogButton>
 		);
 	};

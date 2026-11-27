@@ -20,7 +20,7 @@ import {
 } from '../../components/SteamComponents';
 import { settingsClasses } from '../../utils/classes';
 import { setEditorCode, setIsMillenniumOpen, setIsWatching, useQuickCssState } from '../../utils/quick-css-state';
-import { locale } from '../../utils/localization-manager';
+import { formatString, locale } from '../../utils/localization-manager';
 import { backend } from '../../utils/ffi';
 import Styles from '../../utils/styles';
 
@@ -243,7 +243,7 @@ export function QuickCssViewModal() {
 						{cssStats.rules || '0'}
 					</Field>
 					<Field label={locale.quickCssSizeOnDisk} icon={<IconsModule.HardDrive />}>
-						{cssStats.kilobytes} KB ({cssStats.bytes} bytes)
+						{cssStats.kilobytes} KB ({formatString(locale.quickCssSizeInBytes, String(cssStats.bytes))})
 					</Field>
 				</DialogControlsSection>
 			)}
