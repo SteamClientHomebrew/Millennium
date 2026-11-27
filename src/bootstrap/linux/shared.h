@@ -21,6 +21,12 @@
 #define COLOR_ERROR "\033[1;31m"
 #define COLOR_WARN "\033[1;33m"
 
+#ifdef RTLD_DEEPBIND
+#define MILLENNIUM_DLOPEN_FLAGS (RTLD_LAZY | RTLD_LOCAL | RTLD_DEEPBIND)
+#else
+#define MILLENNIUM_DLOPEN_FLAGS (RTLD_LAZY | RTLD_LOCAL)
+#endif
+
 #define GET_TIMESTAMP()                                                                                                                                                            \
     ({                                                                                                                                                                             \
         struct timeval tv;                                                                                                                                                         \
