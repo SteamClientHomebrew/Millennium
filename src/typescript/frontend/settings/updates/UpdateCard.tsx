@@ -129,7 +129,15 @@ export class UpdateCard extends Component<UpdateCardProps, UpdateCardState> {
 		}
 
 		const buttonText = downloadSize && downloadSize > 0 ? formatString(locale.strDownloadWithSize, formatDownloadSize(downloadSize)) : locale.strDownload;
-		return <IconButtonWithText name="Download" text={buttonText} onClick={onUpdateClick} disabled={this.props.disabled} tooltip={`Update ${toolTipText || update.name}`} />;
+		return (
+			<IconButtonWithText
+				name="Download"
+				text={buttonText}
+				onClick={onUpdateClick}
+				disabled={this.props.disabled}
+				tooltip={toolTipText || formatString(locale.updatePanelUpdateItem, String(update.name ?? ''))}
+			/>
+		);
 	}
 
 	private makeAnchorExternalLink({ children, ...props }: { children: any; [key: string]: any }) {

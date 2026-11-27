@@ -205,7 +205,9 @@ export const GeneralViewModal: React.FC = () => {
 					<DialogButton
 						className={settingsClasses.SettingsDialogButton}
 						disabled={!config.network.proxy}
-						onClick={() => showCredentialModal(locale.optionProxyUsername, 'Username', false, (v) => handleNetworkChange('proxyUsername', v))}
+						onClick={() =>
+							showCredentialModal(locale.optionProxyUsername, locale.optionProxyUsernamePlaceholder, false, (v) => handleNetworkChange('proxyUsername', v))
+						}
 					>
 						{config.network.proxyUsername ? locale.optionChangeUsername : locale.optionSetUsername}
 					</DialogButton>
@@ -223,7 +225,9 @@ export const GeneralViewModal: React.FC = () => {
 					<DialogButton
 						className={settingsClasses.SettingsDialogButton}
 						disabled={!config.network.proxy}
-						onClick={() => showCredentialModal(locale.optionProxyPassword, 'Password', true, (v) => handleNetworkChange('proxyPassword', v))}
+						onClick={() =>
+							showCredentialModal(locale.optionProxyPassword, locale.optionProxyPasswordPlaceholder, true, (v) => handleNetworkChange('proxyPassword', v))
+						}
 					>
 						{config.network.proxyPassword === '__SET__' ? locale.optionChangePassword : locale.optionSetPassword}
 					</DialogButton>
