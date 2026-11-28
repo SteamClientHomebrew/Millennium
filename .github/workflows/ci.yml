@@ -153,7 +153,7 @@ jobs:
       issues: write
       pull-requests: write
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
@@ -174,6 +174,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo dpkg --add-architecture i386
           sudo apt-get update
           sudo apt-get install -y build-essential gcc-14 g++-14 gcc-14-multilib g++-14-multilib libc6-dev-i386 libgtk-3-dev ninja-build libpsl-dev:i386 libssl-dev:i386 pkg-config:i386 libxtst-dev libxi-dev libx11-dev libssl-dev rustc cargo
@@ -193,6 +194,8 @@ jobs:
           export PKG_CONFIG_LIBDIR="/usr/lib/i386-linux-gnu/pkgconfig"
 
           cmake --preset=linux-release-x86 -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
+            -DCMAKE_SHARED_LINKER_FLAGS="-static-libstdc++ -static-libgcc" \
+            -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" \
             -DCMAKE_LIBRARY_PATH="/usr/lib/i386-linux-gnu" \
             -DCMAKE_INCLUDE_PATH="/usr/include" \
             -DCMAKE_FIND_ROOT_PATH="/usr/lib/i386-linux-gnu" \
@@ -209,7 +212,9 @@ jobs:
           export CXX=g++-14
           export PKG_CONFIG_LIBDIR="/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig"
 
-          cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON
+          cmake --preset=linux-release -G "Ninja" -DGITHUB_ACTION_BUILD=ON \
+            -DCMAKE_SHARED_LINKER_FLAGS="-static-libstdc++ -static-libgcc" \
+            -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc"
           cmake --build build --config Release -- -j$(nproc)
 
       - name: Collect Linux Artifacts
@@ -224,6 +229,9 @@ jobs:
           cp build/libmillennium_x64.so ~/build/usr/lib/millennium/
           cp build/libmillennium_luavm_x64 ~/build/usr/lib/millennium/
           cp build/libmillennium_bootstrap_x64.so ~/build/usr/lib/millennium/
+
+      - name: Check Linux release glibc requirements
+        run: bash scripts/linux/check-release-glibc.sh "$HOME/build/usr/lib/millennium"
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
